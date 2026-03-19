@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Budget Peace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="/css/main.css" />
+</head>
+<body>
+
+  <!-- Nav overlay -->
+  <div id="nav-overlay" class="nav-overlay"></div>
+
+  <!-- Side Nav (hamburger — secondary/future items) -->
+  <nav id="side-nav" class="side-nav" aria-label="Main navigation">
+    <div class="side-nav__header">
+      <div class="side-nav__logo">Budget <span>Peace</span></div>
+    </div>
+    <div class="side-nav__links">
+      <button class="side-nav__link" data-page="home">
+        <span class="nav-icon">⌂</span> Home
+      </button>
+      <button class="side-nav__link" data-page="pay-period">
+        <span class="nav-icon">◷</span> Pay Period
+      </button>
+      <button class="side-nav__link" data-page="budgets">
+        <span class="nav-icon">◎</span> Budgets
+      </button>
+      <button class="side-nav__link" data-page="expenses">
+        <span class="nav-icon">≡</span> Expenses
+      </button>
+      <button class="side-nav__link" data-page="goals">
+        <span class="nav-icon">◆</span> Goals
+      </button>
+      <button class="side-nav__link" data-page="cards">
+        <span class="nav-icon">▭</span> Cards
+      </button>
+    </div>
+    <div class="side-nav__footer">
+      <button class="side-nav__link" data-page="compare">
+        <span class="nav-icon">⇄</span> Compare
+      </button>
+      <button class="side-nav__link" data-page="notes">
+        <span class="nav-icon">✎</span> Notes
+      </button>
+      <button class="side-nav__link" data-page="scenarios">
+        <span class="nav-icon">◫</span> Scenarios
+      </button>
+      <button class="side-nav__link" data-page="settings">
+        <span class="nav-icon">⚙</span> Settings
+      </button>
+    </div>
+  </nav>
+
+  <!-- Top Bar -->
+  <header class="top-bar">
+    <button id="hamburger" class="top-bar__hamburger" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+    <a id="brand" class="top-bar__brand" href="#home">Budget <span>Peace</span></a>
+    <span id="page-title" class="top-bar__title">Home</span>
+    <div id="tt-inline" class="top-bar__tt-inline">
+      <button id="tt-inline-btn" class="top-bar__tt-inline-btn" aria-label="Time Travel">📅 <span id="tt-inline-label">Today</span></button>
+      <input type="date" id="tt-picker" style="position:absolute;opacity:0;pointer-events:none;" />
+    </div>
+    <nav class="top-bar__nav" aria-label="Desktop navigation">
+      <button class="top-bar__nav-item" data-page="home">Home</button>
+      <button class="top-bar__nav-item" data-page="pay-period">Period</button>
+      <button class="top-bar__nav-item" data-page="budgets">Budgets</button>
+      <button class="top-bar__nav-item" data-page="expenses">Expenses</button>
+      <button class="top-bar__nav-item" data-page="goals">Goals</button>
+      <button class="top-bar__nav-item" data-page="cards">Cards</button>
+    </nav>
+    <div class="top-bar__action">
+      <button id="tt-open" class="top-bar__tt-btn" aria-label="Time Travel">📅</button>
+    </div>
+  </header>
+
+  <!-- Mobile Time Travel Panel (hidden by default) -->
+  <div id="tt-mobile-panel" class="tt-mobile-panel is-hidden">
+    <label class="tt-mobile-panel__label" for="tt-mobile-input">Jump to date:</label>
+    <input type="date" id="tt-mobile-input" class="tt-mobile-panel__input" />
+    <button id="tt-mobile-cancel" class="tt-mobile-panel__cancel">Cancel</button>
+  </div>
+
+  <!-- Scenario Selector (hidden when only 1 scenario) -->
+  <div id="scenario-selector" class="scenario-selector is-hidden"></div>
+
+  <!-- Time Travel Strip (hidden by default) -->
+  <div id="time-travel-strip" class="time-travel-strip is-hidden">
+    <span class="time-travel-strip__label">Viewing as: <strong id="tt-date"></strong></span>
+    <div class="time-travel-strip__actions">
+      <button id="tt-change" class="time-travel-strip__btn">Change</button>
+      <button id="tt-reset" class="time-travel-strip__btn">Back to Today</button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main id="main-content" class="main-content"></main>
+
+  <!-- Bottom Pill Nav -->
+  <nav id="bottom-nav" class="bottom-nav" aria-label="Page navigation">
+    <button class="bottom-nav__item" data-page="home">Home</button>
+    <button class="bottom-nav__item" data-page="pay-period">Period</button>
+    <button class="bottom-nav__item" data-page="budgets">Budgets</button>
+    <button class="bottom-nav__item" data-page="expenses">Expenses</button>
+    <button class="bottom-nav__item" data-page="cards">Cards</button>
+  </nav>
+
+  <!-- Speed Dial (reserved for future actions) -->
+  <div id="speed-dial" class="speed-dial is-hidden"></div>
+
+  <!-- FAB -->
+  <button id="fab" class="fab is-hidden" aria-label="Add">+</button>
+
+  <script src="/js/shared.js"></script>
+  <script src="/js/router.js"></script>
+  <script src="/js/pages/home.js"></script>
+  <script src="/js/pages/pay-period.js"></script>
+  <script src="/js/pages/budgets.js"></script>
+  <script src="/js/pages/expenses.js"></script>
+  <script src="/js/pages/goals.js"></script>
+  <script src="/js/pages/cards.js"></script>
+  <script src="/js/pages/compare.js"></script>
+  <script src="/js/pages/scenarios.js"></script>
+  <script src="/js/pages/notes.js"></script>
+  <script src="/js/pages/settings.js"></script>
+  <script src="/js/demo.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

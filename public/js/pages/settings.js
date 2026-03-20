@@ -157,7 +157,7 @@ function renderSettings(scenario) {
     btn.disabled = true;
 
     try {
-      const res = await fetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(scenario.scenarioId)}`, {
+      const res = await authFetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(scenario.scenarioId)}`, {
         method:  'PUT',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({

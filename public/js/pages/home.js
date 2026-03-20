@@ -406,7 +406,7 @@ function openNoteDetailModal(note, scenarioId, notesArray, renderCallback) {
       if (!newText) { alert('Note cannot be empty.'); return; }
       if (newText.length > 200) { alert('Note must be 200 characters or less.'); return; }
       try {
-        const res = await fetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(scenarioId)}/notes/${encodeURIComponent(note.id)}`, {
+        const res = await authFetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(scenarioId)}/notes/${encodeURIComponent(note.id)}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: newText }),
@@ -426,7 +426,7 @@ function openNoteDetailModal(note, scenarioId, notesArray, renderCallback) {
   document.getElementById('note-detail-delete').addEventListener('click', async () => {
     if (!confirm('Delete this note? This can\'t be undone.')) return;
     try {
-      const res = await fetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(scenarioId)}/notes/${encodeURIComponent(note.id)}`, {
+      const res = await authFetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(scenarioId)}/notes/${encodeURIComponent(note.id)}`, {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error('Delete note failed');
@@ -538,7 +538,7 @@ async function openBillDetailModal(expense, refreshFn) {
   document.getElementById('bill-detail-delete').addEventListener('click', async () => {
     if (!confirm(`Delete "${expense.name}"? This can't be undone.`)) return;
     try {
-      const res = await fetch(`/api/expenses/${userId()}/${expense.expenseId}`, { method: 'DELETE' });
+      const res = await authFetch(`/api/expenses/${userId()}/${expense.expenseId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Delete failed');
       Store.invalidate('expenses');
       closeModal();

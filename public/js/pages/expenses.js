@@ -461,13 +461,13 @@ async function openSheet(expense, onSave) {
       }
 
       if (editing) {
-        const res = await fetch(`/api/expenses/${userId()}/${expense.expenseId}`, {
+        const res = await authFetch(`/api/expenses/${userId()}/${expense.expenseId}`, {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error('Save failed');
       } else {
-        const res = await fetch('/api/expenses', {
+        const res = await authFetch('/api/expenses', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
@@ -500,7 +500,7 @@ async function confirmDelete(expense) {
 
   if (!confirm(`Delete "${expense.name}"? This can't be undone.`)) return;
   try {
-    const res = await fetch(`/api/expenses/${userId()}/${expense.expenseId}`, { method: 'DELETE' });
+    const res = await authFetch(`/api/expenses/${userId()}/${expense.expenseId}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Delete failed');
     Store.invalidate('expenses');
     _expenses = await Store.get('expenses');

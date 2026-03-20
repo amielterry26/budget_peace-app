@@ -190,13 +190,13 @@ function openGoalSheet(goal) {
 
     try {
       if (editing) {
-        const res = await fetch(`/api/goals/${userId()}/${goal.goalId}`, {
+        const res = await authFetch(`/api/goals/${userId()}/${goal.goalId}`, {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error('Save failed');
       } else {
-        const res = await fetch('/api/goals', {
+        const res = await authFetch('/api/goals', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
@@ -277,7 +277,7 @@ function openContributeModal(goal) {
     btn.disabled = true;
 
     try {
-      const res = await fetch(`/api/goals/${userId()}/${goal.goalId}/contribute`, {
+      const res = await authFetch(`/api/goals/${userId()}/${goal.goalId}/contribute`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: Number(amount) }),
       });
@@ -299,7 +299,7 @@ function openContributeModal(goal) {
 async function confirmDeleteGoal(goal) {
   if (!confirm(`Delete "${goal.name}"? This can't be undone.`)) return;
   try {
-    const res = await fetch(`/api/goals/${userId()}/${goal.goalId}`, { method: 'DELETE' });
+    const res = await authFetch(`/api/goals/${userId()}/${goal.goalId}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Delete failed');
     Store.invalidate('goals');
     _goals = await Store.get('goals');

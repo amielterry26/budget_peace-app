@@ -234,13 +234,13 @@ function openCardSheet(card) {
 
     try {
       if (editing) {
-        const res = await fetch(`/api/cards/${userId()}/${card.cardId}`, {
+        const res = await authFetch(`/api/cards/${userId()}/${card.cardId}`, {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error('Save failed');
       } else {
-        const res = await fetch('/api/cards', {
+        const res = await authFetch('/api/cards', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
@@ -266,7 +266,7 @@ function openCardSheet(card) {
 async function confirmDeleteCard(card) {
   if (!confirm(`Delete "${card.name}"? Expenses assigned to it won't be deleted.`)) return;
   try {
-    const res = await fetch(`/api/cards/${userId()}/${card.cardId}`, { method: 'DELETE' });
+    const res = await authFetch(`/api/cards/${userId()}/${card.cardId}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Delete failed');
     Store.invalidate('cards');
     _cards = await Store.get('cards');

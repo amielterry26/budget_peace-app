@@ -80,7 +80,7 @@ async function npAddNote() {
   input.value = '';
 
   try {
-    const res = await fetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(_notesScenario.scenarioId)}/notes`, {
+    const res = await authFetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(_notesScenario.scenarioId)}/notes`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
@@ -102,7 +102,7 @@ async function npDeleteNote(noteId) {
   renderNotesPage();
 
   try {
-    const res = await fetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(_notesScenario.scenarioId)}/notes/${encodeURIComponent(noteId)}`, {
+    const res = await authFetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(_notesScenario.scenarioId)}/notes/${encodeURIComponent(noteId)}`, {
       method: 'DELETE',
     });
     if (!res.ok) throw new Error('Delete note failed');
@@ -152,7 +152,7 @@ function npStartEdit(noteId, item) {
 
 async function npEditNote(noteId, newText, oldText) {
   try {
-    const res = await fetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(_notesScenario.scenarioId)}/notes/${encodeURIComponent(noteId)}`, {
+    const res = await authFetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(_notesScenario.scenarioId)}/notes/${encodeURIComponent(noteId)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: newText }),

@@ -5,6 +5,7 @@ const {
 const { randomUUID } = require('crypto');
 const router = express.Router();
 const db     = require('../config/dynamo');
+const { verifyOwner } = require('../middleware/auth');
 
 const TABLE = 'bp_expenses';
 const VALID_RECURRENCES = ['once', 'recurring'];
@@ -12,7 +13,7 @@ const VALID_RECURRENCES = ['once', 'recurring'];
 router.get('/health', (req, res) => res.json({ ok: true }));
 
 // GET /api/expenses/:userId?scenario=main
-router.get('/:userId', async (req, res) => {
+router.get('/:userId', verifyOwner, async (req, res) => {
   try {
     const scenario = req.query.scenario || 'main';
     const result = await db.send(new QueryCommand({
@@ -33,6 +34,10 @@ router.post('/', async (req, res) => {
   try {
     const { userId, name, amount, recurrence, periodStart, cardId,
             recurrenceFrequency, recurrenceStartDate, dueDay, dueDate, scenarioId } = req.body;
+    // Verify body userId matches authenticated user
+    if (userId && userId !== req.userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
     if (!userId || !name || !amount || !recurrence) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -76,7 +81,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/expenses/:userId/:expenseId
-router.put('/:userId/:expenseId', async (req, res) => {
+router.put('/:userId/:expenseId', verifyOwner, async (req, res) => {
   try {
     const { name, amount, recurrence, periodStart, cardId,
             recurrenceFrequency, recurrenceStartDate, dueDay, dueDate } = req.body;
@@ -134,7 +139,7 @@ router.put('/:userId/:expenseId', async (req, res) => {
 });
 
 // DELETE /api/expenses/:userId/:expenseId
-router.delete('/:userId/:expenseId', async (req, res) => {
+router.delete('/:userId/:expenseId', verifyOwner, async (req, res) => {
   try {
     await db.send(new DeleteCommand({
       TableName: TABLE,

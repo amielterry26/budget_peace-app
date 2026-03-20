@@ -4,6 +4,7 @@ const { randomUUID }  = require('crypto');
 const router          = express.Router();
 const db              = require('../config/dynamo');
 const generatePeriods = require('../lib/generatePeriods');
+const { verifyOwner } = require('../middleware/auth');
 
 const USERS_TABLE   = 'bp_users';
 const PERIODS_TABLE = 'bp_budget_periods';
@@ -111,7 +112,7 @@ router.post('/', async (req, res) => {
 router.get('/health', (req, res) => res.json({ ok: true }));
 
 // GET /api/users/:userId — fetch user profile
-router.get('/:userId', async (req, res) => {
+router.get('/:userId', verifyOwner, async (req, res) => {
   try {
     const item = await db.send(new GetCommand({
       TableName: USERS_TABLE,
@@ -126,7 +127,7 @@ router.get('/:userId', async (req, res) => {
 });
 
 // PUT /api/users/:userId — update owner setup (income, cadence, firstPayDate, durationMonths)
-router.put('/:userId', async (req, res) => {
+router.put('/:userId', verifyOwner, async (req, res) => {
   try {
     const err = validateSetup(req.body);
     if (err) return res.status(400).json({ error: err });
@@ -174,7 +175,7 @@ router.put('/:userId', async (req, res) => {
 });
 
 // PATCH /api/users/:userId/active-scenario — persist active scenario choice
-router.patch('/:userId/active-scenario', async (req, res) => {
+router.patch('/:userId/active-scenario', verifyOwner, async (req, res) => {
   try {
     const { scenarioId } = req.body;
     if (!scenarioId) return res.status(400).json({ error: 'scenarioId is required' });
@@ -192,7 +193,7 @@ router.patch('/:userId/active-scenario', async (req, res) => {
 });
 
 // POST /api/users/:userId/regenerate-periods — force delete + regenerate all periods
-router.post('/:userId/regenerate-periods', async (req, res) => {
+router.post('/:userId/regenerate-periods', verifyOwner, async (req, res) => {
   try {
     const userResult = await db.send(new GetCommand({
       TableName: USERS_TABLE,

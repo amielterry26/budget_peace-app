@@ -2,13 +2,14 @@ const express       = require('express');
 const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
 const router        = express.Router();
 const db            = require('../config/dynamo');
+const { verifyOwner } = require('../middleware/auth');
 
 const PERIODS_TABLE = 'bp_budget_periods_v2';
 
 router.get('/health', (req, res) => res.json({ ok: true }));
 
 // GET /api/budgets/:userId?scenario=main — periods for a scenario, ascending by date
-router.get('/:userId', async (req, res) => {
+router.get('/:userId', verifyOwner, async (req, res) => {
   try {
     if (!req.params.userId) {
       return res.status(400).json({ error: 'userId is required' });

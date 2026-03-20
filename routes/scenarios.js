@@ -6,6 +6,7 @@ const { randomUUID } = require('crypto');
 const router  = express.Router();
 const db      = require('../config/dynamo');
 const generatePeriods = require('../lib/generatePeriods');
+const { verifyOwner } = require('../middleware/auth');
 
 const SCENARIOS_TABLE = 'bp_scenarios';
 const PERIODS_TABLE   = 'bp_budget_periods_v2';
@@ -78,7 +79,7 @@ function generateScenarioPeriods(userId, scenarioId, cadence, firstPayDate, dura
 // ---- Routes -------------------------------------------------
 
 // PATCH /api/scenarios/:userId/:scenarioId/promote — make scenario primary
-router.patch('/:userId/:scenarioId/promote', async (req, res) => {
+router.patch('/:userId/:scenarioId/promote', verifyOwner, async (req, res) => {
   try {
     const { userId, scenarioId } = req.params;
 
@@ -122,7 +123,7 @@ router.patch('/:userId/:scenarioId/promote', async (req, res) => {
 });
 
 // GET /api/scenarios/:userId/:scenarioId — fetch single scenario
-router.get('/:userId/:scenarioId', async (req, res) => {
+router.get('/:userId/:scenarioId', verifyOwner, async (req, res) => {
   try {
     const result = await db.send(new GetCommand({
       TableName: SCENARIOS_TABLE,
@@ -137,7 +138,7 @@ router.get('/:userId/:scenarioId', async (req, res) => {
 });
 
 // GET /api/scenarios/:userId — list all scenarios (excludes soft-deleted)
-router.get('/:userId', async (req, res) => {
+router.get('/:userId', verifyOwner, async (req, res) => {
   try {
     const result = await db.send(new QueryCommand({
       TableName: SCENARIOS_TABLE,
@@ -156,6 +157,10 @@ router.get('/:userId', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { userId, name, cloneFrom } = req.body;
+    // Verify body userId matches authenticated user
+    if (userId && userId !== req.userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
     if (!userId || !name) return res.status(400).json({ error: 'userId and name are required' });
 
     const sourceId = cloneFrom || 'main';
@@ -219,7 +224,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/scenarios/:userId/:scenarioId — update name and/or financial setup
-router.put('/:userId/:scenarioId', async (req, res) => {
+router.put('/:userId/:scenarioId', verifyOwner, async (req, res) => {
   try {
     const { userId, scenarioId } = req.params;
 
@@ -283,7 +288,7 @@ router.put('/:userId/:scenarioId', async (req, res) => {
 });
 
 // POST /api/scenarios/:userId/:scenarioId/notes — add a note
-router.post('/:userId/:scenarioId/notes', async (req, res) => {
+router.post('/:userId/:scenarioId/notes', verifyOwner, async (req, res) => {
   try {
     const { userId, scenarioId } = req.params;
     const text = (req.body.text || '').trim();
@@ -316,7 +321,7 @@ router.post('/:userId/:scenarioId/notes', async (req, res) => {
 });
 
 // PATCH /api/scenarios/:userId/:scenarioId/notes/:noteId — edit a note
-router.patch('/:userId/:scenarioId/notes/:noteId', async (req, res) => {
+router.patch('/:userId/:scenarioId/notes/:noteId', verifyOwner, async (req, res) => {
   try {
     const { userId, scenarioId, noteId } = req.params;
     const text = (req.body.text || '').trim();
@@ -349,7 +354,7 @@ router.patch('/:userId/:scenarioId/notes/:noteId', async (req, res) => {
 });
 
 // DELETE /api/scenarios/:userId/:scenarioId/notes/:noteId — delete a note
-router.delete('/:userId/:scenarioId/notes/:noteId', async (req, res) => {
+router.delete('/:userId/:scenarioId/notes/:noteId', verifyOwner, async (req, res) => {
   try {
     const { userId, scenarioId, noteId } = req.params;
 
@@ -375,7 +380,7 @@ router.delete('/:userId/:scenarioId/notes/:noteId', async (req, res) => {
 });
 
 // DELETE /api/scenarios/:userId/:scenarioId/expenses — clear expenses only
-router.delete('/:userId/:scenarioId/expenses', async (req, res) => {
+router.delete('/:userId/:scenarioId/expenses', verifyOwner, async (req, res) => {
   try {
     const { userId, scenarioId } = req.params;
     await deleteByScenario(EXPENSES_TABLE, 'expenseId', userId, scenarioId);
@@ -387,7 +392,7 @@ router.delete('/:userId/:scenarioId/expenses', async (req, res) => {
 });
 
 // DELETE /api/scenarios/:userId/:scenarioId — delete scenario + cascade
-router.delete('/:userId/:scenarioId', async (req, res) => {
+router.delete('/:userId/:scenarioId', verifyOwner, async (req, res) => {
   try {
     const { userId, scenarioId } = req.params;
 

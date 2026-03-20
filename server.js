@@ -2,12 +2,27 @@ require('dotenv').config();
 
 const express = require('express');
 const path    = require('path');
+const { GetCommand, PutCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const db      = require('./config/dynamo');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ---- Auth middleware -----------------------------------------
+const { requireAuth } = require('./middleware/auth');
+
+// ---- Public endpoints (no auth required) --------------------
+
+// App config — returns public Supabase config for frontend
+app.get('/api/config', (req, res) => {
+  res.json({
+    SUPABASE_URL:      process.env.SUPABASE_URL || '',
+    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || '',
+  });
+});
 
 // Server runtime info
 app.get('/api/runtime', (req, res) => {
@@ -18,34 +33,113 @@ app.get('/api/runtime', (req, res) => {
   res.json({ serverToday });
 });
 
-// Owner identity — single-user mode
-app.get('/api/me', (req, res) => {
-  const uid = process.env.OWNER_USER_ID;
-  if (!uid) return res.status(500).json({ error: 'OWNER_USER_ID not configured' });
-  res.json({ userId: uid });
+// ---- Profile sync endpoint (auth required) ------------------
+// Called by frontend after successful auth. Creates or updates
+// the bp_users row. Identity comes from the VERIFIED JWT —
+// never from the request body.
+app.post('/api/auth/profile', requireAuth, async (req, res) => {
+  const userId       = req.userId;       // from verified JWT
+  const email        = req.userEmail;    // from verified JWT
+  const authProvider = req.userProvider; // from verified JWT metadata
+  const { fullName } = req.body;         // optional hint from frontend
+
+  try {
+    const existing = await db.send(new GetCommand({
+      TableName: 'bp_users',
+      Key: { userId },
+    }));
+
+    if (existing.Item) {
+      // Returning user — update lastLoginAt + email from verified token
+      await db.send(new UpdateCommand({
+        TableName: 'bp_users',
+        Key: { userId },
+        UpdateExpression: 'SET lastLoginAt = :now, email = :email',
+        ExpressionAttributeValues: {
+          ':now': new Date().toISOString(),
+          ':email': email,
+        },
+      }));
+    } else {
+      // New user — create with full access + seed main scenario
+      await db.send(new PutCommand({
+        TableName: 'bp_users',
+        Item: {
+          userId,
+          email,
+          fullName:           fullName || null,
+          authProvider:       authProvider || 'email',
+          accessLevel:        'full',     // Future: Stripe webhook writes this
+          entitlementStatus:  'active',   // Future: Stripe webhook writes this
+          planName:           'pro',      // Future: Stripe webhook writes this
+          createdAt:          new Date().toISOString(),
+          lastLoginAt:        new Date().toISOString(),
+        },
+      }));
+      await ensureMainScenarioForUser(userId);
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('POST /api/auth/profile error:', err);
+    res.status(500).json({ error: 'Failed to sync profile' });
+  }
 });
 
-// API routes (wired up per slice)
-app.use('/api/users',     require('./routes/users'));
-app.use('/api/budgets',   require('./routes/budgets'));
-app.use('/api/expenses',  require('./routes/expenses'));
-app.use('/api/cards',     require('./routes/cards'));
-app.use('/api/goals',     require('./routes/goals'));
-app.use('/api/scenarios', require('./routes/scenarios'));
+// ---- Protected API routes (auth required) -------------------
+app.use('/api/users',     requireAuth, require('./routes/users'));
+app.use('/api/budgets',   requireAuth, require('./routes/budgets'));
+app.use('/api/expenses',  requireAuth, require('./routes/expenses'));
+app.use('/api/cards',     requireAuth, require('./routes/cards'));
+app.use('/api/goals',     requireAuth, require('./routes/goals'));
+app.use('/api/scenarios', requireAuth, require('./routes/scenarios'));
 
-// Ensure "main" scenario exists (one-time seed from bp_users)
+// ---- Migration endpoint (auth required) ---------------------
+app.use('/api/admin',     requireAuth, require('./routes/migrate'));
+
+// ---- Seed helpers -------------------------------------------
+
+// Seeds a "main" scenario for a new user (called from profile sync)
+async function ensureMainScenarioForUser(userId) {
+  try {
+    const existing = await db.send(new GetCommand({
+      TableName: 'bp_scenarios',
+      Key: { userId, scenarioId: 'main' },
+    }));
+    if (existing.Item) return;
+
+    await db.send(new PutCommand({
+      TableName: 'bp_scenarios',
+      Item: {
+        userId,
+        scenarioId: 'main',
+        name: 'Main',
+        income: 0,
+        cadence: 'biweekly',
+        firstPayDate: new Date().toISOString().split('T')[0],
+        durationMonths: 2,
+        isPrimary: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    }));
+    console.log(`Seeded "main" scenario for user ${userId}`);
+  } catch (err) {
+    console.error('ensureMainScenarioForUser error:', err);
+  }
+}
+
+// Legacy: ensure main scenario for OWNER_USER_ID on boot
+// Kept for backwards compatibility during migration period
 async function ensureMainScenario() {
   const ownerId = process.env.OWNER_USER_ID;
   if (!ownerId) return;
-  const { GetCommand, PutCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
-  const db = require('./config/dynamo');
   try {
     const existing = await db.send(new GetCommand({
       TableName: 'bp_scenarios',
       Key: { userId: ownerId, scenarioId: 'main' },
     }));
     if (existing.Item) {
-      // One-time migration: set isPrimary if missing
       if (existing.Item.isPrimary === undefined) {
         await db.send(new UpdateCommand({
           TableName: 'bp_scenarios',
@@ -80,17 +174,17 @@ async function ensureMainScenario() {
 }
 ensureMainScenario();
 
-// Landing page (standalone, not part of SPA)
+// ---- Landing page & SPA fallback ----------------------------
+
 app.get('/landing', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'landing.html'));
 });
 
-// SPA fallback
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Global error handler — catches unhandled errors in async route handlers
+// Global error handler
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });

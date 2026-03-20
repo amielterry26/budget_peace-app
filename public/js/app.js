@@ -161,19 +161,61 @@ async function updateScenarioSelector() {
 }
 
 // --- Boot ---------------------------------------------------
+// New auth-aware boot sequence:
+//   1. Demo check (unchanged, runs before any auth)
+//   2. Initialize Supabase client
+//   3. Show loading state while checking session
+//   4. Auth gate: no session → show auth screen
+//   5. Set _ownerId from verified Supabase session
+//   6. Sync profile (create/update bp_users row)
+//   7. Fetch runtime, restore state, init app
 (async () => {
   try {
-    // Check for demo mode
+    // ---- Step 1: Demo mode check (first, before any auth) ----
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('demo') === 'true') {
       initDemoGuided();
       return;
     }
 
-    const [, runtime] = await Promise.all([
-      initIdentity(),
-      fetch('/api/runtime').then(r => r.json()),
-    ]);
+    // ---- Step 2: Initialize Supabase client -------------------
+    // Show loading state while we check auth
+    document.querySelector('.top-bar').style.display = 'none';
+    document.getElementById('bottom-nav').classList.add('is-hidden');
+    document.getElementById('fab').classList.add('is-hidden');
+    document.getElementById('main-content').innerHTML = `
+      <div class="auth-loading">
+        <div class="auth-loading__text">Loading...</div>
+      </div>`;
+
+    await BPSupabase.init();
+
+    // ---- Step 3: Check for existing session -------------------
+    const session = await Auth.getSession();
+
+    // ---- Step 4: Auth gate — one clean check ------------------
+    if (!session) {
+      renderAuthScreen();
+      // Listen for auth state changes (e.g., returning from
+      // Google redirect or magic link)
+      Auth.onAuthChange((event, newSession) => {
+        if (event === 'SIGNED_IN' && newSession) {
+          // Session restored from redirect — reload to boot fully
+          window.location.reload();
+        }
+      });
+      return;
+    }
+
+    // ---- Step 5: Set real user identity -----------------------
+    // _ownerId is now the Supabase auth UUID, not OWNER_USER_ID
+    _ownerId = session.user.id;
+
+    // ---- Step 6: Sync profile (create/update bp_users row) ----
+    await Auth.syncProfile(session);
+
+    // ---- Step 7: Normal app boot (same as before, minus initIdentity) ----
+    const runtime = await fetch('/api/runtime').then(r => r.json());
     _serverToday = runtime.serverToday;
     restoreViewDate();
 
@@ -181,11 +223,33 @@ async function updateScenarioSelector() {
     const user = await Store.get('user');
     _activeScenario = user.activeScenarioId || 'main';
 
+    // Show app chrome
+    document.querySelector('.top-bar').style.display = '';
+    document.getElementById('bottom-nav').classList.remove('is-hidden');
+
+    // Show logout button (hidden in demo mode)
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+      logoutBtn.style.display = '';
+      logoutBtn.addEventListener('click', () => Auth.signOut());
+    }
+
     initTimeTravelStrip();
     updateScenarioSelector();
     Router.init();
+
+    // ---- Step 8: Listen for auth state changes ----------------
+    Auth.onAuthChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        // Session ended — reload to show auth screen
+        window.location.reload();
+      }
+      // TOKEN_REFRESHED is handled automatically by Supabase
+    });
+
   } catch (err) {
     console.error('Boot failed:', err);
+    document.querySelector('.top-bar').style.display = '';
     document.getElementById('main-content').innerHTML = `
       <div class="page text-center" style="padding-top:64px;">
         <p class="text-muted text-sm">Failed to connect. Please try again.</p>

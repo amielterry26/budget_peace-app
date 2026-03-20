@@ -149,7 +149,7 @@ function startRename(scenario) {
     if (newName === currentName) { cancel(); return; }
 
     try {
-      const res = await fetch(`/api/scenarios/${userId()}/${scenario.scenarioId}`, {
+      const res = await authFetch(`/api/scenarios/${userId()}/${scenario.scenarioId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newName }),
@@ -190,7 +190,7 @@ async function executeDeleteScenario(scenario) {
       if (primary) await setScenario(primary.scenarioId);
     }
 
-    const res = await fetch(`/api/scenarios/${userId()}/${scenario.scenarioId}`, { method: 'DELETE' });
+    const res = await authFetch(`/api/scenarios/${userId()}/${scenario.scenarioId}`, { method: 'DELETE' });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error || 'Delete failed');
@@ -267,7 +267,7 @@ function openDeletePrimarySheet(scenario) {
       return;
     }
     // Promote another scenario to primary
-    await fetch(`/api/scenarios/${userId()}/${other.scenarioId}/promote`, { method: 'PATCH' });
+    await authFetch(`/api/scenarios/${userId()}/${other.scenarioId}/promote`, { method: 'PATCH' });
 
     closeSheet();
     await executeDeleteScenario(scenario);
@@ -281,7 +281,7 @@ async function confirmSetAsMain(scenario) {
   if (!confirm(`Make "${scenario.name}" the primary scenario?`)) return;
 
   try {
-    const res = await fetch(`/api/scenarios/${userId()}/${scenario.scenarioId}/promote`, { method: 'PATCH' });
+    const res = await authFetch(`/api/scenarios/${userId()}/${scenario.scenarioId}/promote`, { method: 'PATCH' });
     if (!res.ok) throw new Error('Promote failed');
 
     Store.invalidate('scenarios');
@@ -301,7 +301,7 @@ async function confirmClearScenario(scenario) {
   if (!confirm(`Clear all expenses from "${scenario.name}"? Periods and financial setup will be kept. This can't be undone.`)) return;
 
   try {
-    const res = await fetch(`/api/scenarios/${userId()}/${scenario.scenarioId}/expenses`, { method: 'DELETE' });
+    const res = await authFetch(`/api/scenarios/${userId()}/${scenario.scenarioId}/expenses`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Clear failed');
 
     Store.invalidate('expenses');
@@ -394,7 +394,7 @@ async function openNewScenarioSheet() {
     btn.disabled = true;
 
     try {
-      const res = await fetch('/api/scenarios', {
+      const res = await authFetch('/api/scenarios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: userId(), name, cloneFrom, skipExpenses }),

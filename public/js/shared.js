@@ -3,7 +3,7 @@
 // Loaded before all page scripts.
 // ============================================================
 
-// Owner identity — fetched from server once on boot
+// Owner identity — set from Supabase auth session on boot (app.js)
 let _ownerId = null;
 let _demoMode = false;
 
@@ -11,16 +11,26 @@ function isDemoMode() {
   return _demoMode === true;
 }
 
-async function initIdentity() {
-  const res = await fetch('/api/me');
-  if (!res.ok) throw new Error('Failed to fetch owner identity');
-  const data = await res.json();
-  _ownerId = data.userId;
+function userId() {
   return _ownerId;
 }
 
-function userId() {
-  return _ownerId;
+// ---- Auth-aware fetch helper --------------------------------
+// Attaches Authorization header with the current Supabase JWT.
+// Used by Store and all page scripts for protected API calls.
+// In demo mode, falls through to regular fetch (demo.js
+// overrides window.fetch to intercept mutations).
+async function authFetch(url, opts = {}) {
+  if (isDemoMode()) return fetch(url, opts);
+
+  const token = await Auth.getAccessToken();
+  if (token) {
+    opts.headers = {
+      ...opts.headers,
+      Authorization: `Bearer ${token}`,
+    };
+  }
+  return fetch(url, opts);
 }
 
 function localToday() {
@@ -41,7 +51,7 @@ async function setScenario(scenarioId) {
   _activeScenario = scenarioId;
   // Persist to server (skip in demo mode)
   if (!isDemoMode()) {
-    await fetch(`/api/users/${userId()}/active-scenario`, {
+    await authFetch(`/api/users/${userId()}/active-scenario`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ scenarioId }),
@@ -125,7 +135,7 @@ const Store = (() => {
   };
 
   async function _fetch(key) {
-    const res = await fetch(endpoints[key]());
+    const res = await authFetch(endpoints[key]());
     if (!res.ok) throw new Error(`Store: failed to fetch ${key}`);
     return res.json();
   }
@@ -255,7 +265,7 @@ function mountNotesWidget(prefix, scenarioId, initialNotes) {
     input.value = '';
 
     try {
-      const res = await fetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(scenarioId)}/notes`, {
+      const res = await authFetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(scenarioId)}/notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
@@ -277,7 +287,7 @@ function mountNotesWidget(prefix, scenarioId, initialNotes) {
     render();
 
     try {
-      const res = await fetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(scenarioId)}/notes/${encodeURIComponent(noteId)}`, {
+      const res = await authFetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(scenarioId)}/notes/${encodeURIComponent(noteId)}`, {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error('Delete note failed');
@@ -332,7 +342,7 @@ function mountNotesWidget(prefix, scenarioId, initialNotes) {
 
   async function editNote(noteId, newText, oldText) {
     try {
-      const res = await fetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(scenarioId)}/notes/${encodeURIComponent(noteId)}`, {
+      const res = await authFetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(scenarioId)}/notes/${encodeURIComponent(noteId)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: newText }),

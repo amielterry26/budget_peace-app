@@ -127,7 +127,7 @@ async function renderCompareGrid(scenarios) {
 // ---- Data --------------------------------------------------
 
 async function fetchScenarioExpenses(scenarioId) {
-  const res = await fetch(`/api/expenses/${userId()}?scenario=${encodeURIComponent(scenarioId)}`);
+  const res = await authFetch(`/api/expenses/${userId()}?scenario=${encodeURIComponent(scenarioId)}`);
   if (!res.ok) throw new Error('Failed to fetch expenses');
   return res.json();
 }

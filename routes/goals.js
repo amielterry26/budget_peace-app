@@ -5,11 +5,12 @@ const {
 const { randomUUID } = require('crypto');
 const router = express.Router();
 const db     = require('../config/dynamo');
+const { verifyOwner } = require('../middleware/auth');
 
 const TABLE = 'bp_goals';
 
 // GET /api/goals/:userId
-router.get('/:userId', async (req, res) => {
+router.get('/:userId', verifyOwner, async (req, res) => {
   try {
     const result = await db.send(new QueryCommand({
       TableName:                 TABLE,
@@ -27,6 +28,10 @@ router.get('/:userId', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { userId, name, targetAmount, targetDate, plannedContribution } = req.body;
+    // Verify body userId matches authenticated user
+    if (userId && userId !== req.userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
     if (!userId || !name || !targetAmount || !targetDate) {
       return res.status(400).json({ error: 'Missing required fields (userId, name, targetAmount, targetDate)' });
     }
@@ -57,7 +62,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/goals/:userId/:goalId
-router.put('/:userId/:goalId', async (req, res) => {
+router.put('/:userId/:goalId', verifyOwner, async (req, res) => {
   try {
     const { name, targetAmount, targetDate, plannedContribution } = req.body;
     if (!name || !targetAmount || !targetDate) {
@@ -97,7 +102,7 @@ router.put('/:userId/:goalId', async (req, res) => {
 });
 
 // POST /api/goals/:userId/:goalId/contribute
-router.post('/:userId/:goalId/contribute', async (req, res) => {
+router.post('/:userId/:goalId/contribute', verifyOwner, async (req, res) => {
   try {
     const { amount } = req.body;
     const parsedAmount = Number(amount);
@@ -124,7 +129,7 @@ router.post('/:userId/:goalId/contribute', async (req, res) => {
 });
 
 // DELETE /api/goals/:userId/:goalId
-router.delete('/:userId/:goalId', async (req, res) => {
+router.delete('/:userId/:goalId', verifyOwner, async (req, res) => {
   try {
     await db.send(new DeleteCommand({
       TableName: TABLE,

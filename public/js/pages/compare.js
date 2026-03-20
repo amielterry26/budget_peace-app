@@ -63,6 +63,7 @@ async function renderComparePage(scenarios) {
         <div class="text-muted text-sm" style="margin-bottom:var(--space-2);">Select 2–3 scenarios to compare</div>
         <div class="cmp-chips">${chips}</div>
       </div>
+      <div class="cmp-mobile-hint">For the best view, rotate your phone to landscape.</div>
       <div id="cmp-grid"></div>
     </div>`;
 

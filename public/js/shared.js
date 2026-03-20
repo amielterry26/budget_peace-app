@@ -67,6 +67,7 @@ function effectiveToday() {
 
 function setViewDate(dateStr) {
   _viewDate = dateStr;
+  try { localStorage.setItem('bp_viewDate', dateStr); } catch(e) {}
   const { page, params } = Router.parseHash(location.hash);
   Router.render(page, params);
   updateTimeTravelStrip();
@@ -74,9 +75,20 @@ function setViewDate(dateStr) {
 
 function clearViewDate() {
   _viewDate = null;
+  try { localStorage.removeItem('bp_viewDate'); } catch(e) {}
   const { page, params } = Router.parseHash(location.hash);
   Router.render(page, params);
   updateTimeTravelStrip();
+}
+
+function restoreViewDate() {
+  try {
+    const saved = localStorage.getItem('bp_viewDate');
+    if (saved) {
+      _viewDate = saved;
+      updateTimeTravelStrip();
+    }
+  } catch(e) {}
 }
 
 function isTimeTraveling() {
@@ -215,6 +227,7 @@ function mountNotesWidget(prefix, scenarioId, initialNotes) {
 
       listEl.querySelectorAll('.notes-item').forEach(item => {
         const noteId = item.dataset.noteId;
+        const note = notes.find(n => n.id === noteId);
         item.querySelector('.notes-item__edit').addEventListener('click', (e) => {
           e.stopPropagation();
           startEdit(noteId, item);
@@ -222,6 +235,11 @@ function mountNotesWidget(prefix, scenarioId, initialNotes) {
         item.querySelector('.notes-item__del').addEventListener('click', (e) => {
           e.stopPropagation();
           deleteNote(noteId);
+        });
+        item.addEventListener('click', () => {
+          if (note && typeof openNoteDetailModal === 'function') {
+            openNoteDetailModal(note, scenarioId, notes, render);
+          }
         });
       });
     }

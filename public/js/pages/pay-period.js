@@ -39,7 +39,11 @@ Router.register('pay-period', async (params) => {
     } else {
       const today = effectiveToday();
       idx = periods.findIndex(p => today >= p.startDate && today <= p.endDate);
-      if (idx === -1) idx = today < periods[0].startDate ? 0 : periods.length - 1;
+      if (idx === -1) {
+        // Prefer most recent past period over first future period
+        const pastIdx = [...periods].map((p, i) => [p, i]).reverse().find(([p]) => p.endDate <= today);
+        idx = pastIdx ? pastIdx[1] : 0;
+      }
     }
 
     renderPeriod(idx);
@@ -89,8 +93,8 @@ function renderPeriod(idx) {
 
       <!-- Period card -->
       <div class="card">
-        <div style="margin-bottom:var(--space-4);">
-          <div class="hero-label">Remaining this period</div>
+        <div class="pd-remaining-tile${isOver ? ' pd-remaining-tile--danger' : ''}">
+          <div class="hero-label">Left this period</div>
           <div class="dash-remaining" style="${remColor}">${pdMoney(pd.remaining)}</div>
         </div>
         <div class="divider"></div>
@@ -107,9 +111,9 @@ function renderPeriod(idx) {
         </div>
         <div class="spend-bar__label">${spendPct}% of income spent</div>
         <button class="breakdown-toggle" id="breakdown-toggle">
-          See full breakdown <span id="bd-chevron">▼</span>
+          Hide breakdown <span id="bd-chevron">▲</span>
         </button>
-        <div id="period-breakdown" class="period-breakdown" style="display:none;">
+        <div id="period-breakdown" class="period-breakdown">
           <div class="divider" style="margin-top:var(--space-3);"></div>
           ${buildPdBreakdown(pd)}
           <button class="btn btn--ghost btn--full"
@@ -128,38 +132,62 @@ function renderPeriod(idx) {
   document.getElementById('breakdown-toggle').addEventListener('click', () => {
     const bd      = document.getElementById('period-breakdown');
     const chevron = document.getElementById('bd-chevron');
+    const btn     = document.getElementById('breakdown-toggle');
     const isOpen  = bd.style.display !== 'none';
     bd.style.display    = isOpen ? 'none' : 'block';
     chevron.textContent = isOpen ? '▼' : '▲';
+    btn.childNodes[0].textContent = isOpen ? 'See full breakdown ' : 'Hide breakdown ';
   });
 
   document.getElementById('view-all-btn')?.addEventListener('click', () => Router.navigate('budgets'));
+
+  // Bill mini-card click handlers
+  document.querySelectorAll('.pd-bill-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const idx = Number(card.dataset.pdBillIdx);
+      if (_pdBreakdownItems[idx]) openBillDetailModal(_pdBreakdownItems[idx], payPeriodRefresh);
+    });
+  });
 }
 
 // ---- Builders ----------------------------------------------
 
+let _pdBreakdownItems = []; // cached for bill card click handlers
+
 function buildPdBreakdown(pd) {
   let html = '';
+  _pdBreakdownItems = [];
 
   if (pd.recurringItems.length) {
     html += `<div class="section-title" style="margin:var(--space-3) 0 var(--space-1);">Recurring</div>`;
-    html += pd.recurringItems.map(e => `
-      <div class="stat-row">
+    html += pd.recurringItems.map(e => {
+      const idx = _pdBreakdownItems.length;
+      _pdBreakdownItems.push(e);
+      return `
+      <div class="period-bill-card pd-bill-card" data-pd-bill-idx="${idx}">
         <div>
-          <div class="stat-row__label">${esc(e.name)}</div>
-          ${e.note ? `<div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-top:1px;">${e.note}</div>` : ''}
+          <span class="period-bill-card__name">${esc(e.name)}</span>
+          ${e.dueDay ? `<div class="period-bill-card__note">Due day ${e.dueDay}</div>` : ''}
         </div>
-        <span class="stat-row__value">${pdMoney(e.displayAmount)}</span>
-      </div>`).join('');
+        <span class="period-bill-card__amount">${pdMoney(e.displayAmount)}</span>
+      </div>`;
+    }).join('');
   }
 
   if (pd.onceItems.length) {
     html += `<div class="section-title" style="margin:var(--space-4) 0 var(--space-1);">One-time</div>`;
-    html += pd.onceItems.map(e => `
-      <div class="stat-row">
-        <span class="stat-row__label">${esc(e.name)}</span>
-        <span class="stat-row__value">${pdMoney(e.amount)}</span>
-      </div>`).join('');
+    html += pd.onceItems.map(e => {
+      const idx = _pdBreakdownItems.length;
+      _pdBreakdownItems.push(e);
+      return `
+      <div class="period-bill-card pd-bill-card" data-pd-bill-idx="${idx}">
+        <div>
+          <span class="period-bill-card__name">${esc(e.name)}</span>
+          ${e.dueDate ? `<div class="period-bill-card__note">${e.dueDate}</div>` : ''}
+        </div>
+        <span class="period-bill-card__amount">${pdMoney(e.amount)}</span>
+      </div>`;
+    }).join('');
   }
 
   if (!pd.recurringItems.length && !pd.onceItems.length) {

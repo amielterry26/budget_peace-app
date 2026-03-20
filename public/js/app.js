@@ -175,6 +175,7 @@ async function updateScenarioSelector() {
       fetch('/api/runtime').then(r => r.json()),
     ]);
     _serverToday = runtime.serverToday;
+    restoreViewDate();
 
     // Load user record to get persisted active scenario
     const user = await Store.get('user');

@@ -53,10 +53,10 @@ function renderAuthScreen() {
         </div>
 
         <!-- Status messages -->
-        <div class="auth-message auth-message--success is-hidden" id="auth-success">
+        <div class="auth-message auth-message--success" id="auth-success" style="display:none;">
           Check your email for your sign-in link.
         </div>
-        <div class="auth-message auth-message--error is-hidden" id="auth-error">
+        <div class="auth-message auth-message--error" id="auth-error" style="display:none;">
           Something went wrong. Please try again.
         </div>
 
@@ -89,10 +89,10 @@ function renderAuthScreen() {
     }
   }
 
-  // Helper: show message
+  // Helper: show message (only one at a time, or none)
   function showMessage(type) {
-    successEl.classList.toggle('is-hidden', type !== 'success');
-    errorEl.classList.toggle('is-hidden', type !== 'error');
+    successEl.style.display = type === 'success' ? '' : 'none';
+    errorEl.style.display   = type === 'error'   ? '' : 'none';
   }
 
   // Google sign-in

@@ -185,6 +185,7 @@ async function updateScenarioSelector() {
     document.getElementById('fab').classList.add('is-hidden');
     document.getElementById('main-content').innerHTML = `
       <div class="auth-loading">
+        <div class="auth-loading__spinner"></div>
         <div class="auth-loading__text">Loading...</div>
       </div>`;
 

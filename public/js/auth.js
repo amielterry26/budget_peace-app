@@ -147,39 +147,61 @@ const Auth = (() => {
 
   // ---- Access / Entitlement Helpers ---------------------------
   //
-  // Centralized access checks. Currently, every authenticated
-  // user gets full access. Future Stripe integration will read
-  // these from the user's profile/membership record.
+  // Reads from the cached user profile (bp_users row).
+  // loadProfile() must be called during boot after auth is confirmed.
+  // Plans.js uses getAccessLevel() to determine feature gating.
   //
   // IMPORTANT: Do not hardcode access booleans elsewhere in the
-  // app. Always go through these helpers.
+  // app. Always go through these helpers or Plans.js.
+
+  let _cachedProfile = null;
+
+  // Fetches the user's bp_users row and caches it.
+  // Called once during boot after auth + profile sync.
+  async function loadProfile(session) {
+    if (!session) return;
+    const userId = session.user.id;
+    try {
+      const res = await authFetch(`/api/users/${userId}`);
+      if (res.ok) {
+        _cachedProfile = await res.json();
+      } else {
+        console.error('Auth.loadProfile failed:', res.status);
+      }
+    } catch (err) {
+      console.error('Auth.loadProfile error:', err);
+    }
+  }
 
   // Can this user access the real app?
-  // Current: any authenticated user = yes
-  // Future: check entitlementStatus !== 'inactive'/'canceled'
+  // Requires active entitlement (paid user).
   function canAccess() {
-    return true;
+    if (!_cachedProfile) return false;
+    const status = _cachedProfile.entitlementStatus;
+    return status === 'active' || status === 'past_due';
   }
 
   // What access level does this user have?
-  // Current: always 'full'
-  // Future: 'tester' | 'core' | 'pro' | 'inactive' etc.
+  // 'budget' | 'pro' | 'full' (legacy) | 'none'
   function getAccessLevel() {
-    return 'full';
+    return _cachedProfile?.accessLevel || 'none';
   }
 
   // What plan is this user on?
-  // Current: always 'pro'
-  // Future: 'free' | 'core' | 'pro' | 'trial' etc.
+  // 'budget-monthly' | 'budget-lifetime' | 'pro-monthly' | 'pro-lifetime' | 'none'
   function getPlan() {
-    return 'pro';
+    return _cachedProfile?.planName || 'none';
   }
 
   // What is this user's entitlement status?
-  // Current: always 'active'
-  // Future: 'active' | 'canceled' | 'past_due' | 'trial' etc.
+  // 'active' | 'inactive' | 'past_due' | 'canceled' etc.
   function getEntitlementStatus() {
-    return 'active';
+    return _cachedProfile?.entitlementStatus || 'inactive';
+  }
+
+  // Returns the cached profile object (or null).
+  function getProfile() {
+    return _cachedProfile;
   }
 
   return {
@@ -190,9 +212,11 @@ const Auth = (() => {
     signOut,
     onAuthChange,
     syncProfile,
+    loadProfile,
     canAccess,
     getAccessLevel,
     getPlan,
     getEntitlementStatus,
+    getProfile,
   };
 })();

@@ -174,6 +174,7 @@ function renderHealth(months) {
 
       <div class="dash-section home-section-health">
         <div class="rail-title">Financial Health</div>
+        ${Plans.canUse('financialHealth') ? `
         <div class="card home-card--side">
           <div class="card-header">Financial Health</div>
           <div class="home-supporting-copy">
@@ -204,6 +205,13 @@ function renderHealth(months) {
             </div>
           </div>
         </div>
+        ` : `
+        <div class="card home-card--side" style="text-align:center;padding:var(--space-5) var(--space-4);">
+          <div class="card-header">Financial Health</div>
+          <p class="text-muted text-sm" style="margin:var(--space-2) 0 var(--space-4);">Financial health projections are available on Budget Peace Pro.</p>
+          <button class="btn btn--primary" id="health-upgrade">Upgrade to Pro</button>
+        </div>
+        `}
       </div>
 
     </div>`;
@@ -214,6 +222,7 @@ function renderHealth(months) {
     btn.addEventListener('click', () => renderHealth(Number(btn.dataset.months)));
   });
 
+  document.getElementById('health-upgrade')?.addEventListener('click', () => Plans.showUpgradeModal());
   document.getElementById('go-pay-period')?.addEventListener('click', () => Router.navigate('pay-period'));
   document.getElementById('period-shortcut')?.addEventListener('click', () => Router.navigate('pay-period'));
 

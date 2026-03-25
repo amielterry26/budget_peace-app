@@ -215,6 +215,9 @@ async function updateScenarioSelector() {
     // ---- Step 6: Sync profile (create/update bp_users row) ----
     await Auth.syncProfile(session);
 
+    // ---- Step 6b: Load profile for plan gating -----------------
+    await Auth.loadProfile(session);
+
     // ---- Step 7: Normal app boot (same as before, minus initIdentity) ----
     const runtime = await fetch('/api/runtime').then(r => r.json());
     _serverToday = runtime.serverToday;
@@ -233,6 +236,16 @@ async function updateScenarioSelector() {
     if (logoutBtn) {
       logoutBtn.style.display = '';
       logoutBtn.addEventListener('click', () => Auth.signOut());
+    }
+
+    // Show upgrade button for non-pro users
+    const upgradeBtn = document.getElementById('upgrade-btn');
+    if (upgradeBtn && Plans.getTier() !== 'pro') {
+      upgradeBtn.style.display = '';
+      upgradeBtn.addEventListener('click', () => {
+        closeNav();
+        Plans.showUpgradeModal();
+      });
     }
 
     initTimeTravelStrip();

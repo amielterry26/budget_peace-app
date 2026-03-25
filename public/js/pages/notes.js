@@ -73,6 +73,12 @@ function renderNotesPage() {
 }
 
 async function npAddNote() {
+  // Plan gate: scenario notes are Pro-only
+  if (!Plans.canUse('scenarioNotes')) {
+    Plans.showUpgradeModal();
+    return;
+  }
+
   const input = document.getElementById('np-input');
   const text = (input.value || '').trim();
   if (!text) return;

@@ -10,6 +10,18 @@ Router.register('compare', async () => {
   showBottomNav(true);
   showFab(false);
 
+  // Plan gate: scenario comparison is Pro-only
+  if (!Plans.canUse('scenarioComparison')) {
+    document.getElementById('main-content').innerHTML = `
+      <div class="page text-center" style="padding-top:64px;">
+        <p style="font-size:var(--font-size-md);font-weight:var(--font-weight-semibold);margin-bottom:var(--space-2);">Pro Feature</p>
+        <p class="text-muted text-sm" style="margin-bottom:var(--space-4);">Scenario comparison is available on Budget Peace Pro.</p>
+        <button class="btn btn--primary" id="compare-upgrade">Upgrade to Pro</button>
+      </div>`;
+    document.getElementById('compare-upgrade').addEventListener('click', () => Plans.showUpgradeModal());
+    return;
+  }
+
   document.getElementById('main-content').innerHTML = `
     <div class="page">
       <div class="text-muted text-sm text-center" style="padding:64px 0;">Loading…</div>

@@ -238,6 +238,15 @@ async function openSheet(expense, onSave) {
     if (!demoGate('expensesAdded')) return;
   }
 
+  // Plan gate: check expense limit (only for new expenses, not edits)
+  if (!editing && !isDemoMode()) {
+    const maxExpenses = Plans.getLimit('maxExpenses');
+    if (typeof maxExpenses === 'number' && _expenses.length >= maxExpenses) {
+      Plans.showUpgradeModal();
+      return;
+    }
+  }
+
   // Read periods and cards from Store
   let periods, sheetCards;
   try {

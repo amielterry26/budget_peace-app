@@ -322,6 +322,13 @@ async function openNewScenarioSheet() {
     scenarios = await Store.get('scenarios');
   } catch { scenarios = []; }
 
+  // Plan gate: check scenario limit
+  const maxScenarios = Plans.getLimit('maxScenarios');
+  if (scenarios.length >= maxScenarios) {
+    Plans.showUpgradeModal();
+    return;
+  }
+
   const cloneOptions = scenarios.map(s =>
     `<option value="${esc(s.scenarioId)}" ${s.scenarioId === _activeScenario ? 'selected' : ''}>${esc(s.name)}</option>`
   ).join('');

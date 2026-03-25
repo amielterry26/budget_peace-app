@@ -30,7 +30,15 @@ async function authFetch(url, opts = {}) {
       Authorization: `Bearer ${token}`,
     };
   }
-  return fetch(url, opts);
+  const res = await fetch(url, opts);
+
+  // Session expired and refresh failed — force re-auth
+  if (res.status === 401) {
+    window.location.reload();
+    return new Promise(() => {}); // hang while reloading
+  }
+
+  return res;
 }
 
 function localToday() {

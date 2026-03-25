@@ -1,6 +1,5 @@
 const express         = require('express');
 const { PutCommand, UpdateCommand, BatchWriteCommand, GetCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
-const { randomUUID }  = require('crypto');
 const router          = express.Router();
 const db              = require('../config/dynamo');
 const generatePeriods = require('../lib/generatePeriods');
@@ -82,32 +81,6 @@ function validateSetup(body) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(firstPayDate) || isNaN(Date.parse(firstPayDate))) return 'firstPayDate must be a valid date in YYYY-MM-DD format';
   return null;
 }
-
-// POST /api/users — create user + generate all budget periods
-router.post('/', async (req, res) => {
-  try {
-    const err = validateSetup(req.body);
-    if (err) return res.status(400).json({ error: err });
-
-    const { cadence, firstPayDate } = req.body;
-    const duration = Number(req.body.durationMonths);
-    const income   = Number(req.body.incomeAmount);
-    const userId   = randomUUID();
-
-    await db.send(new PutCommand({
-      TableName: USERS_TABLE,
-      Item: { userId, cadence, durationMonths: duration, firstPayDate, incomeAmount: income, createdAt: new Date().toISOString() },
-    }));
-
-    const periods = generatePeriods(userId, cadence, firstPayDate, duration, income);
-    await replacePeriods(userId, periods);
-
-    res.json({ userId, periodCount: periods.length });
-  } catch (err) {
-    console.error('POST /api/users error:', err);
-    res.status(500).json({ error: 'Failed to create user' });
-  }
-});
 
 router.get('/health', (req, res) => res.json({ ok: true }));
 

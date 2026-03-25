@@ -1,5 +1,5 @@
 const express = require('express');
-const { QueryCommand, PutCommand, GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { QueryCommand, PutCommand, GetCommand, UpdateCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
 const router  = express.Router();
 const db      = require('../config/dynamo');
 const { verifyOwner } = require('../middleware/auth');
@@ -65,14 +65,30 @@ router.post('/migrate', async (req, res) => {
       });
     }
 
-    // Secondary safety: verify target has no existing scenarios
+    // Secondary safety: verify target has no real scenarios
     const targetScenarios = await db.send(new QueryCommand({
       TableName: 'bp_scenarios',
       KeyConditionExpression: 'userId = :uid',
       ExpressionAttributeValues: { ':uid': targetUserId },
     }));
-    if ((targetScenarios.Items || []).length > 0) {
+    const tScens = targetScenarios.Items || [];
+
+    if (tScens.length > 1) {
       return res.status(400).json({ error: 'Target user already has scenarios. Migration aborted to prevent overwriting data.' });
+    }
+
+    // Allow migration if the only scenario is the auto-seeded empty primary
+    if (tScens.length === 1) {
+      const s = tScens[0];
+      const isSeeded = s.scenarioId === 'main' && s.isPrimary === true && (s.income === 0 || s.income === undefined);
+      if (!isSeeded) {
+        return res.status(400).json({ error: 'Target user already has a non-empty scenario. Migration aborted to prevent overwriting data.' });
+      }
+      // Delete the seeded empty scenario — it will be replaced by source data
+      await db.send(new DeleteCommand({
+        TableName: 'bp_scenarios',
+        Key: { userId: targetUserId, scenarioId: 'main' },
+      }));
     }
 
     // --- MIGRATION ---

@@ -332,7 +332,7 @@ async function openSheet(expense, onSave) {
             <input class="form-input" id="sh-start-date" type="date" value="${initStart}" />
           </div>
           <div class="form-group">
-            <label class="form-label" for="sh-due-day" id="sh-due-day-label">Due day ${dueDayRequired ? '' : '<span class="text-muted">(optional, 1–31)</span>'}</label>
+            <label class="form-label" for="sh-due-day" id="sh-due-day-label">Due date ${dueDayRequired ? '' : '<span class="text-muted">(optional, 1–31)</span>'}</label>
             <input class="form-input" id="sh-due-day" type="number" min="1" max="31"
               placeholder="e.g. 15" value="${initDueDay}" />
           </div>
@@ -375,9 +375,9 @@ async function openSheet(expense, onSave) {
     const label = document.getElementById('sh-due-day-label');
     if (!label) return;
     if (selectedFreq === 'monthly') {
-      label.innerHTML = 'Due day';
+      label.innerHTML = 'Due date';
     } else {
-      label.innerHTML = 'Due day <span class="text-muted">(optional, 1–31)</span>';
+      label.innerHTML = 'Due date <span class="text-muted">(optional, 1–31)</span>';
     }
   }
 
@@ -436,7 +436,7 @@ async function openSheet(expense, onSave) {
       if (!startDate) { alert('Enter a start date.'); return; }
       payload.recurrenceStartDate = startDate;
       const dueDay = document.getElementById('sh-due-day').value;
-      if (selectedFreq === 'monthly' && !dueDay) { alert('Monthly expenses require a due day (1–31).'); return; }
+      if (selectedFreq === 'monthly' && !dueDay) { alert('Monthly expenses require a due date (1–31).'); return; }
       if (dueDay) payload.dueDay = Number(dueDay);
     } else {
       const dueDate = document.getElementById('sh-due-date').value;

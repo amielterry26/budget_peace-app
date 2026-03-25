@@ -167,7 +167,7 @@ function buildPdBreakdown(pd) {
       <div class="period-bill-card pd-bill-card" data-pd-bill-idx="${idx}">
         <div>
           <span class="period-bill-card__name">${esc(e.name)}</span>
-          ${e.dueDay ? `<div class="period-bill-card__note">Due day ${e.dueDay}</div>` : ''}
+          ${e.dueDay ? `<div class="period-bill-card__note">Due date ${e.dueDay}</div>` : ''}
         </div>
         <span class="period-bill-card__amount">${pdMoney(e.displayAmount)}</span>
       </div>`;

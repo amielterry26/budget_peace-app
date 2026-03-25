@@ -13,7 +13,12 @@ let _demoNextId = 100;
 let _demoUserName = '';
 let _guidedMode = false;
 let _coachSlide = 0;
-let _coachExpenseCallback = null; // set during slide 2
+let _coachActionCallback = null;
+let _coachExpectedEvent = null;
+let _coachRAF = null;
+let _coachResizeObs = null;
+let _coachMutationObs = null;
+let _cachedTargetRect = null;
 
 const DEMO_LIMITS = {
   expensesAdded: 1,
@@ -288,34 +293,39 @@ function submitOnboarding({ name, cadence, income }) {
 // STEP 2 — Coach Walkthrough
 // ============================================================
 
-const COACH_SLIDES = [
+const COACH_STEPS = [
   {
+    id: 'welcome',
+    page: 'home',
+    target: '.home-metric-grid',
+    title: () => `Welcome, ${esc(_demoUserName)}!`,
+    text: 'This is your budget dashboard — income, expenses, and what\'s left over each period.',
+    advance: { type: 'button', label: 'Next' },
+  },
+  {
+    id: 'add-expense',
     page: 'home',
     target: '#fab',
-    title: () => `Welcome, ${esc(_demoUserName)}!`,
-    text: 'This is your budget. Tap the + button to add a real expense.',
-    button: 'Got it',
+    title: () => 'Add a real expense',
+    text: 'Tap the + button to add an expense — like your electric bill or a subscription.',
+    advance: { type: 'action', event: 'expensesAdded' },
+    spotlightClickThrough: true,
   },
   {
-    page: 'expenses',
-    target: '#fab',
-    title: () => 'Add one real expense',
-    text: 'Try adding an expense — like your electric bill or a subscription.',
-    button: null, // auto-advance on expense add
-  },
-  {
+    id: 'leftover',
     page: 'home',
     target: '.metric-grid .metric-tile:nth-child(3)',
-    title: () => 'Watch your leftover change',
-    text: 'See how adding that expense changed your monthly leftover. Every dollar is accounted for.',
-    button: 'Next',
+    title: () => 'Your leftover updated',
+    text: 'See how that expense changed your leftover. Every dollar is accounted for.',
+    advance: { type: 'button', label: 'Next' },
   },
   {
+    id: 'pay-periods',
     page: 'pay-period',
     target: '.period-nav',
-    title: () => 'See your pay periods',
-    text: 'Each paycheck is a separate period. Use the arrows to see how expenses flow across your pay periods.',
-    button: 'Finish Tour',
+    title: () => 'Explore your pay periods',
+    text: 'Each paycheck is a separate period. Use the arrows to see how expenses flow across pay periods.',
+    advance: { type: 'button', label: 'Finish Tour' },
   },
 ];
 
@@ -327,7 +337,7 @@ function startCoachWalkthrough() {
 
 function showCoachSlide(index) {
   _coachSlide = index;
-  const slide = COACH_SLIDES[index];
+  const slide = COACH_STEPS[index];
   if (!slide) { endWalkthrough(); return; }
 
   // Remove previous coach elements
@@ -344,82 +354,253 @@ function showCoachSlide(index) {
   }
 }
 
-function _renderCoachOverlay(slide, index) {
-  const targetEl = document.querySelector(slide.target);
-  if (!targetEl) {
-    // Target not found, skip to next
-    console.warn('Coach target not found:', slide.target);
-    advanceCoach();
-    return;
-  }
+// ---- Dynamic positioning for coach overlay --------------------
+
+function _positionCoachElements(targetEl) {
+  const spotlight = document.getElementById('demo-coach-spotlight');
+  const card = document.getElementById('demo-coach-card');
+  const arrow = document.getElementById('demo-coach-arrow');
+  if (!spotlight || !card || !targetEl) return;
 
   const rect = targetEl.getBoundingClientRect();
   const pad = 8;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
 
   // Spotlight
-  const spotlight = document.createElement('div');
-  spotlight.id = 'demo-coach-spotlight';
-  spotlight.className = 'demo-coach-spotlight';
   spotlight.style.top = (rect.top - pad) + 'px';
   spotlight.style.left = (rect.left - pad) + 'px';
   spotlight.style.width = (rect.width + pad * 2) + 'px';
   spotlight.style.height = (rect.height + pad * 2) + 'px';
-  document.body.appendChild(spotlight);
 
-  // Determine card position (above or below target)
-  const spaceBelow = window.innerHeight - rect.bottom;
+  // Card sizing
+  const cardWidth = Math.min(320, vw - 32);
+  card.style.width = cardWidth + 'px';
+
+  // Above/below decision
+  const spaceBelow = vh - rect.bottom;
   const spaceAbove = rect.top;
-  const placeAbove = spaceAbove > spaceBelow && spaceAbove > 200;
+  const placeAbove = spaceAbove > spaceBelow && spaceAbove > 160;
 
-  // Coach card
-  const card = document.createElement('div');
-  card.id = 'demo-coach-card';
-  card.className = 'demo-coach-card';
+  // Reset both directions before setting one
+  card.style.top = '';
+  card.style.bottom = '';
+  card.classList.remove('demo-coach-card--above', 'demo-coach-card--below');
 
+  if (placeAbove) {
+    card.style.bottom = (vh - rect.top + pad + 16) + 'px';
+    card.classList.add('demo-coach-card--above');
+  } else {
+    card.style.top = (rect.bottom + pad + 16) + 'px';
+    card.classList.add('demo-coach-card--below');
+  }
+
+  // Horizontal: center on target, clamp to viewport
+  const targetCenterX = rect.left + rect.width / 2;
+  let cardLeft = targetCenterX - cardWidth / 2;
+  cardLeft = Math.max(16, Math.min(cardLeft, vw - cardWidth - 16));
+  card.style.left = cardLeft + 'px';
+
+  // Arrow
+  if (arrow) {
+    arrow.style.top = '';
+    arrow.style.bottom = '';
+    arrow.className = placeAbove
+      ? 'demo-coach-arrow demo-coach-arrow--down is-visible'
+      : 'demo-coach-arrow demo-coach-arrow--up is-visible';
+    const arrowLeft = Math.max(cardLeft + 20, Math.min(targetCenterX - 8, cardLeft + cardWidth - 36));
+    arrow.style.left = arrowLeft + 'px';
+    if (placeAbove) {
+      arrow.style.bottom = (vh - rect.top + pad) + 'px';
+    } else {
+      arrow.style.top = (rect.bottom + pad) + 'px';
+    }
+  }
+}
+
+function _startPositionTracking(targetEl, targetSelector) {
+  let _trackedEl = targetEl;
+
+  // Reposition using current tracked element
+  const reposition = () => _positionCoachElements(_trackedEl);
+
+  // ResizeObserver on target + body
+  if (typeof ResizeObserver !== 'undefined') {
+    _coachResizeObs = new ResizeObserver(reposition);
+    _coachResizeObs.observe(_trackedEl);
+    _coachResizeObs.observe(document.body);
+  }
+
+  // Window resize (orientation changes, etc.)
+  window.addEventListener('resize', reposition);
+  // Store reference for cleanup
+  _startPositionTracking._resizeHandler = reposition;
+
+  // MutationObserver on main-content for DOM reflows
+  const mainContent = document.getElementById('main-content');
+  if (mainContent) {
+    _coachMutationObs = new MutationObserver(reposition);
+    _coachMutationObs.observe(mainContent, { childList: true, subtree: true });
+  }
+
+  // rAF polling — repositions on change, stops if target is removed from DOM
+  _cachedTargetRect = null;
+  function tick() {
+    // Dead-node check: if element is detached, try to re-query
+    if (!_trackedEl.isConnected) {
+      const fresh = document.querySelector(targetSelector);
+      if (fresh) {
+        _trackedEl = fresh;
+        // Re-observe with ResizeObserver if active
+        if (_coachResizeObs) {
+          _coachResizeObs.disconnect();
+          _coachResizeObs.observe(_trackedEl);
+          _coachResizeObs.observe(document.body);
+        }
+        reposition();
+      } else {
+        // Target gone and not re-queryable — stop tracking, hide overlay
+        const spotlight = document.getElementById('demo-coach-spotlight');
+        const card = document.getElementById('demo-coach-card');
+        const arrow = document.getElementById('demo-coach-arrow');
+        if (spotlight) spotlight.style.opacity = '0';
+        if (card) card.style.opacity = '0';
+        if (arrow) arrow.style.opacity = '0';
+        _coachRAF = requestAnimationFrame(tick); // keep checking in case it returns
+        return;
+      }
+    }
+
+    const rect = _trackedEl.getBoundingClientRect();
+    if (_cachedTargetRect &&
+        (rect.top !== _cachedTargetRect.top ||
+         rect.left !== _cachedTargetRect.left ||
+         rect.width !== _cachedTargetRect.width ||
+         rect.height !== _cachedTargetRect.height)) {
+      reposition();
+    }
+    _cachedTargetRect = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+    _coachRAF = requestAnimationFrame(tick);
+  }
+  _coachRAF = requestAnimationFrame(tick);
+}
+
+function _stopPositionTracking() {
+  if (_coachResizeObs) { _coachResizeObs.disconnect(); _coachResizeObs = null; }
+  if (_coachMutationObs) { _coachMutationObs.disconnect(); _coachMutationObs = null; }
+  if (_startPositionTracking._resizeHandler) {
+    window.removeEventListener('resize', _startPositionTracking._resizeHandler);
+    _startPositionTracking._resizeHandler = null;
+  }
+  if (_coachRAF) { cancelAnimationFrame(_coachRAF); _coachRAF = null; }
+  _cachedTargetRect = null;
+}
+
+// ---- Sheet open/close detection -------------------------------
+// Hides the coach overlay while an expense/card/goal sheet is open,
+// then restores + repositions when the sheet closes.
+
+let _coachSheetObserver = null;
+
+function _startSheetDetection() {
+  let wasHidden = false;
+
+  _coachSheetObserver = new MutationObserver(() => {
+    const sheetOpen = !!document.querySelector('.sheet-overlay.is-open');
+
+    if (sheetOpen && !wasHidden) {
+      // Hide coach overlay while sheet is open
+      wasHidden = true;
+      const spotlight = document.getElementById('demo-coach-spotlight');
+      const card = document.getElementById('demo-coach-card');
+      const arrow = document.getElementById('demo-coach-arrow');
+      if (spotlight) spotlight.style.opacity = '0';
+      if (card) card.style.opacity = '0';
+      if (arrow) arrow.style.opacity = '0';
+    } else if (!sheetOpen && wasHidden) {
+      // Sheet closed — restore and reposition
+      wasHidden = false;
+      const spotlight = document.getElementById('demo-coach-spotlight');
+      const card = document.getElementById('demo-coach-card');
+      const arrow = document.getElementById('demo-coach-arrow');
+      if (spotlight) spotlight.style.opacity = '';
+      if (card) card.style.opacity = '';
+      if (arrow) arrow.style.opacity = '';
+    }
+  });
+
+  _coachSheetObserver.observe(document.body, {
+    attributes: true,
+    attributeFilter: ['class'],
+    subtree: true,
+  });
+}
+
+function _stopSheetDetection() {
+  if (_coachSheetObserver) { _coachSheetObserver.disconnect(); _coachSheetObserver = null; }
+}
+
+// ---- Coach overlay rendering ----------------------------------
+
+function _renderCoachOverlay(slide, index) {
+  const targetEl = document.querySelector(slide.target);
+
+  // Build button / action hint HTML
   let buttonHtml = '';
-  if (slide.button) {
-    buttonHtml = `<button class="btn btn--primary" id="demo-coach-btn" style="margin-top:var(--space-3);">${slide.button}</button>`;
+  if (slide.advance.type === 'button') {
+    buttonHtml = `<button class="btn btn--primary" id="demo-coach-btn" style="margin-top:var(--space-3);">${slide.advance.label}</button>`;
   } else {
     buttonHtml = `<div class="text-muted text-sm" style="margin-top:var(--space-2);">Complete the action to continue</div>`;
   }
 
+  // --- Fallback: target not found → centered card, no spotlight ---
+  if (!targetEl) {
+    console.warn('Coach target not found:', slide.target);
+    const card = document.createElement('div');
+    card.id = 'demo-coach-card';
+    card.className = 'demo-coach-card demo-coach-card--centered';
+    card.innerHTML = `
+      <div class="demo-coach-card__step">${index + 1} of ${COACH_STEPS.length}</div>
+      <div class="demo-coach-card__title">${slide.title()}</div>
+      <div class="demo-coach-card__text">${slide.text}</div>
+      ${buttonHtml}`;
+    document.body.appendChild(card);
+    requestAnimationFrame(() => card.classList.add('is-visible'));
+    if (slide.advance.type === 'button') {
+      document.getElementById('demo-coach-btn').addEventListener('click', advanceCoach);
+    }
+    return;
+  }
+
+  // Create spotlight
+  const spotlight = document.createElement('div');
+  spotlight.id = 'demo-coach-spotlight';
+  spotlight.className = 'demo-coach-spotlight';
+  if (slide.spotlightClickThrough) {
+    spotlight.style.pointerEvents = 'none';
+  }
+  document.body.appendChild(spotlight);
+
+  // Create card
+  const card = document.createElement('div');
+  card.id = 'demo-coach-card';
+  card.className = 'demo-coach-card';
   card.innerHTML = `
+    <div class="demo-coach-card__step">${index + 1} of ${COACH_STEPS.length}</div>
     <div class="demo-coach-card__title">${slide.title()}</div>
     <div class="demo-coach-card__text">${slide.text}</div>
     ${buttonHtml}`;
-
   document.body.appendChild(card);
 
-  // Position card
-  const cardWidth = Math.min(320, window.innerWidth - 32);
-  card.style.width = cardWidth + 'px';
-
-  if (placeAbove) {
-    card.style.bottom = (window.innerHeight - rect.top + pad + 16) + 'px';
-    card.className += ' demo-coach-card--above';
-  } else {
-    card.style.top = (rect.bottom + pad + 16) + 'px';
-    card.className += ' demo-coach-card--below';
-  }
-
-  // Horizontal: center on target, but clamp to viewport
-  const targetCenterX = rect.left + rect.width / 2;
-  let cardLeft = targetCenterX - cardWidth / 2;
-  cardLeft = Math.max(16, Math.min(cardLeft, window.innerWidth - cardWidth - 16));
-  card.style.left = cardLeft + 'px';
-
-  // Arrow
+  // Create arrow
   const arrow = document.createElement('div');
   arrow.id = 'demo-coach-arrow';
-  arrow.className = placeAbove ? 'demo-coach-arrow demo-coach-arrow--down' : 'demo-coach-arrow demo-coach-arrow--up';
-  const arrowLeft = Math.max(cardLeft + 20, Math.min(targetCenterX - 8, cardLeft + cardWidth - 36));
-  arrow.style.left = arrowLeft + 'px';
-  if (placeAbove) {
-    arrow.style.bottom = (window.innerHeight - rect.top + pad) + 'px';
-  } else {
-    arrow.style.top = (rect.bottom + pad) + 'px';
-  }
   document.body.appendChild(arrow);
+
+  // Initial position + start tracking
+  _positionCoachElements(targetEl);
+  _startPositionTracking(targetEl, slide.target);
+  _startSheetDetection();
 
   // Animate in
   requestAnimationFrame(() => {
@@ -429,31 +610,25 @@ function _renderCoachOverlay(slide, index) {
   });
 
   // Button handler
-  if (slide.button) {
+  if (slide.advance.type === 'button') {
     document.getElementById('demo-coach-btn').addEventListener('click', advanceCoach);
   }
 
-  // Slide 2: allow clicking the FAB through the spotlight
-  if (index === 1) {
-    spotlight.style.pointerEvents = 'none';
-    // The FAB needs to be clickable
-    _setupSlide2Listener();
+  // Action handler — set generic callback
+  if (slide.advance.type === 'action') {
+    _coachExpectedEvent = slide.advance.event;
+    _coachActionCallback = () => {
+      _coachActionCallback = null;
+      _coachExpectedEvent = null;
+      setTimeout(advanceCoach, 400);
+    };
   }
-}
-
-function _setupSlide2Listener() {
-  // Listen for expense being added during guided mode
-  _coachExpenseCallback = () => {
-    // Expense was added during walkthrough — advance after a short delay
-    _coachExpenseCallback = null;
-    setTimeout(advanceCoach, 500);
-  };
 }
 
 function advanceCoach() {
   _removeCoachOverlay();
   const next = _coachSlide + 1;
-  if (next >= COACH_SLIDES.length) {
+  if (next >= COACH_STEPS.length) {
     endWalkthrough();
   } else {
     showCoachSlide(next);
@@ -461,9 +636,30 @@ function advanceCoach() {
 }
 
 function _removeCoachOverlay() {
+  _stopPositionTracking();
+  _stopSheetDetection();
   document.getElementById('demo-coach-spotlight')?.remove();
   document.getElementById('demo-coach-card')?.remove();
   document.getElementById('demo-coach-arrow')?.remove();
+  _coachActionCallback = null;
+  _coachExpectedEvent = null;
+}
+
+function resetDemoWalkthrough() {
+  _removeCoachOverlay();
+  _guidedMode = true;
+  _coachSlide = 0;
+  _demoActions = { expensesAdded: 0, expensesDeleted: 0, scenariosCreated: 0 };
+
+  // Remove completion card and suggestion strip if visible
+  document.getElementById('demo-completion')?.remove();
+  document.querySelector('.demo-suggestion')?.remove();
+  _demoSuggestionShown = false;
+  _demoShowSuggestionOnHome = false;
+
+  // Navigate to home and restart
+  Router.navigate('home');
+  setTimeout(() => startCoachWalkthrough(), 600);
 }
 
 function endWalkthrough() {
@@ -636,8 +832,8 @@ function _installDemoUIInterception() {
     if (!isDemoMode()) return;
 
     // During guided mode, restrict navigation
-    if (_guidedMode && COACH_SLIDES[_coachSlide]) {
-      const allowedPage = COACH_SLIDES[_coachSlide].page;
+    if (_guidedMode && COACH_STEPS[_coachSlide]) {
+      const allowedPage = COACH_STEPS[_coachSlide].page;
       if (page !== allowedPage) {
         setTimeout(() => Router.navigate(allowedPage), 0);
         return;
@@ -752,9 +948,9 @@ function demoTrack(action) {
   if (!isDemoMode()) return;
   // During guided mode, don't count against limits
   if (_guidedMode) {
-    // But notify coach if it's waiting for an expense add
-    if (action === 'expensesAdded' && _coachExpenseCallback) {
-      _coachExpenseCallback();
+    // Notify coach if it's waiting for this action
+    if (action === _coachExpectedEvent && _coachActionCallback) {
+      _coachActionCallback();
     }
     return;
   }
@@ -913,8 +1109,13 @@ function _injectDemoBanner() {
   const banner = document.createElement('div');
   banner.id = 'demo-banner';
   banner.className = 'demo-banner';
-  banner.innerHTML = `Welcome, ${esc(_demoUserName)} &middot; <a href="/landing#pricing" style="color:var(--color-accent-dark);font-weight:600;text-decoration:underline;">Unlock full version</a>`;
+  banner.innerHTML = `Welcome, ${esc(_demoUserName)} &middot; <a href="#" id="demo-restart-tour" style="color:var(--color-accent-dark);font-weight:600;text-decoration:underline;">Restart tour</a> &middot; <a href="/landing#pricing" style="color:var(--color-accent-dark);font-weight:600;text-decoration:underline;">Unlock full version</a>`;
   const topBar = document.querySelector('.top-bar');
   if (topBar) topBar.insertAdjacentElement('afterend', banner);
   document.body.classList.add('has-demo-banner');
+
+  document.getElementById('demo-restart-tour')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    resetDemoWalkthrough();
+  });
 }

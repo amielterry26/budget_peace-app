@@ -2457,7 +2457,9 @@ img  { display: block; max-width: 100%; }
   box-shadow:    0 0 0 9999px rgba(15, 23, 42, 0.5);
   pointer-events: none;
   opacity:       0;
-  transition:    opacity 300ms ease;
+  transition:    opacity 300ms ease,
+                 top 200ms ease, left 200ms ease,
+                 width 200ms ease, height 200ms ease;
 }
 .demo-coach-spotlight.is-visible { opacity: 1; }
 
@@ -2468,9 +2470,12 @@ img  { display: block; max-width: 100%; }
   border-radius: var(--radius-xl);
   padding:       var(--space-5);
   box-shadow:    var(--shadow-lg);
+  max-width:     calc(100vw - 32px);
+  word-wrap:     break-word;
   opacity:       0;
   transform:     translateY(8px);
-  transition:    opacity 300ms ease, transform 300ms ease;
+  transition:    opacity 300ms ease, transform 300ms ease,
+                 top 200ms ease, bottom 200ms ease, left 200ms ease;
 }
 .demo-coach-card.is-visible {
   opacity:   1;
@@ -2478,7 +2483,22 @@ img  { display: block; max-width: 100%; }
 }
 .demo-coach-card--above.is-visible { transform: translateY(0); }
 .demo-coach-card--above { transform: translateY(-8px); }
+.demo-coach-card--centered {
+  top:       50%;
+  left:      50%;
+  transform: translate(-50%, -50%) scale(0.96);
+  width:     min(320px, calc(100vw - 32px));
+}
+.demo-coach-card--centered.is-visible {
+  transform: translate(-50%, -50%) scale(1);
+}
 
+.demo-coach-card__step {
+  font-size:     var(--font-size-xs);
+  color:         var(--color-text-tertiary, #999);
+  margin-bottom: var(--space-1);
+  font-weight:   var(--font-weight-medium);
+}
 .demo-coach-card__title {
   font-size:      var(--font-size-lg);
   font-weight:    var(--font-weight-bold);
@@ -2497,7 +2517,8 @@ img  { display: block; max-width: 100%; }
   width:     0;
   height:    0;
   opacity:   0;
-  transition: opacity 300ms ease;
+  transition: opacity 300ms ease,
+              top 200ms ease, bottom 200ms ease, left 200ms ease;
 }
 .demo-coach-arrow.is-visible { opacity: 1; }
 .demo-coach-arrow--up {
@@ -2509,6 +2530,10 @@ img  { display: block; max-width: 100%; }
   border-left:   8px solid transparent;
   border-right:  8px solid transparent;
   border-top:    10px solid var(--color-surface);
+}
+
+@media (max-width: 480px) {
+  .demo-coach-card { padding: var(--space-4); }
 }
 
 /* --- Demo Completion Card ---------------------------------- */

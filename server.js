@@ -8,6 +8,12 @@ const db      = require('./config/dynamo');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// ---- Stripe webhook (raw body — MUST come before express.json) --
+app.post('/api/stripe/webhook',
+  express.raw({ type: 'application/json' }),
+  require('./routes/stripe').webhook
+);
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -61,7 +67,7 @@ app.post('/api/auth/profile', requireAuth, async (req, res) => {
         },
       }));
     } else {
-      // New user — create with full access + seed main scenario
+      // New user — no access until they pick a plan; Stripe webhook upgrades on payment
       await db.send(new PutCommand({
         TableName: 'bp_users',
         Item: {
@@ -69,9 +75,9 @@ app.post('/api/auth/profile', requireAuth, async (req, res) => {
           email,
           fullName:           fullName || null,
           authProvider:       authProvider || 'email',
-          accessLevel:        'full',     // Future: Stripe webhook writes this
-          entitlementStatus:  'active',   // Future: Stripe webhook writes this
-          planName:           'pro',      // Future: Stripe webhook writes this
+          accessLevel:        'none',
+          entitlementStatus:  'inactive',
+          planName:           'none',
           createdAt:          new Date().toISOString(),
           lastLoginAt:        new Date().toISOString(),
         },
@@ -93,6 +99,9 @@ app.use('/api/expenses',  requireAuth, require('./routes/expenses'));
 app.use('/api/cards',     requireAuth, require('./routes/cards'));
 app.use('/api/goals',     requireAuth, require('./routes/goals'));
 app.use('/api/scenarios', requireAuth, require('./routes/scenarios'));
+
+// ---- Stripe checkout (auth required) -------------------------
+app.use('/api/stripe',    requireAuth, require('./routes/stripe').router);
 
 // ---- Migration endpoint (auth required) ---------------------
 app.use('/api/admin',     requireAuth, require('./routes/migrate'));

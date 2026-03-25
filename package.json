@@ -12,7 +12,8 @@
     "@aws-sdk/lib-dynamodb": "^3.540.0",
     "@supabase/supabase-js": "^2.99.3",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "stripe": "^20.4.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"

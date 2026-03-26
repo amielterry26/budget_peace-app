@@ -238,14 +238,19 @@ async function updateScenarioSelector() {
       logoutBtn.addEventListener('click', () => Auth.signOut());
     }
 
-    // Show upgrade button for non-pro users
+    // Show upgrade button + Pro tab for non-pro users
+    const isProUser = Plans.getTier() === 'pro';
     const upgradeBtn = document.getElementById('upgrade-btn');
-    if (upgradeBtn && Plans.getTier() !== 'pro') {
+    if (upgradeBtn && !isProUser) {
       upgradeBtn.style.display = '';
       upgradeBtn.addEventListener('click', () => {
         closeNav();
-        Plans.showUpgradeModal();
+        Router.navigate('pro');
       });
+    }
+    const bottomNavPro = document.getElementById('bottom-nav-pro');
+    if (bottomNavPro && !isProUser) {
+      bottomNavPro.style.display = '';
     }
 
     initTimeTravelStrip();

@@ -74,9 +74,14 @@ function renderExpensesList() {
   }
 
   const filteredTotal = expMonthlyTotal(filtered);
+  const maxExp = Plans.getLimit('maxExpensesPerScenario');
+  const isExpLimited = typeof maxExp === 'number' && maxExp !== Infinity;
+  const expUsage = isExpLimited
+    ? `${_expenses.length} of ${maxExp} expenses used · ${money(filteredTotal)}/mo`
+    : `${filtered.length} expense${filtered.length !== 1 ? 's' : ''} · ${money(filteredTotal)}/mo`;
   const summaryHtml = `
     <div class="text-muted text-sm" style="text-align:center;padding:var(--space-2) 0;">
-      ${filtered.length} expense${filtered.length !== 1 ? 's' : ''} · ${money(filteredTotal)}/mo
+      ${expUsage}${isExpLimited && _expenses.length >= maxExp ? ' · <a href="javascript:void(0)" class="exp-usage-upgrade" style="color:var(--color-accent);font-weight:600;">Upgrade for more</a>' : ''}
     </div>`;
 
   const notesHtml = _expScenario ? notesCardHtml('exp') : '';
@@ -108,6 +113,11 @@ function renderExpensesList() {
 
   if (_expScenario) mountNotesWidget('exp', _expScenario.scenarioId, _expScenario.notes);
   bindFilterToggle();
+
+  // Wire usage upgrade link
+  document.querySelectorAll('.exp-usage-upgrade').forEach(el => {
+    el.addEventListener('click', () => Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.expenses));
+  });
 
   filtered.forEach(e => {
     const el = document.getElementById(`pill-${e.expenseId}`);

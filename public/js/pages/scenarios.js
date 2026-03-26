@@ -40,13 +40,22 @@ function renderScenarios(scenarios) {
     return a.name.localeCompare(b.name);
   });
 
+  const maxScenarios = Plans.getLimit('maxScenarios');
+  const isLimited = typeof maxScenarios === 'number' && maxScenarios !== Infinity;
+  const usageLine = isLimited
+    ? `${sorted.length} of ${maxScenarios} scenario${maxScenarios !== 1 ? 's' : ''} used`
+    : `${sorted.length} scenario${sorted.length !== 1 ? 's' : ''}`;
+
   document.getElementById('main-content').innerHTML = `
     <div class="page">
       <div class="text-muted text-sm" style="margin-bottom:var(--space-4);">
-        ${sorted.length} scenario${sorted.length !== 1 ? 's' : ''}. Tap to switch.
+        ${usageLine}. Tap to switch.${isLimited && sorted.length >= maxScenarios ? ' <a href="javascript:void(0)" id="sc-usage-upgrade" style="color:var(--color-accent);font-weight:600;">Upgrade for more</a>' : ''}
       </div>
       <div class="stack--3">${sorted.map(s => buildScenarioCard(s)).join('')}</div>
     </div>`;
+
+  // Wire usage upgrade link
+  document.getElementById('sc-usage-upgrade')?.addEventListener('click', () => Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.scenarios));
 
   // Wire up card actions
   sorted.forEach(s => {

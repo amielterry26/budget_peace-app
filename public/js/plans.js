@@ -31,6 +31,8 @@ const Plans = (() => {
       financialHealth: false,
       scenarioNotes: false,
       advancedAdjustments: false,
+      aiFeatures: false,
+      widgets: false,
     },
     pro: {
       maxScenarios: Infinity,
@@ -40,6 +42,8 @@ const Plans = (() => {
       financialHealth: true,
       scenarioNotes: true,
       advancedAdjustments: true,
+      aiFeatures: true,
+      widgets: true,
     },
   };
 

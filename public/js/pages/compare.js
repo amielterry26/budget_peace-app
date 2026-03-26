@@ -13,10 +13,21 @@ Router.register('compare', async () => {
   // Plan gate: scenario comparison is Pro-only
   if (!Plans.canUse('scenarioComparison')) {
     document.getElementById('main-content').innerHTML = `
-      <div class="page text-center" style="padding-top:64px;">
-        <p style="font-size:var(--font-size-md);font-weight:var(--font-weight-semibold);margin-bottom:var(--space-2);">Pro Feature</p>
-        <p class="text-muted text-sm" style="margin-bottom:var(--space-4);">Scenario comparison is available on Budget Peace Pro.</p>
-        <button class="btn btn--primary" id="compare-upgrade">Upgrade to Pro</button>
+      <div class="page" style="padding-top:var(--space-4);">
+        <div class="card" style="text-align:center;padding:var(--space-5) var(--space-4);">
+          <div style="font-size:32px;margin-bottom:var(--space-2);">&#8652;</div>
+          <div style="font-size:var(--font-size-md);font-weight:var(--font-weight-bold);margin-bottom:var(--space-1);">Scenario Comparison</div>
+          <p class="text-muted text-sm" style="margin-bottom:var(--space-3);line-height:1.5;">
+            Compare your scenarios side by side — income, expenses, and remaining budget at a glance.
+          </p>
+          <div style="display:flex;flex-direction:column;gap:var(--space-1);margin-bottom:var(--space-4);text-align:left;max-width:280px;margin-left:auto;margin-right:auto;">
+            <div class="text-muted text-sm">&#10003;&ensp;Side-by-side metrics</div>
+            <div class="text-muted text-sm">&#10003;&ensp;Income &amp; obligation breakdown</div>
+            <div class="text-muted text-sm">&#10003;&ensp;Compare up to 3 scenarios</div>
+          </div>
+          <button class="btn btn--primary" id="compare-upgrade">Upgrade to Pro</button>
+          <div class="text-muted text-sm" style="margin-top:var(--space-2);">Available on Budget Peace Pro</div>
+        </div>
       </div>`;
     document.getElementById('compare-upgrade').addEventListener('click', () => Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.comparison));
     return;

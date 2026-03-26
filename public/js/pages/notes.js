@@ -11,6 +11,45 @@ Router.register('notes', async () => {
   showBottomNav(true);
   showFab(false);
 
+  // Plan gate: notes are Pro-only — show locked teaser for Basic
+  if (!Plans.canUse('scenarioNotes')) {
+    document.getElementById('main-content').innerHTML = `
+      <div class="page" style="padding-top:var(--space-4);">
+        <div class="card" style="text-align:center;padding:var(--space-5) var(--space-4);">
+          <div style="font-size:32px;margin-bottom:var(--space-2);">&#9998;</div>
+          <div style="font-size:var(--font-size-md);font-weight:var(--font-weight-bold);margin-bottom:var(--space-1);">Scenario Notes</div>
+          <p class="text-muted text-sm" style="margin-bottom:var(--space-4);line-height:1.5;">
+            Annotate your scenarios with context, reminders, and decisions.<br>
+            Notes are available on Budget Peace Pro.
+          </p>
+          <button class="btn btn--primary" id="notes-upgrade">Upgrade to Pro</button>
+        </div>
+        <div class="card" style="padding:var(--space-3) var(--space-4);margin-top:var(--space-3);opacity:0.6;">
+          <div class="notes-header" id="notes-locked-preview-toggle" style="cursor:pointer;">
+            <span class="card-header" style="margin:0;">Notes</span>
+            <span class="notes-count"></span>
+            <span class="notes-header__chevron">&#9656;</span>
+          </div>
+          <div class="notes-body is-hidden" id="notes-locked-preview-body">
+            <div class="text-muted text-sm" style="padding:var(--space-1) 0;">No notes yet.</div>
+            <div class="notes-add">
+              <input class="form-input" type="text" placeholder="Add a note…" maxlength="200" disabled style="opacity:0.5;" />
+              <button class="btn btn--primary" id="notes-locked-add" style="white-space:nowrap;">Add</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    document.getElementById('notes-upgrade').addEventListener('click', () => Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.notes));
+    document.getElementById('notes-locked-preview-toggle').addEventListener('click', () => {
+      const body = document.getElementById('notes-locked-preview-body');
+      const chevron = document.querySelector('#notes-locked-preview-toggle .notes-header__chevron');
+      body.classList.toggle('is-hidden');
+      chevron.innerHTML = body.classList.contains('is-hidden') ? '&#9656;' : '&#9662;';
+    });
+    document.getElementById('notes-locked-add')?.addEventListener('click', () => Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.notes));
+    return;
+  }
+
   document.getElementById('main-content').innerHTML = `
     <div class="page">
       <div class="text-muted text-sm text-center" style="padding:64px 0;">Loading…</div>

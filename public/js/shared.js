@@ -372,8 +372,15 @@ function mountNotesWidget(prefix, scenarioId, initialNotes) {
     }
   }
 
-  // Toggle collapse
+  // Plan gate: if Basic, gate ALL interactions on the widget
+  const notesLocked = !Plans.canUse('scenarioNotes');
+
+  // Toggle collapse — gated for Basic (opens upgrade modal instead)
   document.getElementById(`${prefix}-notes-toggle`).addEventListener('click', () => {
+    if (notesLocked) {
+      Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.notes);
+      return;
+    }
     const body = document.getElementById(`${prefix}-notes-body`);
     const chevron = document.getElementById(`${prefix}-notes-chevron`);
     body.classList.toggle('is-hidden');

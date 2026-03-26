@@ -19,9 +19,13 @@
       --color-accent: #4A7C59;
       --color-accent-dark: #375C42;
       --color-accent-light: #D6E8DC;
+      --color-accent-glow: rgba(74,124,89,0.08);
       --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      --max-w: 720px;
-      --shadow: 0 1px 3px rgba(15,23,42,0.04), 0 4px 12px rgba(15,23,42,0.06);
+      --max-w: 1080px;
+      --max-w-narrow: 720px;
+      --shadow-sm: 0 1px 3px rgba(15,23,42,0.04), 0 4px 12px rgba(15,23,42,0.06);
+      --shadow-lg: 0 4px 20px rgba(15,23,42,0.06), 0 12px 48px rgba(15,23,42,0.08);
+      --radius: 20px;
     }
 
     html { scroll-behavior: smooth; }
@@ -38,6 +42,9 @@
       max-width: var(--max-w);
       margin: 0 auto;
       padding: 0 24px;
+    }
+    .container--narrow {
+      max-width: var(--max-w-narrow);
     }
 
     /* ── Nav ── */
@@ -82,29 +89,62 @@
       justify-content: center;
       font-family: var(--font);
       font-weight: 600;
-      font-size: 15px;
-      padding: 13px 32px;
+      font-size: 16px;
+      padding: 15px 36px;
       border-radius: 999px;
       border: none;
       cursor: pointer;
       text-decoration: none;
-      transition: background 0.15s, transform 0.1s;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
     }
     .btn:active { transform: scale(0.97); }
     .btn--solid {
       background: var(--color-accent);
       color: #fff;
+      box-shadow: 0 2px 12px rgba(74,124,89,0.25);
     }
-    .btn--solid:hover { background: var(--color-accent-dark); }
+    .btn--solid:hover {
+      background: var(--color-accent-dark);
+      box-shadow: 0 4px 20px rgba(74,124,89,0.35);
+    }
     .btn--sm {
       padding: 8px 20px;
       font-size: 13px;
+      box-shadow: none;
+    }
+    .btn--ghost {
+      background: none;
+      color: var(--color-accent);
+      border: 1.5px solid var(--color-accent);
+      box-shadow: none;
+    }
+    .btn--ghost:hover {
+      background: var(--color-accent-glow);
     }
 
     /* ── Hero ── */
     .hero {
+      position: relative;
+      padding: 80px 0 0;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 800px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--color-accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero__content {
+      position: relative;
       text-align: center;
-      padding: 72px 0 56px;
+      max-width: 640px;
+      margin: 0 auto;
     }
     .hero__badge {
       display: inline-block;
@@ -114,208 +154,425 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      padding: 4px 14px;
+      padding: 5px 16px;
       border-radius: 999px;
-      margin-bottom: 24px;
+      margin-bottom: 28px;
     }
     .hero__title {
-      font-size: clamp(30px, 5.5vw, 46px);
+      font-size: clamp(34px, 6vw, 56px);
       font-weight: 800;
-      line-height: 1.1;
-      letter-spacing: -0.035em;
-      margin-bottom: 16px;
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      margin-bottom: 20px;
     }
     .hero__sub {
-      font-size: clamp(15px, 2.5vw, 17px);
+      font-size: clamp(16px, 2.5vw, 19px);
       color: var(--color-muted);
-      max-width: 420px;
-      margin: 0 auto 32px;
-      line-height: 1.55;
+      max-width: 480px;
+      margin: 0 auto 36px;
+      line-height: 1.6;
+    }
+    .hero__actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
     }
 
-    /* ── Features scroll row ── */
-    .features {
-      padding: 48px 0;
+    /* Hero product visual */
+    .hero__visual {
+      position: relative;
+      margin: 56px auto 0;
+      max-width: 900px;
+      padding: 0 24px;
     }
-    .features__label {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--color-accent);
-      text-align: center;
-      margin-bottom: 8px;
-    }
-    .features__title {
-      font-size: clamp(20px, 3vw, 26px);
-      font-weight: 700;
-      letter-spacing: -0.015em;
-      text-align: center;
-      margin-bottom: 32px;
-    }
-    .features__row {
-      display: flex;
-      gap: 14px;
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
-      padding: 4px 0 16px;
-      scrollbar-width: none;
-    }
-    .features__row::-webkit-scrollbar { display: none; }
-    .f-card {
-      flex: 0 0 220px;
-      scroll-snap-align: start;
+    .hero__mockup {
+      width: 100%;
+      aspect-ratio: 16 / 10;
       background: var(--color-surface);
       border: 1px solid var(--color-border);
-      border-radius: 16px;
-      padding: 24px 20px;
-      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
     }
-    .f-card__dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--color-accent);
-      margin-bottom: 16px;
-    }
-    .f-card__title {
-      font-size: 15px;
-      font-weight: 600;
-      margin-bottom: 6px;
-      line-height: 1.3;
-    }
-    .f-card__desc {
-      font-size: 13px;
+    .hero__mockup-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
       color: var(--color-muted);
-      line-height: 1.5;
-    }
-    .f-card--soon {
-      border-style: dashed;
-      opacity: 0.6;
-    }
-    .f-card--soon .f-card__dot {
-      background: var(--color-muted);
-    }
-    .f-card__soon-tag {
-      display: inline-block;
-      margin-top: 10px;
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--color-accent);
-      background: var(--color-accent-light);
-      padding: 2px 8px;
-      border-radius: 999px;
-    }
-    @media (min-width: 768px) {
-      .features__row {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        overflow: visible;
-      }
-      .f-card { flex: none; }
-    }
-
-    /* ── Compare ── */
-    .compare {
-      padding: 48px 0;
-    }
-    .compare__label {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--color-accent);
-      text-align: center;
-      margin-bottom: 8px;
-    }
-    .compare__title {
-      font-size: clamp(20px, 3vw, 26px);
-      font-weight: 700;
-      letter-spacing: -0.015em;
-      text-align: center;
-      margin-bottom: 32px;
-    }
-    .compare__table {
-      width: 100%;
-      border-collapse: collapse;
       font-size: 14px;
     }
-    .compare__table thead th {
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--color-muted);
-      padding: 0 16px 12px;
-      text-align: left;
-    }
-    .compare__table thead th:nth-child(2) { text-align: center; }
-    .compare__table thead th:nth-child(3) {
-      text-align: center;
-      color: var(--color-accent);
-    }
-    .compare__table td {
-      padding: 12px 16px;
-      border-top: 1px solid var(--color-border);
-    }
-    .compare__table td:first-child {
-      color: var(--color-muted);
-      font-weight: 500;
-    }
-    .compare__table td:nth-child(2) { text-align: center; }
-    .compare__table td:nth-child(3) {
-      text-align: center;
-      color: var(--color-accent);
-      font-weight: 600;
-    }
-    .compare__prices {
+    .hero__mockup-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: var(--color-accent-light);
       display: flex;
+      align-items: center;
       justify-content: center;
-      gap: 32px;
-      margin-top: 28px;
-      padding-top: 20px;
-      border-top: 1px solid var(--color-border);
+      font-size: 22px;
+      color: var(--color-accent);
     }
-    .compare__price-col {
-      text-align: center;
+    /* Gradient fade at bottom of mockup */
+    .hero__mockup::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 80px;
+      background: linear-gradient(to top, var(--color-bg), transparent);
     }
-    .compare__price-label {
-      font-size: 11px;
+
+    /* ── Section shared ── */
+    .section-label {
+      font-size: 12px;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--color-muted);
+      letter-spacing: 0.08em;
+      color: var(--color-accent);
+      margin-bottom: 8px;
+    }
+    .section-title {
+      font-size: clamp(24px, 4vw, 36px);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+
+    /* ── Pricing (moved high) ── */
+    .pricing {
+      padding: 80px 0;
+      position: relative;
+    }
+    .pricing::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, var(--color-bg) 0%, var(--color-surface) 30%, var(--color-surface) 70%, var(--color-bg) 100%);
+      z-index: -1;
+    }
+    .pricing__header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .pricing__grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    @media (min-width: 640px) {
+      .pricing__grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    .pricing__card {
+      background: var(--color-surface);
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      position: relative;
+    }
+    .pricing__card--pro {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 1px var(--color-accent), var(--shadow-lg);
+    }
+    .pricing__card-badge {
+      position: absolute;
+      top: -11px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--color-accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 3px 14px;
+      border-radius: 999px;
+    }
+    .pricing__plan-name {
+      font-size: 18px;
+      font-weight: 700;
       margin-bottom: 4px;
     }
-    .compare__price-label--pro { color: var(--color-accent); }
-    .compare__price-amount {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-    .compare__price-amount--pro { color: var(--color-accent); }
-    .compare__price-note {
-      font-size: 12px;
+    .pricing__plan-desc {
+      font-size: 13px;
       color: var(--color-muted);
-      margin-top: 2px;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .pricing__amount {
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+    .pricing__amount span {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--color-muted);
+    }
+    .pricing__alt {
+      font-size: 13px;
+      color: var(--color-muted);
+      margin-top: 4px;
+      margin-bottom: 24px;
+    }
+    .pricing__features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .pricing__features li {
+      font-size: 14px;
+      color: var(--color-text);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      line-height: 1.4;
+    }
+    .pricing__features li::before {
+      content: '✓';
+      color: var(--color-accent);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .pricing__features li.is-disabled {
+      color: var(--color-muted);
+      opacity: 0.5;
+    }
+    .pricing__features li.is-disabled::before {
+      content: '—';
+      color: var(--color-muted);
+    }
+    .pricing__card .btn {
+      width: 100%;
+    }
+
+    /* ── Feature Story Sections ── */
+    .story {
+      padding: 80px 0;
+      position: relative;
+    }
+    .story:nth-child(even) {
+      background: var(--color-surface);
+    }
+    .story__inner {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 40px;
+      align-items: center;
+    }
+    @media (min-width: 768px) {
+      .story__inner {
+        grid-template-columns: 1fr 1fr;
+        gap: 64px;
+      }
+      .story--reverse .story__inner {
+        direction: rtl;
+      }
+      .story--reverse .story__inner > * {
+        direction: ltr;
+      }
+    }
+    .story__copy {
+      max-width: 460px;
+    }
+    .story__title {
+      font-size: clamp(22px, 3.5vw, 32px);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1.15;
+      margin-bottom: 14px;
+    }
+    .story__desc {
+      font-size: 16px;
+      color: var(--color-muted);
+      line-height: 1.65;
+      margin-bottom: 20px;
+    }
+    .story__bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .story__bullets li {
+      font-size: 14px;
+      color: var(--color-text);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      line-height: 1.5;
+    }
+    .story__bullets li::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--color-accent);
+      flex-shrink: 0;
+      margin-top: 7px;
+    }
+
+    /* Story visual placeholder */
+    .story__visual {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: var(--color-muted);
+      font-size: 13px;
+      position: relative;
+      overflow: hidden;
+    }
+    .story:nth-child(even) .story__visual {
+      background: var(--color-bg);
+    }
+    .story__visual-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--color-accent-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: var(--color-accent);
+    }
+
+    /* ── Progression / Timeline ── */
+    .progression {
+      padding: 80px 0;
+      background: var(--color-surface);
+      position: relative;
+      overflow: hidden;
+    }
+    .progression::before {
+      content: '';
+      position: absolute;
+      bottom: -200px;
+      right: -200px;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--color-accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .progression__header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .progression__grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    @media (min-width: 640px) {
+      .progression__grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
+      }
+    }
+    .progression__card {
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+    }
+    .progression__card--pro {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+      color: #fff;
+    }
+    .progression__card-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 20px;
+      opacity: 0.6;
+    }
+    .progression__card--pro .progression__card-label {
+      opacity: 0.8;
+    }
+    .progression__card-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+    }
+    .progression__card-row + .progression__card-row {
+      border-top: 1px solid var(--color-border);
+    }
+    .progression__card--pro .progression__card-row + .progression__card-row {
+      border-color: rgba(255,255,255,0.15);
+    }
+    .progression__card-row-icon {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--color-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: var(--color-muted);
+    }
+    .progression__card--pro .progression__card-row-icon {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+    }
+    .progression__card-row-text {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .progression__card-row-text strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 1px;
+    }
+    .progression__card-row-text span {
+      font-size: 13px;
+      opacity: 0.65;
+    }
+    .progression__card--pro .progression__card-row-text span {
+      opacity: 0.75;
     }
 
     /* ── FAQ ── */
     .faq {
-      padding: 48px 0;
+      padding: 80px 0;
     }
-    .faq__title {
-      font-size: clamp(20px, 3vw, 26px);
-      font-weight: 700;
-      letter-spacing: -0.015em;
+    .faq__header {
       text-align: center;
-      margin-bottom: 28px;
+      margin-bottom: 40px;
     }
     .faq__list {
-      max-width: 600px;
+      max-width: 640px;
       margin: 0 auto;
     }
     .faq__item {
@@ -326,9 +583,9 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 0;
+      padding: 20px 0;
       font-family: var(--font);
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 600;
       color: var(--color-text);
       background: none;
@@ -339,7 +596,7 @@
     }
     .faq__q::after {
       content: "+";
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 400;
       color: var(--color-muted);
       flex-shrink: 0;
@@ -357,32 +614,50 @@
       max-height: 200px;
     }
     .faq__a p {
-      padding: 0 0 16px;
-      font-size: 14px;
+      padding: 0 0 20px;
+      font-size: 15px;
       color: var(--color-muted);
-      line-height: 1.6;
+      line-height: 1.65;
     }
 
     /* ── Final CTA ── */
     .cta {
       text-align: center;
-      padding: 56px 0 72px;
+      padding: 80px 0 96px;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 700px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--color-accent-glow) 0%, transparent 70%);
+      pointer-events: none;
     }
     .cta__title {
-      font-size: clamp(22px, 3.5vw, 30px);
-      font-weight: 700;
-      letter-spacing: -0.015em;
-      margin-bottom: 8px;
+      font-size: clamp(26px, 4.5vw, 40px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 12px;
+      position: relative;
     }
     .cta__detail {
-      font-size: 15px;
+      font-size: 17px;
       color: var(--color-muted);
-      margin-bottom: 28px;
+      margin-bottom: 32px;
+      position: relative;
     }
     .cta__note {
       font-size: 13px;
       color: var(--color-muted);
-      margin-top: 12px;
+      margin-top: 16px;
+      position: relative;
     }
 
     /* ── Footer ── */
@@ -392,6 +667,17 @@
       border-top: 1px solid var(--color-border);
       font-size: 13px;
       color: var(--color-muted);
+    }
+
+    /* ── Desktop enhancements ── */
+    @media (min-width: 768px) {
+      .hero { padding: 100px 0 0; }
+      .hero__visual { margin-top: 72px; }
+      .story { padding: 100px 0; }
+      .pricing { padding: 100px 0; }
+      .progression { padding: 100px 0; }
+      .faq { padding: 100px 0; }
+      .cta { padding: 100px 0 120px; }
     }
   </style>
 </head>
@@ -408,109 +694,343 @@
     </div>
   </nav>
 
-  <!-- Hero -->
+  <!-- ═══════════════════════════════════════════════
+       1. HERO — Outcome-focused with product visual
+       ═══════════════════════════════════════════════ -->
   <section class="hero">
     <div class="container">
-      <div class="hero__badge">Pro</div>
-      <h1 class="hero__title">Plan further.<br>See&nbsp;more.</h1>
-      <p class="hero__sub">
-        Unlock the full Budget Peace experience. More scenarios,
-        deeper&nbsp;insights, no&nbsp;limits.
-      </p>
-      <a href="#go-pro" class="btn btn--solid">Go Pro &mdash; $7.99/mo</a>
-    </div>
-  </section>
+      <div class="hero__content">
+        <div class="hero__badge">Pro</div>
+        <h1 class="hero__title">Know exactly where<br>your money is going</h1>
+        <p class="hero__sub">
+          Budget Peace Pro gives you the full picture &mdash; more scenarios, deeper projections, and&nbsp;the clarity to make confident financial&nbsp;decisions.
+        </p>
+        <div class="hero__actions">
+          <a href="#go-pro" class="btn btn--solid">Go Pro &mdash; $7.99/mo</a>
+          <a href="#pricing" class="btn btn--ghost">Compare plans</a>
+        </div>
+      </div>
 
-  <!-- Features -->
-  <section class="features">
-    <div class="container">
-      <div class="features__label">What Pro unlocks</div>
-      <div class="features__title">The deeper experience</div>
-
-      <div class="features__row">
-        <div class="f-card">
-          <div class="f-card__dot"></div>
-          <div class="f-card__title">Multiple scenarios</div>
-          <div class="f-card__desc">Create unlimited what-if budgets and compare outcomes.</div>
-        </div>
-        <div class="f-card">
-          <div class="f-card__dot"></div>
-          <div class="f-card__title">Scenario comparison</div>
-          <div class="f-card__desc">See scenarios side by side to find the best path forward.</div>
-        </div>
-        <div class="f-card">
-          <div class="f-card__dot"></div>
-          <div class="f-card__title">Longer projections</div>
-          <div class="f-card__desc">Extend your view beyond 3 months. Plan 6, 12, or more.</div>
-        </div>
-        <div class="f-card">
-          <div class="f-card__dot"></div>
-          <div class="f-card__title">Financial health</div>
-          <div class="f-card__desc">Track your financial trajectory and see where you're heading.</div>
-        </div>
-        <div class="f-card">
-          <div class="f-card__dot"></div>
-          <div class="f-card__title">Scenario notes</div>
-          <div class="f-card__desc">Add context and reminders to any scenario.</div>
-        </div>
-        <div class="f-card f-card--soon">
-          <div class="f-card__dot"></div>
-          <div class="f-card__title">AI insights &amp; widgets</div>
-          <div class="f-card__desc">Smart suggestions and custom dashboards.</div>
-          <span class="f-card__soon-tag">Coming soon</span>
+      <!-- Product visual placeholder -->
+      <div class="hero__visual">
+        <div class="hero__mockup">
+          <div class="hero__mockup-inner">
+            <div class="hero__mockup-icon">&#9635;</div>
+            <!-- PLACEHOLDER: Replace with app screenshot or illustration showing
+                 the Pro dashboard — multiple scenarios, projection chart, comparison view.
+                 Recommended: 1440x900 PNG or SVG at 2x. -->
+            <span>Product screenshot placeholder</span>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Compare -->
-  <section class="compare">
+  <!-- ═══════════════════════════════════════════════
+       2. FEATURE STORY — Multiple Scenarios
+       ═══════════════════════════════════════════════ -->
+  <section class="story">
     <div class="container">
-      <div class="compare__label">Compare plans</div>
-      <div class="compare__title">Budget vs Pro</div>
-
-      <table class="compare__table">
-        <thead>
-          <tr>
-            <th></th>
-            <th>Budget</th>
-            <th>Pro</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>Scenarios</td><td>1</td><td>Unlimited</td></tr>
-          <tr><td>Expenses</td><td>8</td><td>Unlimited</td></tr>
-          <tr><td>Projection window</td><td>3 months</td><td>Unlimited</td></tr>
-          <tr><td>Scenario comparison</td><td>&mdash;</td><td>&#10003;</td></tr>
-          <tr><td>Financial health</td><td>&mdash;</td><td>&#10003;</td></tr>
-          <tr><td>Notes</td><td>&mdash;</td><td>&#10003;</td></tr>
-          <tr><td>AI insights</td><td>&mdash;</td><td>Coming soon</td></tr>
-        </tbody>
-      </table>
-
-      <div class="compare__prices">
-        <div class="compare__price-col">
-          <div class="compare__price-label">Budget</div>
-          <div class="compare__price-amount">$4.99<span style="font-size:14px;font-weight:400;color:var(--color-muted);">/mo</span></div>
-          <div class="compare__price-note">or $59.99 lifetime</div>
+      <div class="story__inner">
+        <div class="story__copy">
+          <div class="section-label">Scenarios</div>
+          <h2 class="story__title">Run every version of&nbsp;your&nbsp;budget</h2>
+          <p class="story__desc">
+            What if you picked up a side gig? Cut subscriptions? Moved to a cheaper place?
+            Pro lets you create unlimited scenarios and see exactly how each decision
+            changes your future.
+          </p>
+          <ul class="story__bullets">
+            <li>Unlimited what-if scenarios</li>
+            <li>Duplicate and tweak existing budgets instantly</li>
+            <li>Keep your best plan, archive the rest</li>
+          </ul>
         </div>
-        <div class="compare__price-col">
-          <div class="compare__price-label compare__price-label--pro">Pro</div>
-          <div class="compare__price-amount compare__price-amount--pro">$7.99<span style="font-size:14px;font-weight:400;color:var(--color-muted);">/mo</span></div>
-          <div class="compare__price-note">Lifetime coming soon</div>
+        <div class="story__visual">
+          <div class="story__visual-icon">&#9899;</div>
+          <!-- PLACEHOLDER: Screenshot or illustration of the scenario list view
+               showing 3-4 named scenarios with different totals.
+               Recommended: 800x600 PNG at 2x. -->
+          <span>Scenario list view</span>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- FAQ -->
+  <!-- ═══════════════════════════════════════════════
+       3. FEATURE STORY — Scenario Comparison (reversed)
+       ═══════════════════════════════════════════════ -->
+  <section class="story story--reverse">
+    <div class="container">
+      <div class="story__inner">
+        <div class="story__copy">
+          <div class="section-label">Comparison</div>
+          <h2 class="story__title">See your options side&nbsp;by&nbsp;side</h2>
+          <p class="story__desc">
+            Stop guessing which plan works best. Place any two scenarios next to each other
+            and compare income, expenses, and projected balances at a glance.
+          </p>
+          <ul class="story__bullets">
+            <li>Side-by-side scenario comparison</li>
+            <li>Spot differences in spending and savings instantly</li>
+            <li>Make decisions backed by real numbers</li>
+          </ul>
+        </div>
+        <div class="story__visual">
+          <div class="story__visual-icon">&#8644;</div>
+          <!-- PLACEHOLDER: Screenshot of the comparison view showing two scenarios
+               side by side with highlighted differences.
+               Recommended: 800x600 PNG at 2x. -->
+          <span>Comparison view</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════
+       4. PRICING — Moved high for early buy-in
+       ═══════════════════════════════════════════════ -->
+  <section class="pricing" id="pricing">
+    <div class="container">
+      <div class="pricing__header">
+        <div class="section-label">Pricing</div>
+        <h2 class="section-title">Simple, transparent pricing</h2>
+      </div>
+
+      <div class="pricing__grid">
+        <!-- Budget card -->
+        <div class="pricing__card">
+          <div class="pricing__plan-name">Budget</div>
+          <div class="pricing__plan-desc">Get started with the essentials.</div>
+          <div class="pricing__amount">$4.99<span>/mo</span></div>
+          <div class="pricing__alt">or $59.99 lifetime</div>
+          <ul class="pricing__features">
+            <li>1 scenario</li>
+            <li>Up to 8 expenses</li>
+            <li>3-month projections</li>
+            <li>Pay period tracking</li>
+            <li>Goal tracking</li>
+            <li class="is-disabled">Scenario comparison</li>
+            <li class="is-disabled">Financial health</li>
+          </ul>
+          <a href="/" class="btn btn--ghost btn--sm">Current plan</a>
+        </div>
+
+        <!-- Pro card -->
+        <div class="pricing__card pricing__card--pro">
+          <div class="pricing__card-badge">Recommended</div>
+          <div class="pricing__plan-name">Pro</div>
+          <div class="pricing__plan-desc">The full picture, no&nbsp;limits.</div>
+          <div class="pricing__amount" style="color:var(--color-accent);">$7.99<span>/mo</span></div>
+          <div class="pricing__alt">Lifetime option coming soon</div>
+          <ul class="pricing__features">
+            <li>Unlimited scenarios</li>
+            <li>Unlimited expenses</li>
+            <li>Extended projections (6, 12+ months)</li>
+            <li>Scenario comparison</li>
+            <li>Financial health tracking</li>
+            <li>Scenario notes</li>
+            <li>Early access to AI insights</li>
+          </ul>
+          <button class="btn btn--solid btn--sm pro-cta">Go Pro</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════
+       5. FEATURE STORY — Longer Projections
+       ═══════════════════════════════════════════════ -->
+  <section class="story">
+    <div class="container">
+      <div class="story__inner">
+        <div class="story__copy">
+          <div class="section-label">Projections</div>
+          <h2 class="story__title">See 6, 12, or more months&nbsp;ahead</h2>
+          <p class="story__desc">
+            A 3-month window shows where you are. A 12-month window shows where
+            you're heading. Extend your projections and plan with real
+            long-term&nbsp;clarity.
+          </p>
+          <ul class="story__bullets">
+            <li>Projection windows up to 12+ months</li>
+            <li>Visualize seasonal patterns and irregular expenses</li>
+            <li>Plan major purchases and life changes with confidence</li>
+          </ul>
+        </div>
+        <div class="story__visual">
+          <div class="story__visual-icon">&#9655;</div>
+          <!-- PLACEHOLDER: Chart or illustration showing a projection timeline
+               extending from 3 months to 12 months, with a clear trajectory line.
+               Recommended: 800x600 PNG at 2x. -->
+          <span>Extended projection chart</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════
+       6. FEATURE STORY — Financial Health (reversed)
+       ═══════════════════════════════════════════════ -->
+  <section class="story story--reverse">
+    <div class="container">
+      <div class="story__inner">
+        <div class="story__copy">
+          <div class="section-label">Financial health</div>
+          <h2 class="story__title">Track your trajectory,<br>not just your&nbsp;balance</h2>
+          <p class="story__desc">
+            Your balance today is a snapshot. Financial health tracking shows the
+            trend &mdash; whether you're building momentum or drifting off course,
+            so you can adjust before it&nbsp;matters.
+          </p>
+          <ul class="story__bullets">
+            <li>Health score that evolves with your habits</li>
+            <li>Trend indicators for spending and saving</li>
+            <li>Early warnings before problems become emergencies</li>
+          </ul>
+        </div>
+        <div class="story__visual">
+          <div class="story__visual-icon">&#9825;</div>
+          <!-- PLACEHOLDER: Financial health dashboard mockup showing score,
+               trend arrows, and a small trajectory graph.
+               Recommended: 800x600 PNG at 2x. -->
+          <span>Financial health view</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════
+       7. FEATURE STORY — Scenario Notes
+       ═══════════════════════════════════════════════ -->
+  <section class="story">
+    <div class="container">
+      <div class="story__inner">
+        <div class="story__copy">
+          <div class="section-label">Notes</div>
+          <h2 class="story__title">Remember why you made each&nbsp;choice</h2>
+          <p class="story__desc">
+            Attach notes to any scenario. Capture your reasoning, flag assumptions,
+            or leave reminders for your future self. Your budget tells a story &mdash;
+            notes help you remember&nbsp;it.
+          </p>
+          <ul class="story__bullets">
+            <li>Add context to any scenario</li>
+            <li>Flag assumptions and open questions</li>
+            <li>Keep a decision journal alongside your numbers</li>
+          </ul>
+        </div>
+        <div class="story__visual">
+          <div class="story__visual-icon">&#9998;</div>
+          <!-- PLACEHOLDER: Notes interface mockup showing a scenario
+               with attached notes/annotations.
+               Recommended: 800x600 PNG at 2x. -->
+          <span>Scenario notes view</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════
+       8. PROGRESSION — Budget vs Pro experience
+       ═══════════════════════════════════════════════ -->
+  <section class="progression">
+    <div class="container">
+      <div class="progression__header">
+        <div class="section-label">The difference</div>
+        <h2 class="section-title">What changes when you&nbsp;go&nbsp;Pro</h2>
+      </div>
+
+      <div class="progression__grid">
+        <!-- Budget experience -->
+        <div class="progression__card">
+          <div class="progression__card-label">Budget plan</div>
+
+          <div class="progression__card-row">
+            <div class="progression__card-row-icon">1</div>
+            <div class="progression__card-row-text">
+              <strong>One scenario</strong>
+              <span>A single budget view of your finances</span>
+            </div>
+          </div>
+
+          <div class="progression__card-row">
+            <div class="progression__card-row-icon">3</div>
+            <div class="progression__card-row-text">
+              <strong>3-month window</strong>
+              <span>See the near-term picture</span>
+            </div>
+          </div>
+
+          <div class="progression__card-row">
+            <div class="progression__card-row-icon">8</div>
+            <div class="progression__card-row-text">
+              <strong>8 expenses per scenario</strong>
+              <span>Covers the basics</span>
+            </div>
+          </div>
+
+          <div class="progression__card-row">
+            <div class="progression__card-row-icon">&mdash;</div>
+            <div class="progression__card-row-text">
+              <strong>No comparison tools</strong>
+              <span>Evaluate one plan at a time</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pro experience -->
+        <div class="progression__card progression__card--pro">
+          <div class="progression__card-label">Pro plan</div>
+
+          <div class="progression__card-row">
+            <div class="progression__card-row-icon">&infin;</div>
+            <div class="progression__card-row-text">
+              <strong>Unlimited scenarios</strong>
+              <span>Test every possibility before you commit</span>
+            </div>
+          </div>
+
+          <div class="progression__card-row">
+            <div class="progression__card-row-icon">12+</div>
+            <div class="progression__card-row-text">
+              <strong>12+ month projections</strong>
+              <span>See the full trajectory of your finances</span>
+            </div>
+          </div>
+
+          <div class="progression__card-row">
+            <div class="progression__card-row-icon">&infin;</div>
+            <div class="progression__card-row-text">
+              <strong>Unlimited expenses</strong>
+              <span>Every line item, fully tracked</span>
+            </div>
+          </div>
+
+          <div class="progression__card-row">
+            <div class="progression__card-row-icon">&#10003;</div>
+            <div class="progression__card-row-text">
+              <strong>Full comparison suite</strong>
+              <span>Side-by-side analysis, health tracking, notes</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════
+       9. FAQ
+       ═══════════════════════════════════════════════ -->
   <section class="faq">
     <div class="container">
-      <div class="faq__title">Questions</div>
+      <div class="faq__header">
+        <h2 class="section-title">Questions</h2>
+      </div>
       <div class="faq__list">
         <div class="faq__item">
           <button class="faq__q">What do I get with Pro?</button>
-          <div class="faq__a"><p>Unlimited scenarios, unlimited expenses, longer projection windows, scenario comparison, financial health tracking, and scenario notes. Plus early access to AI insights and widgets as they launch.</p></div>
+          <div class="faq__a"><p>Unlimited scenarios, unlimited expenses, longer projection windows, scenario comparison, financial health tracking, and scenario notes. Plus early access to AI insights and custom widgets as they launch.</p></div>
         </div>
         <div class="faq__item">
           <button class="faq__q">Can I cancel anytime?</button>
@@ -528,13 +1048,15 @@
     </div>
   </section>
 
-  <!-- Final CTA -->
+  <!-- ═══════════════════════════════════════════════
+       10. FINAL CTA
+       ═══════════════════════════════════════════════ -->
   <section class="cta" id="go-pro">
     <div class="container">
-      <div class="cta__title">Ready to go Pro?</div>
-      <div class="cta__detail">$7.99/month &middot; Cancel anytime</div>
-      <button class="btn btn--solid" style="min-width:220px;" id="pro-cta-btn">Go Pro</button>
-      <div class="cta__note">Lifetime option coming soon</div>
+      <h2 class="cta__title">Ready to see the<br>full&nbsp;picture?</h2>
+      <p class="cta__detail">$7.99/month &middot; Cancel anytime</p>
+      <button class="btn btn--solid pro-cta" style="min-width:240px;">Go Pro</button>
+      <p class="cta__note">Lifetime option coming soon</p>
     </div>
   </section>
 
@@ -553,10 +1075,9 @@
       });
     });
 
-    // CTA stub
-    document.querySelectorAll('#pro-cta-btn, .hero .btn--solid').forEach(el => {
+    // CTA stubs (all .pro-cta buttons and hero link)
+    document.querySelectorAll('.pro-cta').forEach(el => {
       el.addEventListener('click', (e) => {
-        if (el.tagName === 'A') return; // let anchor scroll
         e.preventDefault();
         console.log('[Pro] Upgrade CTA clicked: pro-monthly');
       });

@@ -1,5 +1,5 @@
 const express = require('express');
-const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 const db = require('../config/dynamo');
 
 const USERS_TABLE = 'bp_users';
@@ -45,22 +45,44 @@ router.post('/create-checkout-session', async (req, res) => {
       return res.status(500).json({ error: `Price ID not configured for ${plan}` });
     }
 
+    // Look up user's current plan state for replacement logic
+    const userResult = await db.send(new GetCommand({
+      TableName: USERS_TABLE,
+      Key: { userId: req.userId },
+    }));
+    const user = userResult.Item || {};
+    const existingCustomerId = user.stripeCustomerId || null;
+    const existingSubId = user.stripeSubscriptionId || null;
+
     const origin = `${req.protocol}://${req.get('host')}`;
+
+    const metadata = { userId: req.userId, plan, tier: planDef.tier };
+    // If the user has an active recurring subscription, mark it for
+    // cancellation so the webhook can clean it up after the new
+    // purchase succeeds.
+    if (existingSubId) {
+      metadata.replacesSubscriptionId = existingSubId;
+    }
 
     const sessionParams = {
       mode: planDef.mode,
       line_items: [{ price: priceId, quantity: 1 }],
-      customer_email: req.userEmail,
-      metadata: { userId: req.userId, plan, tier: planDef.tier },
+      metadata,
       success_url: `${origin}/?checkout=success`,
       cancel_url: `${origin}/?checkout=cancel`,
     };
 
+    // Reuse existing Stripe Customer to avoid duplicates;
+    // fall back to customer_email for first-time purchasers.
+    if (existingCustomerId) {
+      sessionParams.customer = existingCustomerId;
+    } else {
+      sessionParams.customer_email = req.userEmail;
+    }
+
     // For subscriptions, also attach metadata to the subscription object
     if (planDef.mode === 'subscription') {
-      sessionParams.subscription_data = {
-        metadata: { userId: req.userId, plan, tier: planDef.tier },
-      };
+      sessionParams.subscription_data = { metadata };
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);
@@ -122,7 +144,10 @@ async function handleCheckoutCompleted(session) {
   const tier = session.metadata?.tier || 'budget';
   const plan = session.metadata?.plan || tier;
   const customerId = session.customer;
+  const newSubId = session.subscription || null;
+  const replacesSubId = session.metadata?.replacesSubscriptionId || null;
 
+  // ---- Write new entitlement to DB first ---------------------------
   const updateExpr = [
     'accessLevel = :al',
     'entitlementStatus = :es',
@@ -138,19 +163,44 @@ async function handleCheckoutCompleted(session) {
     ':now': new Date().toISOString(),
   };
 
-  if (session.subscription) {
+  // For subscription purchases, store the new subscription ID.
+  // For lifetime purchases, clear any old subscription ID.
+  const removeExprs = [];
+  if (newSubId) {
     updateExpr.push('stripeSubscriptionId = :sid');
-    values[':sid'] = session.subscription;
+    values[':sid'] = newSubId;
+  } else {
+    removeExprs.push('stripeSubscriptionId');
+  }
+
+  let updateExpression = 'SET ' + updateExpr.join(', ');
+  if (removeExprs.length) {
+    updateExpression += ' REMOVE ' + removeExprs.join(', ');
   }
 
   await db.send(new UpdateCommand({
     TableName: USERS_TABLE,
     Key: { userId },
-    UpdateExpression: 'SET ' + updateExpr.join(', '),
+    UpdateExpression: updateExpression,
     ExpressionAttributeValues: values,
   }));
 
-  console.log(`checkout.session.completed: userId=${userId} tier=${tier} plan=${plan}`);
+  console.log(`checkout.session.completed: userId=${userId} tier=${tier} plan=${plan} newSub=${newSubId || 'none'}`);
+
+  // ---- Cancel replaced subscription (after DB is updated) ----------
+  // Only cancel if: replacesSubId exists, differs from new sub, and
+  // looks like a Stripe subscription ID we own for this user.
+  if (replacesSubId && replacesSubId !== newSubId) {
+    try {
+      const stripe = getStripe();
+      await stripe.subscriptions.cancel(replacesSubId);
+      console.log(`checkout.session.completed: canceled replaced subscription ${replacesSubId} for userId=${userId}`);
+    } catch (err) {
+      // New entitlement is already active — log but do not fail.
+      // Old subscription can be cleaned up manually in Stripe dashboard.
+      console.error(`checkout.session.completed: failed to cancel replaced subscription ${replacesSubId} for userId=${userId}:`, err.message);
+    }
+  }
 }
 
 async function handleSubscriptionUpdated(subscription) {
@@ -194,6 +244,30 @@ async function handleSubscriptionDeleted(subscription) {
     return;
   }
 
+  const deletedSubId = subscription.id;
+
+  // Guard: only downgrade if the deleted subscription is still the
+  // user's current active subscription. If it's a stale cancellation
+  // from a replaced plan, skip the downgrade — the user already has
+  // a newer active plan.
+  const userResult = await db.send(new GetCommand({
+    TableName: USERS_TABLE,
+    Key: { userId },
+  }));
+  const currentSubId = userResult.Item?.stripeSubscriptionId || null;
+
+  if (currentSubId && currentSubId !== deletedSubId) {
+    console.log(`customer.subscription.deleted: skipping downgrade for userId=${userId} — deleted sub ${deletedSubId} is not current sub ${currentSubId}`);
+    return;
+  }
+
+  // Lifetime users have no stripeSubscriptionId — if currentSubId is
+  // null and a sub is deleted, it's also a stale event.
+  if (!currentSubId) {
+    console.log(`customer.subscription.deleted: skipping downgrade for userId=${userId} — user has no active subscription (likely lifetime)`);
+    return;
+  }
+
   await db.send(new UpdateCommand({
     TableName: USERS_TABLE,
     Key: { userId },
@@ -205,7 +279,7 @@ async function handleSubscriptionDeleted(subscription) {
     },
   }));
 
-  console.log(`customer.subscription.deleted: userId=${userId} → canceled/none`);
+  console.log(`customer.subscription.deleted: userId=${userId} sub=${deletedSubId} → canceled/none`);
 }
 
 module.exports = { router, webhook };

@@ -305,11 +305,24 @@ function renderPlanGate(session, intent) {
     // ---- Step 6b: Load profile for plan gating -----------------
     await Auth.loadProfile(session);
 
-    // ---- Step 6c: Handle checkout success return ----------------
-    if (urlParams.get('checkout') === 'success') {
-      // Stripe webhook may have already updated the profile — re-fetch it
-      await Auth.refreshProfile();
-      // Clean the URL so reload doesn't re-trigger
+    // ---- Step 6c: Handle checkout return --------------------------
+    const checkoutParam = urlParams.get('checkout');
+
+    if (checkoutParam === 'success') {
+      // Stripe webhook may not have landed yet — poll up to 5s
+      let entitled = false;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        await Auth.refreshProfile();
+        if (Auth.canAccess()) { entitled = true; break; }
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      window.history.replaceState({}, '', '/');
+      // If still not entitled after polling, fall through to plan gate
+      // (user can reload once webhook lands)
+    }
+
+    if (checkoutParam === 'cancel') {
+      // User canceled Stripe checkout — clean URL, stay on plan gate
       window.history.replaceState({}, '', '/');
     }
 

@@ -8,6 +8,11 @@ const db      = require('./config/dynamo');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy (EB load balancer terminates SSL) so req.protocol
+// returns 'https' instead of 'http'. Required for correct Stripe
+// success/cancel redirect URLs.
+app.set('trust proxy', 1);
+
 // ---- Stripe webhook (raw body — MUST come before express.json) --
 app.post('/api/stripe/webhook',
   express.raw({ type: 'application/json' }),

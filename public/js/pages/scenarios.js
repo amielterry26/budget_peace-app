@@ -325,7 +325,7 @@ async function openNewScenarioSheet() {
   // Plan gate: check scenario limit
   const maxScenarios = Plans.getLimit('maxScenarios');
   if (scenarios.length >= maxScenarios) {
-    Plans.showUpgradeModal();
+    Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.scenarios);
     return;
   }
 

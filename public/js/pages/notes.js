@@ -75,7 +75,7 @@ function renderNotesPage() {
 async function npAddNote() {
   // Plan gate: scenario notes are Pro-only
   if (!Plans.canUse('scenarioNotes')) {
-    Plans.showUpgradeModal();
+    Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.notes);
     return;
   }
 

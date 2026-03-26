@@ -6,6 +6,7 @@ const { randomUUID } = require('crypto');
 const router = express.Router();
 const db     = require('../config/dynamo');
 const { verifyOwner } = require('../middleware/auth');
+const { canAddExpense } = require('../lib/planLimits');
 
 const TABLE = 'bp_expenses';
 const VALID_RECURRENCES = ['once', 'recurring'];
@@ -56,6 +57,18 @@ router.post('/', async (req, res) => {
       if (recurrenceFrequency === 'monthly' && !dueDay) {
         return res.status(400).json({ error: 'dueDay is required for monthly recurring expenses' });
       }
+    }
+
+    // Plan gate: enforce maxExpensesPerScenario
+    const targetScenario = scenarioId || 'main';
+    const expCheck = await canAddExpense(db, req.userId, targetScenario);
+    if (!expCheck.allowed) {
+      return res.status(403).json({
+        error: 'Expense limit reached. Upgrade to Pro for unlimited expenses.',
+        code: 'PLAN_LIMIT_EXPENSES',
+        current: expCheck.current,
+        max: expCheck.max,
+      });
     }
 
     const expenseId = randomUUID();

@@ -266,6 +266,12 @@ function mountNotesWidget(prefix, scenarioId, initialNotes) {
   }
 
   async function addNote() {
+    // Plan gate: notes are Pro-only
+    if (!Plans.canUse('scenarioNotes')) {
+      Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.notes);
+      return;
+    }
+
     const input = document.getElementById(`${prefix}-notes-input`);
     const text = (input.value || '').trim();
     if (!text) return;

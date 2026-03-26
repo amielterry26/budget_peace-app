@@ -85,7 +85,7 @@ function renderSettings(scenario) {
           <label class="form-label">Budget horizon</label>
           <div class="option-grid option-grid--3">
             ${[3,6,12].map(m => {
-              const maxDur = Plans.getLimit('maxDurationMonths');
+              const maxDur = Plans.getLimit('maxProjectionMonths');
               const locked = typeof maxDur === 'number' && m > maxDur;
               const selected = duration === m ? 'is-selected' : '';
               const lockedCls = locked ? 'is-locked' : '';
@@ -137,7 +137,7 @@ function renderSettings(scenario) {
   document.querySelectorAll('.settings-duration').forEach(card => {
     card.addEventListener('click', () => {
       if (card.dataset.locked === 'true') {
-        Plans.showUpgradeModal();
+        Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.duration);
         return;
       }
       document.querySelectorAll('.settings-duration').forEach(c => c.classList.remove('is-selected'));

@@ -10,20 +10,23 @@
 //   Plans.canUse(feature)         — boolean: is feature enabled?
 //   Plans.getLimit(feature)       — numeric limit value
 //   Plans.getTier()               — 'budget' | 'pro' | 'none'
-//   Plans.showUpgradeModal()      — opens the slimmed Pro upgrade modal
+//   Plans.showUpgradeModal(ctx)   — opens contextual Pro upgrade modal
 //   Plans.hideUpgradeModal()      — closes the Pro upgrade modal
 //   Plans.getProFeatures()        — shared Pro feature list
 //   Plans.getComingSoon()         — shared Coming Soon feature list
+//   Plans.UPGRADE_CONTEXT         — contextual messages for each gated feature
 // ============================================================
 
 const Plans = (() => {
   // ---- Plan Definitions ----------------------------------------
+  // Canonical key names — must match lib/planLimits.js on the server.
+  // Internal tier key "budget" = user-facing "Basic".
 
   const TIERS = {
     budget: {
       maxScenarios: 1,
-      maxExpenses: 8,
-      maxDurationMonths: 3,
+      maxExpensesPerScenario: 8,
+      maxProjectionMonths: 3,
       scenarioComparison: false,
       financialHealth: false,
       scenarioNotes: false,
@@ -31,8 +34,8 @@ const Plans = (() => {
     },
     pro: {
       maxScenarios: Infinity,
-      maxExpenses: Infinity,
-      maxDurationMonths: Infinity,
+      maxExpensesPerScenario: Infinity,
+      maxProjectionMonths: Infinity,
       scenarioComparison: true,
       financialHealth: true,
       scenarioNotes: true,
@@ -59,6 +62,17 @@ const Plans = (() => {
 
   function getProFeatures() { return PRO_FEATURES; }
   function getComingSoon()  { return COMING_SOON; }
+
+  // ---- Contextual Upgrade Messages -----------------------------
+
+  const UPGRADE_CONTEXT = {
+    scenarios:       { message: 'Multiple scenarios are available on the Pro plan.' },
+    expenses:        { message: 'Unlimited expenses are available on the Pro plan.' },
+    duration:        { message: 'Longer projection windows are part of Pro.' },
+    comparison:      { message: 'Comparison is a Pro feature for side-by-side decision making.' },
+    notes:           { message: 'Notes are available on Pro for deeper planning.' },
+    financialHealth: { message: 'Financial health tracking is available on the Pro plan.' },
+  };
 
   // ---- Tier Resolution -----------------------------------------
 
@@ -91,14 +105,17 @@ const Plans = (() => {
     return getPlanLimits()[feature];
   }
 
-  // ---- Upgrade Modal (slimmed — full discovery on #pro page) ---
+  // ---- Upgrade Modal (contextual — full discovery on /pro) -----
 
-  function showUpgradeModal() {
+  function showUpgradeModal(context) {
     // Remove existing if open
     document.getElementById('upgrade-overlay')?.remove();
     document.getElementById('upgrade-modal')?.remove();
 
     const topFeatures = PRO_FEATURES.slice(0, 3);
+    const subtitle = (context && context.message)
+      ? context.message
+      : 'See your full financial picture &mdash; no limits.';
 
     document.body.insertAdjacentHTML('beforeend', `
       <div id="upgrade-overlay" class="sheet-overlay"></div>
@@ -110,7 +127,7 @@ const Plans = (() => {
             Budget Peace Pro
           </div>
           <div class="text-muted" style="font-size:var(--font-size-sm);margin-top:var(--space-1);line-height:1.5;">
-            See your full financial picture &mdash; no limits.
+            ${subtitle}
           </div>
         </div>
 
@@ -181,5 +198,6 @@ const Plans = (() => {
     hideUpgradeModal,
     getProFeatures,
     getComingSoon,
+    UPGRADE_CONTEXT,
   };
 })();

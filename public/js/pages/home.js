@@ -222,7 +222,7 @@ function renderHealth(months) {
     btn.addEventListener('click', () => renderHealth(Number(btn.dataset.months)));
   });
 
-  document.getElementById('health-upgrade')?.addEventListener('click', () => Plans.showUpgradeModal());
+  document.getElementById('health-upgrade')?.addEventListener('click', () => Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.financialHealth));
   document.getElementById('go-pay-period')?.addEventListener('click', () => Router.navigate('pay-period'));
   document.getElementById('period-shortcut')?.addEventListener('click', () => Router.navigate('pay-period'));
 

@@ -18,7 +18,7 @@ Router.register('compare', async () => {
         <p class="text-muted text-sm" style="margin-bottom:var(--space-4);">Scenario comparison is available on Budget Peace Pro.</p>
         <button class="btn btn--primary" id="compare-upgrade">Upgrade to Pro</button>
       </div>`;
-    document.getElementById('compare-upgrade').addEventListener('click', () => Plans.showUpgradeModal());
+    document.getElementById('compare-upgrade').addEventListener('click', () => Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.comparison));
     return;
   }
 

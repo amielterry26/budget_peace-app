@@ -240,9 +240,9 @@ async function openSheet(expense, onSave) {
 
   // Plan gate: check expense limit (only for new expenses, not edits)
   if (!editing && !isDemoMode()) {
-    const maxExpenses = Plans.getLimit('maxExpenses');
+    const maxExpenses = Plans.getLimit('maxExpensesPerScenario');
     if (typeof maxExpenses === 'number' && _expenses.length >= maxExpenses) {
-      Plans.showUpgradeModal();
+      Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.expenses);
       return;
     }
   }

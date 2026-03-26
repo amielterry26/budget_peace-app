@@ -20,7 +20,7 @@ const Plans = (() => {
   const TIERS = {
     budget: {
       maxScenarios: 1,
-      maxExpenses: 3,
+      maxExpenses: 8,
       maxDurationMonths: 3,
       scenarioComparison: false,
       financialHealth: false,
@@ -81,37 +81,48 @@ const Plans = (() => {
       <div id="upgrade-modal" class="sheet" style="max-width:420px;">
         <div class="sheet__handle"></div>
 
-        <div style="text-align:center;padding:var(--space-4) 0 var(--space-2);">
-          <div style="font-size:20px;font-weight:var(--font-weight-bold);letter-spacing:-0.02em;margin-bottom:var(--space-2);line-height:1.3;">
-            Upgrade to Pro
+        <div style="text-align:center;padding:var(--space-4) 0 var(--space-1);">
+          <div style="font-size:20px;font-weight:var(--font-weight-bold);letter-spacing:-0.02em;line-height:1.3;">
+            Budget Peace Pro
+          </div>
+          <div class="text-muted" style="font-size:var(--font-size-sm);margin-top:var(--space-1);line-height:1.5;">
+            See your full financial picture &mdash; no limits.
           </div>
         </div>
 
-        <div style="padding:0 0 var(--space-4);">
-          <div style="font-size:var(--font-size-sm);font-weight:var(--font-weight-semibold);margin-bottom:var(--space-2);">Pro unlocks:</div>
+        <div style="padding:var(--space-3) 0 var(--space-2);">
+          <div style="font-size:var(--font-size-xs);font-weight:var(--font-weight-semibold);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-secondary);margin-bottom:var(--space-2);">What you get</div>
           <ul style="list-style:none;padding:0;margin:0;font-size:var(--font-size-sm);color:var(--color-text-secondary);">
-            <li style="padding:6px 0;">&#10003; Unlimited scenarios</li>
-            <li style="padding:6px 0;">&#10003; Scenario comparison</li>
-            <li style="padding:6px 0;">&#10003; Unlimited expenses</li>
-            <li style="padding:6px 0;">&#10003; Extended projection window</li>
-            <li style="padding:6px 0;">&#10003; Financial health projection</li>
-            <li style="padding:6px 0;">&#10003; Scenario notes</li>
-            <li style="padding:6px 0;">&#10003; Future AI features & widgets</li>
+            <li style="padding:5px 0;">&#10003;&ensp;Unlimited scenarios</li>
+            <li style="padding:5px 0;">&#10003;&ensp;Unlimited expenses per scenario</li>
+            <li style="padding:5px 0;">&#10003;&ensp;Extended projection window (6+ months)</li>
+            <li style="padding:5px 0;">&#10003;&ensp;Side-by-side scenario comparison</li>
+            <li style="padding:5px 0;">&#10003;&ensp;Financial health projection</li>
+            <li style="padding:5px 0;">&#10003;&ensp;Scenario notes</li>
           </ul>
         </div>
 
-        <div style="display:flex;flex-direction:column;gap:var(--space-3);padding:0 0 var(--space-3);">
+        <div style="padding:var(--space-1) 0 var(--space-2);">
+          <div style="font-size:var(--font-size-xs);font-weight:var(--font-weight-semibold);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-secondary);margin-bottom:var(--space-2);">Coming soon</div>
+          <ul style="list-style:none;padding:0;margin:0;font-size:var(--font-size-sm);color:var(--color-text-secondary);">
+            <li style="padding:5px 0;">&#10003;&ensp;AI-powered budget insights</li>
+            <li style="padding:5px 0;">&#10003;&ensp;Custom widgets &amp; dashboards</li>
+            <li style="padding:5px 0;">&#10003;&ensp;Advanced adjustments</li>
+          </ul>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) 0 var(--space-2);">
           <button class="btn btn--primary btn--full" id="upgrade-pro-monthly">
-            Pro Monthly &mdash; $7.99/mo
+            Go Pro &mdash; $7.99/mo
           </button>
-          <div class="text-muted text-center" style="font-size:var(--font-size-xs);">
+          <div class="text-muted text-center" style="font-size:var(--font-size-xs);line-height:1.4;">
             Lifetime option coming soon
           </div>
         </div>
 
-        <div style="padding:var(--space-2) 0 var(--space-3);">
-          <button class="btn btn--ghost btn--full" id="upgrade-close">
-            Maybe later
+        <div style="padding:var(--space-1) 0 var(--space-3);text-align:center;">
+          <button class="btn btn--ghost btn--full" id="upgrade-close" style="font-size:var(--font-size-sm);">
+            Not now
           </button>
         </div>
       </div>

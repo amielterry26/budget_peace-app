@@ -11,7 +11,21 @@ const { verifyOwner } = require('../middleware/auth');
 const SCENARIOS_TABLE = 'bp_scenarios';
 const PERIODS_TABLE   = 'bp_budget_periods_v2';
 const EXPENSES_TABLE  = 'bp_expenses';
+const USERS_TABLE     = 'bp_users';
 const CHUNK = 25;
+
+// Plan limits enforced server-side (must match public/js/plans.js)
+const PLAN_LIMITS = {
+  budget: { maxDurationMonths: 3 },
+  pro:    { maxDurationMonths: Infinity },
+};
+
+function getTierFromAccessLevel(accessLevel) {
+  if (accessLevel === 'pro') return 'pro';
+  if (accessLevel === 'full') return 'pro'; // legacy migration
+  if (accessLevel === 'budget') return 'budget';
+  return 'budget'; // default to most restrictive
+}
 
 const VALID_CADENCES = ['biweekly', 'monthly'];
 
@@ -246,6 +260,17 @@ router.put('/:userId/:scenarioId', verifyOwner, async (req, res) => {
     if (req.body.cadence || req.body.firstPayDate || req.body.durationMonths != null || req.body.income != null) {
       const err = validateSetup({ cadence, firstPayDate, durationMonths, income });
       if (err) return res.status(400).json({ error: err });
+    }
+
+    // Plan gate: enforce maxDurationMonths based on user tier
+    if (req.body.durationMonths != null) {
+      const userResult = await db.send(new GetCommand({ TableName: USERS_TABLE, Key: { userId } }));
+      const accessLevel = userResult.Item?.accessLevel || 'none';
+      const tier = getTierFromAccessLevel(accessLevel);
+      const limits = PLAN_LIMITS[tier] || PLAN_LIMITS.budget;
+      if (durationMonths > limits.maxDurationMonths) {
+        return res.status(403).json({ error: `Your plan allows a maximum of ${limits.maxDurationMonths} months. Upgrade to Pro for longer projections.` });
+      }
     }
 
     const now = new Date().toISOString();

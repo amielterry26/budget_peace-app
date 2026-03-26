@@ -84,11 +84,17 @@ function renderSettings(scenario) {
         <div class="form-group" style="margin-bottom:var(--space-3);">
           <label class="form-label">Budget horizon</label>
           <div class="option-grid option-grid--3">
-            ${[3,6,12].map(m => `
-              <div class="option-card settings-duration ${duration === m ? 'is-selected' : ''}" data-value="${m}">
-                <div class="option-card__title">${m}</div>
-                <div class="option-card__sub">months</div>
-              </div>`).join('')}
+            ${[3,6,12].map(m => {
+              const maxDur = Plans.getLimit('maxDurationMonths');
+              const locked = typeof maxDur === 'number' && m > maxDur;
+              const selected = duration === m ? 'is-selected' : '';
+              const lockedCls = locked ? 'is-locked' : '';
+              return `
+              <div class="option-card settings-duration ${selected} ${lockedCls}" data-value="${m}" ${locked ? 'data-locked="true"' : ''}>
+                <div class="option-card__title">${m}${locked ? ' <span style="font-size:12px;">&#9733;</span>' : ''}</div>
+                <div class="option-card__sub">${locked ? 'Pro' : 'months'}</div>
+              </div>`;
+            }).join('')}
           </div>
         </div>
 
@@ -130,6 +136,10 @@ function renderSettings(scenario) {
 
   document.querySelectorAll('.settings-duration').forEach(card => {
     card.addEventListener('click', () => {
+      if (card.dataset.locked === 'true') {
+        Plans.showUpgradeModal();
+        return;
+      }
       document.querySelectorAll('.settings-duration').forEach(c => c.classList.remove('is-selected'));
       card.classList.add('is-selected');
       selectedDuration = Number(card.dataset.value);

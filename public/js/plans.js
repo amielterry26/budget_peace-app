@@ -118,7 +118,7 @@ const Plans = (() => {
           <ul style="list-style:none;padding:0;margin:0;font-size:var(--font-size-sm);color:var(--color-text-secondary);">
             ${topFeatures.map(f => `<li style="padding:5px 0;">&#10003;&ensp;${f.title}</li>`).join('')}
           </ul>
-          <a href="#pro" id="upgrade-learn-more" style="display:inline-block;margin-top:var(--space-2);font-size:var(--font-size-sm);color:var(--color-accent);font-weight:600;text-decoration:none;">
+          <a href="/pro" id="upgrade-learn-more" style="display:inline-block;margin-top:var(--space-2);font-size:var(--font-size-sm);color:var(--color-accent);font-weight:600;text-decoration:none;">
             See all Pro features &rarr;
           </a>
         </div>
@@ -150,12 +150,7 @@ const Plans = (() => {
     document.getElementById('upgrade-close').addEventListener('click', close);
     document.getElementById('upgrade-overlay').addEventListener('click', close);
 
-    // "Learn more" link — close modal, navigate to Pro page
-    document.getElementById('upgrade-learn-more').addEventListener('click', (e) => {
-      e.preventDefault();
-      hideUpgradeModal();
-      Router.navigate('pro');
-    });
+    // "Learn more" link — navigates to /pro (standard link, no JS needed)
 
     // Upgrade CTA — stub for now (Stripe wiring in a later phase)
     document.getElementById('upgrade-pro-monthly').addEventListener('click', () => {

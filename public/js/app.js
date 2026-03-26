@@ -243,10 +243,6 @@ async function updateScenarioSelector() {
     const upgradeBtn = document.getElementById('upgrade-btn');
     if (upgradeBtn && !isProUser) {
       upgradeBtn.style.display = '';
-      upgradeBtn.addEventListener('click', () => {
-        closeNav();
-        Router.navigate('pro');
-      });
     }
     const bottomNavPro = document.getElementById('bottom-nav-pro');
     if (bottomNavPro && !isProUser) {

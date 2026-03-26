@@ -1075,11 +1075,16 @@
       });
     });
 
-    // CTA stubs (all .pro-cta buttons and hero link)
+    // Pro CTA buttons — redirect to app for auth + checkout
+    // /pro is a standalone page with no auth context.
+    // Unauthenticated users get sent to / (app auth flow).
+    // Authenticated users who land here already have a session
+    // in the app — send them there to trigger checkout.
     document.querySelectorAll('.pro-cta').forEach(el => {
       el.addEventListener('click', (e) => {
         e.preventDefault();
-        console.log('[Pro] Upgrade CTA clicked: pro-monthly');
+        // Redirect to app with intent to upgrade to Pro
+        window.location.href = '/?intent=pro-monthly';
       });
     });
   </script>

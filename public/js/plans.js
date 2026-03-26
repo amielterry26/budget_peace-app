@@ -169,10 +169,26 @@ const Plans = (() => {
 
     // "Learn more" link — navigates to /pro (standard link, no JS needed)
 
-    // Upgrade CTA — stub for now (Stripe wiring in a later phase)
-    document.getElementById('upgrade-pro-monthly').addEventListener('click', () => {
-      console.log('[Plans] Upgrade CTA clicked: pro-monthly');
-      // TODO: Wire to /api/stripe/create-checkout-session in a later phase
+    // Upgrade CTA — triggers Stripe checkout
+    document.getElementById('upgrade-pro-monthly').addEventListener('click', async () => {
+      const btn = document.getElementById('upgrade-pro-monthly');
+      btn.disabled = true;
+      btn.textContent = 'Redirecting…';
+      try {
+        const res = await authFetch('/api/stripe/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: 'pro-monthly' }),
+        });
+        if (!res.ok) throw new Error('Checkout session failed');
+        const data = await res.json();
+        if (data.url) window.location.href = data.url;
+      } catch (err) {
+        console.error('[Plans] Checkout error:', err);
+        btn.disabled = false;
+        btn.textContent = 'Go Pro \u2014 $7.99/mo';
+        alert('Unable to start checkout. Please try again.');
+      }
     });
   }
 

@@ -160,6 +160,93 @@ async function updateScenarioSelector() {
   }
 }
 
+// --- Plan Gate (unpaid users) --------------------------------
+
+function renderPlanGate(session, intent) {
+  document.querySelector('.top-bar').style.display = 'none';
+  document.getElementById('bottom-nav').classList.add('is-hidden');
+  document.getElementById('fab').classList.add('is-hidden');
+
+  document.getElementById('main-content').innerHTML = `
+    <div style="max-width:480px;margin:0 auto;padding:64px 24px;text-align:center;">
+      <div style="font-size:24px;font-weight:700;letter-spacing:-0.02em;margin-bottom:8px;">
+        Choose your plan
+      </div>
+      <p style="color:var(--color-text-secondary);font-size:var(--font-size-sm);margin-bottom:32px;line-height:1.5;">
+        Pick a plan to get started with Budget Peace.
+      </p>
+
+      <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:32px;">
+        <!-- Basic -->
+        <div style="border:1.5px solid var(--color-border);border-radius:var(--radius-lg);padding:24px;text-align:left;">
+          <div style="font-size:var(--font-size-md);font-weight:var(--font-weight-bold);margin-bottom:4px;">Basic</div>
+          <div style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin-bottom:16px;">
+            1 scenario, 8 expenses, 3-month projections
+          </div>
+          <div style="font-size:24px;font-weight:700;margin-bottom:4px;">$4.99<span style="font-size:14px;font-weight:400;color:var(--color-text-secondary);">/mo</span></div>
+          <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:16px;">or $59.99 lifetime</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn--ghost btn--full plan-gate-btn" data-plan="budget-monthly" style="flex:1;">Monthly</button>
+            <button class="btn btn--ghost btn--full plan-gate-btn" data-plan="budget-lifetime" style="flex:1;">Lifetime</button>
+          </div>
+        </div>
+
+        <!-- Pro -->
+        <div style="border:2px solid var(--color-accent);border-radius:var(--radius-lg);padding:24px;text-align:left;position:relative;">
+          <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--color-accent);color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:2px 12px;border-radius:999px;">Recommended</div>
+          <div style="font-size:var(--font-size-md);font-weight:var(--font-weight-bold);margin-bottom:4px;">Pro</div>
+          <div style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin-bottom:16px;">
+            Unlimited scenarios, expenses, projections, comparison, notes
+          </div>
+          <div style="font-size:24px;font-weight:700;color:var(--color-accent);margin-bottom:4px;">$7.99<span style="font-size:14px;font-weight:400;color:var(--color-text-secondary);">/mo</span></div>
+          <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:16px;">Lifetime coming soon</div>
+          <button class="btn btn--primary btn--full plan-gate-btn" data-plan="pro-monthly">Go Pro</button>
+        </div>
+      </div>
+
+      <a href="/pro" style="font-size:var(--font-size-sm);color:var(--color-accent);font-weight:600;text-decoration:none;">
+        Compare plans in detail &rarr;
+      </a>
+
+      <div style="margin-top:24px;">
+        <button class="btn btn--ghost" id="plan-gate-signout" style="font-size:var(--font-size-sm);">Sign out</button>
+      </div>
+    </div>`;
+
+  // Wire plan buttons
+  document.querySelectorAll('.plan-gate-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const plan = btn.dataset.plan;
+      btn.disabled = true;
+      btn.textContent = 'Redirecting\u2026';
+      try {
+        const res = await authFetch('/api/stripe/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan }),
+        });
+        if (!res.ok) throw new Error('Checkout session failed');
+        const data = await res.json();
+        if (data.url) window.location.href = data.url;
+      } catch (err) {
+        console.error('[PlanGate] Checkout error:', err);
+        btn.disabled = false;
+        btn.textContent = plan.includes('pro') ? 'Go Pro' : (plan.includes('lifetime') ? 'Lifetime' : 'Monthly');
+        alert('Unable to start checkout. Please try again.');
+      }
+    });
+  });
+
+  // Sign out
+  document.getElementById('plan-gate-signout')?.addEventListener('click', () => Auth.signOut());
+
+  // If arriving with a checkout intent (e.g., from /pro page), auto-trigger it
+  if (intent) {
+    const targetBtn = document.querySelector(`.plan-gate-btn[data-plan="${intent}"]`);
+    if (targetBtn) targetBtn.click();
+  }
+}
+
 // --- Boot ---------------------------------------------------
 // New auth-aware boot sequence:
 //   1. Demo check (unchanged, runs before any auth)
@@ -217,6 +304,29 @@ async function updateScenarioSelector() {
 
     // ---- Step 6b: Load profile for plan gating -----------------
     await Auth.loadProfile(session);
+
+    // ---- Step 6c: Handle checkout success return ----------------
+    if (urlParams.get('checkout') === 'success') {
+      // Stripe webhook may have already updated the profile — re-fetch it
+      await Auth.refreshProfile();
+      // Clean the URL so reload doesn't re-trigger
+      window.history.replaceState({}, '', '/');
+    }
+
+    // ---- Step 6d: Entitlement gate — unpaid users cannot enter ---
+    // Legacy users with accessLevel='full' pass through (canAccess checks entitlementStatus).
+    // For legacy 'full' users who may not have entitlementStatus set, also check accessLevel.
+    if (!Auth.canAccess() && Auth.getAccessLevel() !== 'full') {
+      const intent = urlParams.get('intent');
+      renderPlanGate(session, intent);
+      return;
+    }
+
+    // If user is paid but arrived with an intent param (e.g., from /pro),
+    // they're already entitled — just clean the URL and proceed.
+    if (urlParams.get('intent')) {
+      window.history.replaceState({}, '', '/');
+    }
 
     // ---- Step 7: Normal app boot (same as before, minus initIdentity) ----
     const runtime = await fetch('/api/runtime').then(r => r.json());

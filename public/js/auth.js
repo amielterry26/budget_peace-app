@@ -18,6 +18,7 @@
 //   Auth.getAccessLevel()        — user's access level string
 //   Auth.getPlan()               — user's plan name
 //   Auth.getEntitlementStatus()  — user's entitlement status
+//   Auth.refreshProfile()        — re-fetches profile (post-checkout)
 // ============================================================
 
 const Auth = (() => {
@@ -199,6 +200,14 @@ const Auth = (() => {
     return _cachedProfile?.entitlementStatus || 'inactive';
   }
 
+  // Re-fetches the user profile from the server and updates the cache.
+  // Used after checkout success to pick up the new accessLevel/entitlementStatus.
+  async function refreshProfile() {
+    const session = await getSession();
+    if (!session) return;
+    await loadProfile(session);
+  }
+
   // Returns the cached profile object (or null).
   function getProfile() {
     return _cachedProfile;
@@ -218,5 +227,6 @@ const Auth = (() => {
     getPlan,
     getEntitlementStatus,
     getProfile,
+    refreshProfile,
   };
 })();

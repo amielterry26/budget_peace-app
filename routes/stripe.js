@@ -68,6 +68,7 @@ router.post('/create-checkout-session', async (req, res) => {
     const sessionParams = {
       mode: planDef.mode,
       line_items: [{ price: priceId, quantity: 1 }],
+      allow_promotion_codes: true,
       metadata,
       success_url: `${origin}/?checkout=success`,
       cancel_url: `${origin}/?checkout=cancel`,
@@ -124,6 +125,7 @@ async function createCheckoutSessionPublic(req, res) {
     const sessionParams = {
       mode: planDef.mode,
       line_items: [{ price: priceId, quantity: 1 }],
+      allow_promotion_codes: true,
       metadata,
       // {CHECKOUT_SESSION_ID} is a Stripe template variable replaced at redirect time
       success_url: `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,

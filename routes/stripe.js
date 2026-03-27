@@ -1,8 +1,9 @@
 const express = require('express');
-const { GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { GetCommand, PutCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 const db = require('../config/dynamo');
 
 const USERS_TABLE = 'bp_users';
+const PENDING_TABLE = 'bp_pending_entitlements';
 
 // Valid plan keys → { envVar, mode, tier }
 const PLAN_MAP = {
@@ -93,6 +94,73 @@ router.post('/create-checkout-session', async (req, res) => {
   }
 });
 
+// ---- Public Checkout Route (no auth — for checkout-first flow) --
+
+// POST /api/stripe/create-checkout-session-public
+// Body: { plan: 'budget-monthly' | 'budget-lifetime' | 'pro-monthly' | 'pro-lifetime' }
+// No auth required — Stripe collects email on their checkout page.
+async function createCheckoutSessionPublic(req, res) {
+  try {
+    const stripe = getStripe();
+    const { plan } = req.body;
+
+    const planDef = PLAN_MAP[plan];
+    if (!planDef) {
+      return res.status(400).json({
+        error: `plan must be one of: ${Object.keys(PLAN_MAP).join(', ')}`,
+      });
+    }
+
+    const priceId = process.env[planDef.env];
+    if (!priceId) {
+      return res.status(500).json({ error: `Price ID not configured for ${plan}` });
+    }
+
+    const origin = `${req.protocol}://${req.get('host')}`;
+
+    // No userId — this is a checkout-first session
+    const metadata = { plan, tier: planDef.tier };
+
+    const sessionParams = {
+      mode: planDef.mode,
+      line_items: [{ price: priceId, quantity: 1 }],
+      metadata,
+      // {CHECKOUT_SESSION_ID} is a Stripe template variable replaced at redirect time
+      success_url: `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/?checkout=cancel`,
+    };
+
+    // For subscriptions, also attach metadata to the subscription object
+    if (planDef.mode === 'subscription') {
+      sessionParams.subscription_data = { metadata };
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('POST /api/stripe/create-checkout-session-public error:', err);
+    res.status(500).json({ error: 'Failed to create checkout session' });
+  }
+}
+
+// ---- Checkout Session Info (no auth — session IDs are unguessable) --
+
+// GET /api/stripe/checkout-session/:sessionId
+// Returns minimal info: { email, status }
+async function getCheckoutSession(req, res) {
+  try {
+    const stripe = getStripe();
+    const session = await stripe.checkout.sessions.retrieve(req.params.sessionId);
+    res.json({
+      email: session.customer_details?.email || session.customer_email || null,
+      status: session.payment_status,
+    });
+  } catch (err) {
+    console.error('GET /api/stripe/checkout-session error:', err);
+    res.status(404).json({ error: 'Session not found' });
+  }
+}
+
 // ---- Webhook Handler (no auth — Stripe signs it) ---------------
 
 async function webhook(req, res) {
@@ -136,8 +204,10 @@ async function webhook(req, res) {
 
 async function handleCheckoutCompleted(session) {
   const userId = session.metadata?.userId;
+
+  // Checkout-first flow — no userId in metadata
   if (!userId) {
-    console.error('checkout.session.completed: no userId in metadata');
+    await handleCheckoutFirstCompleted(session);
     return;
   }
 
@@ -282,4 +352,46 @@ async function handleSubscriptionDeleted(subscription) {
   console.log(`customer.subscription.deleted: userId=${userId} sub=${deletedSubId} → canceled/none`);
 }
 
-module.exports = { router, webhook };
+// ---- Checkout-First Webhook Handler ----------------------------
+
+async function handleCheckoutFirstCompleted(session) {
+  const tier = session.metadata?.tier || 'budget';
+  const plan = session.metadata?.plan || tier;
+  const customerId = session.customer;
+  const subscriptionId = session.subscription || null;
+  const email = (
+    session.customer_details?.email ||
+    session.customer_email ||
+    ''
+  ).toLowerCase();
+
+  if (!email) {
+    console.error('checkout-first: no email on session', session.id);
+    return;
+  }
+
+  const now = new Date();
+  const ttl = Math.floor(now.getTime() / 1000) + (30 * 24 * 60 * 60); // 30 days
+
+  await db.send(new PutCommand({
+    TableName: PENDING_TABLE,
+    Item: {
+      stripeSessionId:      session.id,
+      email,
+      stripeCustomerId:     customerId,
+      stripeSubscriptionId: subscriptionId,
+      plan,
+      tier,
+      paidAt:               now.toISOString(),
+      claimedBy:            null,
+      claimedAt:            null,
+      status:               'pending',
+      createdAt:            now.toISOString(),
+      ttl,
+    },
+  }));
+
+  console.log(`checkout-first: pending entitlement created for ${email}, session=${session.id}, tier=${tier}, plan=${plan}`);
+}
+
+module.exports = { router, webhook, createCheckoutSessionPublic, getCheckoutSession, getStripe };

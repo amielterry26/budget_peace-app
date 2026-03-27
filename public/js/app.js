@@ -199,8 +199,11 @@ function renderPlanGate(session, intent) {
             Unlimited scenarios, expenses, projections, comparison, notes
           </div>
           <div style="font-size:24px;font-weight:700;color:var(--color-accent);margin-bottom:4px;">$7.99<span style="font-size:14px;font-weight:400;color:var(--color-text-secondary);">/mo</span></div>
-          <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:16px;">Lifetime coming soon</div>
-          <button class="btn btn--primary btn--full plan-gate-btn" data-plan="pro-monthly">Go Pro</button>
+          <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:16px;">or $79.99 lifetime</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn--primary btn--full plan-gate-btn" data-plan="pro-monthly" style="flex:1;">Monthly</button>
+            <button class="btn btn--primary btn--full plan-gate-btn" data-plan="pro-lifetime" style="flex:1;">Lifetime</button>
+          </div>
         </div>
       </div>
 

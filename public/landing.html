@@ -500,34 +500,40 @@
       <div class="section-title">One price. No tricks.</div>
       <p class="section-sub" style="margin:0 auto;">No ads. No data selling. No subscriptions you forget about.</p>
 
+      <!-- Billing toggle -->
+      <div class="billing-toggle" style="display:flex;justify-content:center;gap:0;margin-bottom:var(--space-5);background:var(--lp-surface, #1a1a2e);border-radius:999px;padding:4px;width:fit-content;margin-left:auto;margin-right:auto;">
+        <button class="billing-toggle__btn is-active" data-billing="monthly" style="padding:8px 24px;border-radius:999px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;background:var(--lp-accent, #6c63ff);color:#fff;">Monthly</button>
+        <button class="billing-toggle__btn" data-billing="lifetime" style="padding:8px 24px;border-radius:999px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;background:transparent;color:var(--lp-muted, #94a3b8);">Lifetime</button>
+      </div>
+
       <div class="pricing__grid">
         <!-- Basic -->
         <div class="pricing-card">
           <div class="pricing-card__name">Basic</div>
-          <div class="pricing-card__price">$4.99<span>/mo</span></div>
-          <div class="pricing-card__note">or $59.99 lifetime</div>
+          <div class="pricing-card__price" data-monthly="$4.99<span>/mo</span>" data-lifetime="$59.99<span> one-time</span>">$4.99<span>/mo</span></div>
+          <div class="pricing-card__note" data-monthly="or $59.99 lifetime" data-lifetime="or $4.99/mo">or $59.99 lifetime</div>
           <ul class="pricing-card__features">
             <li>1 scenario</li>
             <li>Up to 8 expenses</li>
             <li>3-month projections</li>
             <li>Pay period tracking</li>
           </ul>
-          <button class="btn btn--ghost checkout-cta" data-plan="budget-monthly" style="width:100%;">Get started</button>
+          <button class="btn btn--ghost checkout-cta" data-plan="budget-monthly" data-plan-monthly="budget-monthly" data-plan-lifetime="budget-lifetime" style="width:100%;">Get started</button>
         </div>
 
         <!-- Pro -->
         <div class="pricing-card pricing-card--featured">
           <div class="pricing-card__badge">Recommended</div>
           <div class="pricing-card__name">Pro</div>
-          <div class="pricing-card__price">$7.99<span>/mo</span></div>
-          <div class="pricing-card__note">Lifetime coming soon</div>
+          <div class="pricing-card__price" data-monthly="$7.99<span>/mo</span>" data-lifetime="$79.99<span> one-time</span>">$7.99<span>/mo</span></div>
+          <div class="pricing-card__note" data-monthly="Lifetime coming soon" data-lifetime="or $7.99/mo">Lifetime coming soon</div>
           <ul class="pricing-card__features">
             <li>Unlimited scenarios &amp; expenses</li>
             <li>Extended projections</li>
             <li>Scenario comparison</li>
             <li>Financial health &amp; notes</li>
           </ul>
-          <button class="btn btn--solid checkout-cta" data-plan="pro-monthly" style="width:100%;">Go Pro</button>
+          <button class="btn btn--solid checkout-cta" data-plan="pro-monthly" data-plan-monthly="pro-monthly" data-plan-lifetime="pro-lifetime" style="width:100%;">Go Pro</button>
         </div>
       </div>
     </div>
@@ -567,6 +573,35 @@
   </footer>
 
   <script>
+    // Billing toggle (Monthly / Lifetime)
+    let currentBilling = 'monthly';
+
+    document.querySelectorAll('.billing-toggle__btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentBilling = btn.dataset.billing;
+
+        // Update toggle pill styles
+        document.querySelectorAll('.billing-toggle__btn').forEach(b => {
+          const isActive = b.dataset.billing === currentBilling;
+          b.classList.toggle('is-active', isActive);
+          b.style.background = isActive ? 'var(--lp-accent, #6c63ff)' : 'transparent';
+          b.style.color = isActive ? '#fff' : 'var(--lp-muted, #94a3b8)';
+        });
+
+        // Update prices, notes, and CTA plan keys
+        document.querySelectorAll('.pricing-card__price[data-' + currentBilling + ']').forEach(el => {
+          el.innerHTML = el.dataset[currentBilling];
+        });
+        document.querySelectorAll('.pricing-card__note[data-' + currentBilling + ']').forEach(el => {
+          el.textContent = el.dataset[currentBilling];
+        });
+        document.querySelectorAll('.checkout-cta[data-plan-' + currentBilling + ']').forEach(el => {
+          el.dataset.plan = el.dataset['plan' + currentBilling.charAt(0).toUpperCase() + currentBilling.slice(1)];
+        });
+      });
+    });
+
+    // Checkout CTA buttons
     document.querySelectorAll('.checkout-cta').forEach(btn => {
       btn.addEventListener('click', async () => {
         const plan = btn.dataset.plan;

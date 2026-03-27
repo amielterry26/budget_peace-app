@@ -797,13 +797,19 @@
         <h2 class="section-title">Simple, transparent pricing</h2>
       </div>
 
+      <!-- Billing toggle -->
+      <div class="billing-toggle" style="display:flex;justify-content:center;gap:0;margin-bottom:var(--space-5, 32px);background:var(--color-surface-alt, #f5f5f5);border-radius:999px;padding:4px;width:fit-content;margin-left:auto;margin-right:auto;">
+        <button class="billing-toggle__btn is-active" data-billing="monthly" style="padding:8px 24px;border-radius:999px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;background:var(--color-accent);color:#fff;">Monthly</button>
+        <button class="billing-toggle__btn" data-billing="lifetime" style="padding:8px 24px;border-radius:999px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;background:transparent;color:var(--color-text-secondary);">Lifetime</button>
+      </div>
+
       <div class="pricing__grid">
         <!-- Budget card -->
         <div class="pricing__card">
           <div class="pricing__plan-name">Basic</div>
           <div class="pricing__plan-desc">Get started with the essentials.</div>
-          <div class="pricing__amount">$4.99<span>/mo</span></div>
-          <div class="pricing__alt">or $59.99 lifetime</div>
+          <div class="pricing__amount" data-monthly="$4.99<span>/mo</span>" data-lifetime="$59.99<span> one-time</span>">$4.99<span>/mo</span></div>
+          <div class="pricing__alt" data-monthly="or $59.99 lifetime" data-lifetime="or $4.99/mo">or $59.99 lifetime</div>
           <ul class="pricing__features">
             <li>1 scenario</li>
             <li>Up to 8 expenses</li>
@@ -813,7 +819,7 @@
             <li class="is-disabled">Scenario comparison</li>
             <li class="is-disabled">Financial health</li>
           </ul>
-          <button class="btn btn--ghost btn--sm checkout-cta" data-plan="budget-monthly">Get started</button>
+          <button class="btn btn--ghost btn--sm checkout-cta" data-plan="budget-monthly" data-plan-monthly="budget-monthly" data-plan-lifetime="budget-lifetime">Get started</button>
         </div>
 
         <!-- Pro card -->
@@ -821,8 +827,8 @@
           <div class="pricing__card-badge">Recommended</div>
           <div class="pricing__plan-name">Pro</div>
           <div class="pricing__plan-desc">The full picture, no&nbsp;limits.</div>
-          <div class="pricing__amount" style="color:var(--color-accent);">$7.99<span>/mo</span></div>
-          <div class="pricing__alt">Lifetime option coming soon</div>
+          <div class="pricing__amount" style="color:var(--color-accent);" data-monthly="$7.99<span>/mo</span>" data-lifetime="$79.99<span> one-time</span>">$7.99<span>/mo</span></div>
+          <div class="pricing__alt" data-monthly="or $79.99 lifetime" data-lifetime="or $7.99/mo">or $79.99 lifetime</div>
           <ul class="pricing__features">
             <li>Unlimited scenarios</li>
             <li>Unlimited expenses</li>
@@ -832,7 +838,7 @@
             <li>Scenario notes</li>
             <li>Early access to AI insights</li>
           </ul>
-          <button class="btn btn--solid btn--sm checkout-cta" data-plan="pro-monthly">Go Pro</button>
+          <button class="btn btn--solid btn--sm checkout-cta" data-plan="pro-monthly" data-plan-monthly="pro-monthly" data-plan-lifetime="pro-lifetime">Go Pro</button>
         </div>
       </div>
     </div>
@@ -1054,9 +1060,9 @@
   <section class="cta" id="go-pro">
     <div class="container">
       <h2 class="cta__title">Ready to see the<br>full&nbsp;picture?</h2>
-      <p class="cta__detail">$7.99/month &middot; Cancel anytime</p>
-      <button class="btn btn--solid checkout-cta" data-plan="pro-monthly" style="min-width:240px;">Go Pro</button>
-      <p class="cta__note">Lifetime option coming soon</p>
+      <p class="cta__detail" id="cta-detail">$7.99/month &middot; Cancel anytime</p>
+      <button class="btn btn--solid checkout-cta" data-plan="pro-monthly" data-plan-monthly="pro-monthly" data-plan-lifetime="pro-lifetime" style="min-width:240px;">Go Pro</button>
+      <p class="cta__note" id="cta-note">or $79.99 lifetime</p>
     </div>
   </section>
 
@@ -1072,6 +1078,50 @@
     document.querySelectorAll('.faq__q').forEach(btn => {
       btn.addEventListener('click', () => {
         btn.parentElement.classList.toggle('is-open');
+      });
+    });
+
+    // Billing toggle (Monthly / Lifetime)
+    let currentBilling = 'monthly';
+
+    document.querySelectorAll('.billing-toggle__btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentBilling = btn.dataset.billing;
+
+        // Update toggle pill styles
+        document.querySelectorAll('.billing-toggle__btn').forEach(b => {
+          const isActive = b.dataset.billing === currentBilling;
+          b.classList.toggle('is-active', isActive);
+          b.style.background = isActive ? 'var(--color-accent)' : 'transparent';
+          b.style.color = isActive ? '#fff' : 'var(--color-text-secondary)';
+        });
+
+        // Update prices and alt text
+        document.querySelectorAll('.pricing__amount[data-' + currentBilling + ']').forEach(el => {
+          el.innerHTML = el.dataset[currentBilling];
+        });
+        document.querySelectorAll('.pricing__alt[data-' + currentBilling + ']').forEach(el => {
+          el.textContent = el.dataset[currentBilling];
+        });
+
+        // Update CTA plan keys
+        document.querySelectorAll('.checkout-cta[data-plan-' + currentBilling + ']').forEach(el => {
+          el.dataset.plan = el.dataset['plan' + currentBilling.charAt(0).toUpperCase() + currentBilling.slice(1)];
+        });
+
+        // Update final CTA section text
+        const ctaDetail = document.getElementById('cta-detail');
+        const ctaNote = document.getElementById('cta-note');
+        if (ctaDetail) {
+          ctaDetail.textContent = currentBilling === 'monthly'
+            ? '$7.99/month \u00b7 Cancel anytime'
+            : '$79.99 one-time \u00b7 Pay once, own forever';
+        }
+        if (ctaNote) {
+          ctaNote.textContent = currentBilling === 'monthly'
+            ? 'or $79.99 lifetime'
+            : 'or $7.99/mo';
+        }
       });
     });
 

@@ -501,8 +501,8 @@
       <p class="section-sub" style="margin:0 auto;">No ads. No data selling. No subscriptions you forget about.</p>
 
       <!-- Billing toggle -->
-      <div class="billing-toggle" style="display:flex;justify-content:center;gap:0;margin-bottom:var(--space-5);background:var(--lp-surface, #1a1a2e);border-radius:999px;padding:4px;width:fit-content;margin-left:auto;margin-right:auto;">
-        <button class="billing-toggle__btn is-active" data-billing="monthly" style="padding:8px 24px;border-radius:999px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;background:var(--lp-accent, #6c63ff);color:#fff;">Monthly</button>
+      <div class="billing-toggle" style="display:flex;justify-content:center;gap:0;margin-top:var(--space-4);margin-bottom:var(--space-5);background:var(--lp-surface, #1a1a2e);border-radius:999px;padding:4px;width:fit-content;margin-left:auto;margin-right:auto;">
+        <button class="billing-toggle__btn is-active" data-billing="monthly" style="padding:8px 24px;border-radius:999px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;background:#4A7C59;color:#fff;">Monthly</button>
         <button class="billing-toggle__btn" data-billing="lifetime" style="padding:8px 24px;border-radius:999px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;background:transparent;color:var(--lp-muted, #94a3b8);">Lifetime</button>
       </div>
 
@@ -526,7 +526,7 @@
           <div class="pricing-card__badge">Recommended</div>
           <div class="pricing-card__name">Pro</div>
           <div class="pricing-card__price" data-monthly="$7.99<span>/mo</span>" data-lifetime="$79.99<span> one-time</span>">$7.99<span>/mo</span></div>
-          <div class="pricing-card__note" data-monthly="Lifetime coming soon" data-lifetime="or $7.99/mo">Lifetime coming soon</div>
+          <div class="pricing-card__note" data-monthly="or $79.99 lifetime" data-lifetime="or $7.99/mo">or $79.99 lifetime</div>
           <ul class="pricing-card__features">
             <li>Unlimited scenarios &amp; expenses</li>
             <li>Extended projections</li>
@@ -584,7 +584,7 @@
         document.querySelectorAll('.billing-toggle__btn').forEach(b => {
           const isActive = b.dataset.billing === currentBilling;
           b.classList.toggle('is-active', isActive);
-          b.style.background = isActive ? 'var(--lp-accent, #6c63ff)' : 'transparent';
+          b.style.background = isActive ? '#4A7C59' : 'transparent';
           b.style.color = isActive ? '#fff' : 'var(--lp-muted, #94a3b8)';
         });
 

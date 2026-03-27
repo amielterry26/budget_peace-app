@@ -813,7 +813,7 @@
             <li class="is-disabled">Scenario comparison</li>
             <li class="is-disabled">Financial health</li>
           </ul>
-          <a href="/?intent=budget-monthly" class="btn btn--ghost btn--sm">Get started</a>
+          <button class="btn btn--ghost btn--sm checkout-cta" data-plan="budget-monthly">Get started</button>
         </div>
 
         <!-- Pro card -->
@@ -832,7 +832,7 @@
             <li>Scenario notes</li>
             <li>Early access to AI insights</li>
           </ul>
-          <button class="btn btn--solid btn--sm pro-cta">Go Pro</button>
+          <button class="btn btn--solid btn--sm checkout-cta" data-plan="pro-monthly">Go Pro</button>
         </div>
       </div>
     </div>
@@ -1055,7 +1055,7 @@
     <div class="container">
       <h2 class="cta__title">Ready to see the<br>full&nbsp;picture?</h2>
       <p class="cta__detail">$7.99/month &middot; Cancel anytime</p>
-      <button class="btn btn--solid pro-cta" style="min-width:240px;">Go Pro</button>
+      <button class="btn btn--solid checkout-cta" data-plan="pro-monthly" style="min-width:240px;">Go Pro</button>
       <p class="cta__note">Lifetime option coming soon</p>
     </div>
   </section>
@@ -1075,16 +1075,28 @@
       });
     });
 
-    // Pro CTA buttons — redirect to app for auth + checkout
-    // /pro is a standalone page with no auth context.
-    // Unauthenticated users get sent to / (app auth flow).
-    // Authenticated users who land here already have a session
-    // in the app — send them there to trigger checkout.
-    document.querySelectorAll('.pro-cta').forEach(el => {
-      el.addEventListener('click', (e) => {
-        e.preventDefault();
-        // Redirect to app with intent to upgrade to Pro
-        window.location.href = '/?intent=pro-monthly';
+    // Checkout-first CTA buttons — go directly to Stripe
+    document.querySelectorAll('.checkout-cta').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const plan = btn.dataset.plan;
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Redirecting\u2026';
+        try {
+          const res = await fetch('/api/stripe/create-checkout-session-public', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plan }),
+          });
+          if (!res.ok) throw new Error('Checkout failed');
+          const data = await res.json();
+          if (data.url) window.location.href = data.url;
+        } catch (err) {
+          console.error('Checkout error:', err);
+          btn.disabled = false;
+          btn.textContent = originalText;
+          alert('Unable to start checkout. Please try again.');
+        }
       });
     });
   </script>

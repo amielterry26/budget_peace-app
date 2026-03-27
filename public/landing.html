@@ -512,7 +512,7 @@
             <li>3-month projections</li>
             <li>Pay period tracking</li>
           </ul>
-          <a href="/?intent=budget-monthly" class="btn btn--ghost" style="width:100%;">Get started</a>
+          <button class="btn btn--ghost checkout-cta" data-plan="budget-monthly" style="width:100%;">Get started</button>
         </div>
 
         <!-- Pro -->
@@ -527,7 +527,7 @@
             <li>Scenario comparison</li>
             <li>Financial health &amp; notes</li>
           </ul>
-          <a href="/?intent=pro-monthly" class="btn btn--solid" style="width:100%;">Go Pro</a>
+          <button class="btn btn--solid checkout-cta" data-plan="pro-monthly" style="width:100%;">Go Pro</button>
         </div>
       </div>
     </div>
@@ -565,6 +565,32 @@
       Budget Peace &middot; <script>document.write(new Date().getFullYear())</script>
     </div>
   </footer>
+
+  <script>
+    document.querySelectorAll('.checkout-cta').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const plan = btn.dataset.plan;
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Redirecting\u2026';
+        try {
+          const res = await fetch('/api/stripe/create-checkout-session-public', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plan }),
+          });
+          if (!res.ok) throw new Error('Checkout failed');
+          const data = await res.json();
+          if (data.url) window.location.href = data.url;
+        } catch (err) {
+          console.error('Checkout error:', err);
+          btn.disabled = false;
+          btn.textContent = originalText;
+          alert('Unable to start checkout. Please try again.');
+        }
+      });
+    });
+  </script>
 
 </body>
 </html>

@@ -51,14 +51,14 @@ const Auth = (() => {
   // Triggers Google OAuth redirect.
   // After Google auth, the user is redirected back to the app
   // and Supabase restores the session automatically.
-  async function signInWithGoogle() {
+  async function signInWithGoogle(redirectTo) {
     const client = BPSupabase.client();
     if (!client) throw new Error('Supabase not initialized');
 
     const { error } = await client.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: redirectTo || window.location.origin,
       },
     });
 
@@ -69,14 +69,14 @@ const Auth = (() => {
   // Sends a magic link email. Returns { error } on failure.
   // On success, the user clicks the link in their email,
   // which redirects back to the app with a valid session.
-  async function sendMagicLink(email) {
+  async function sendMagicLink(email, redirectTo) {
     const client = BPSupabase.client();
     if (!client) throw new Error('Supabase not initialized');
 
     const { error } = await client.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: redirectTo || window.location.origin,
       },
     });
 
@@ -116,7 +116,7 @@ const Auth = (() => {
   //
   // The server endpoint trusts the VERIFIED JWT for userId
   // and email. The body only provides optional hints (fullName).
-  async function syncProfile(session) {
+  async function syncProfile(session, checkoutSessionId) {
     if (!session) return;
 
     const token = session.access_token;
@@ -128,14 +128,16 @@ const Auth = (() => {
       || null;
 
     try {
+      const body = { fullName };
+      if (checkoutSessionId) body.checkoutSessionId = checkoutSessionId;
+
       const res = await fetch('/api/auth/profile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        // Only send optional hints — server uses verified JWT for identity
-        body: JSON.stringify({ fullName }),
+        body: JSON.stringify(body),
       });
 
       if (!res.ok) {

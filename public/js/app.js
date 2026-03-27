@@ -283,12 +283,39 @@ function renderPlanGate(session, intent) {
 
     // ---- Step 4: Auth gate — one clean check ------------------
     if (!session) {
+      const checkoutParam = urlParams.get('checkout');
+      const sessionId = urlParams.get('session_id');
+
+      // Checkout-first return: paid but no account yet
+      if (checkoutParam === 'success' && sessionId) {
+        try {
+          const sessionRes = await fetch(`/api/stripe/checkout-session/${sessionId}`);
+          if (sessionRes.ok) {
+            const sessionData = await sessionRes.json();
+            if (sessionData.email && sessionData.status === 'paid') {
+              renderPostCheckoutAuth(sessionData.email, sessionId);
+              Auth.onAuthChange((event, newSession) => {
+                if (event === 'SIGNED_IN' && newSession) {
+                  window.location.reload();
+                }
+              });
+              return;
+            }
+          }
+        } catch (err) {
+          console.error('Checkout session lookup failed:', err);
+        }
+        // Fall through to regular auth screen if lookup fails
+      }
+
+      // Cancel checkout: clean URL
+      if (checkoutParam === 'cancel') {
+        window.history.replaceState({}, '', '/');
+      }
+
       renderAuthScreen();
-      // Listen for auth state changes (e.g., returning from
-      // Google redirect or magic link)
       Auth.onAuthChange((event, newSession) => {
         if (event === 'SIGNED_IN' && newSession) {
-          // Session restored from redirect — reload to boot fully
           window.location.reload();
         }
       });
@@ -299,8 +326,14 @@ function renderPlanGate(session, intent) {
     // _ownerId is now the Supabase auth UUID, not OWNER_USER_ID
     _ownerId = session.user.id;
 
+    // Recover checkout session_id (Google OAuth stores in localStorage,
+    // magic link preserves in URL params)
+    const savedSessionId = localStorage.getItem('bp_checkout_session_id');
+    if (savedSessionId) localStorage.removeItem('bp_checkout_session_id');
+    const checkoutSessionId = urlParams.get('session_id') || savedSessionId || null;
+
     // ---- Step 6: Sync profile (create/update bp_users row) ----
-    await Auth.syncProfile(session);
+    await Auth.syncProfile(session, checkoutSessionId);
 
     // ---- Step 6b: Load profile for plan gating -----------------
     await Auth.loadProfile(session);

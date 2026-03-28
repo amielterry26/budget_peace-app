@@ -464,6 +464,21 @@ img  { display: block; max-width: 100%; }
   padding-right:      var(--space-8);
 }
 
+/* iOS Safari auto-zooms inputs < 16px on focus — force 16px on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  input,
+  select,
+  textarea,
+  .form-input,
+  .form-select,
+  .auth-input,
+  .note-detail__textarea,
+  .notes-page-item__textarea,
+  .notes-item__input {
+    font-size: 16px !important;
+  }
+}
+
 /* --- Option Cards ------------------------------------------ */
 .option-grid { display: grid; gap: var(--space-3); }
 .option-grid--2 { grid-template-columns: 1fr 1fr; }

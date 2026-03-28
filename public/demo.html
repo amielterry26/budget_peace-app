@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Budget Peace — Interactive Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ============================================================
+       Budget Peace — Standalone Demo Styles
+       Tokens copied from design system (source of truth: main.css :root)
+       ============================================================ */
+
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Tokens ── */
+    :root {
+      --color-bg:             #F4F6F8;
+      --color-surface:        #FFFFFF;
+      --color-surface-alt:    #EEF1F4;
+      --color-border:         #E3E8EE;
+      --color-text-primary:   #0F172A;
+      --color-text-secondary: #64748B;
+      --color-text-inverse:   #FFFFFF;
+      --color-accent:         #4A7C59;
+      --color-accent-dark:    #375C42;
+      --color-accent-light:   #D6E8DC;
+      --color-danger:         #DC2626;
+      --color-danger-light:   #FEE2E2;
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-size-xs:  11px;
+      --font-size-sm:  13px;
+      --font-size-md:  15px;
+      --font-size-lg:  18px;
+      --font-size-xl:  24px;
+      --font-size-2xl: 32px;
+      --radius-sm:   8px;
+      --radius-md:   14px;
+      --radius-lg:   20px;
+      --radius-pill: 999px;
+      --shadow-sm:  0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+      --shadow-md:  0 4px 12px rgba(15,23,42,0.08), 0 2px 4px rgba(15,23,42,0.04);
+      --shadow-lg:  0 12px 40px rgba(15,23,42,0.12), 0 4px 12px rgba(15,23,42,0.06);
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-10: 40px;
+      --space-12: 48px;
+      --transition-fast: 150ms ease;
+      --transition-mid:  250ms ease;
+    }
+
+    /* ── Base ── */
+    html { height: 100%; -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: var(--font-family);
+      color: var(--color-text-primary);
+      background: var(--color-bg);
+      min-height: 100dvh;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Demo Header ── */
+    .demo-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4) var(--space-5);
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .demo-header__brand {
+      font-size: var(--font-size-lg);
+      font-weight: 700;
+      color: var(--color-text-primary);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+    .demo-header__brand span {
+      color: var(--color-accent);
+    }
+
+    /* ── Progress Dots ── */
+    .demo-progress {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .demo-progress__dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-border);
+      transition: background var(--transition-mid), transform var(--transition-mid);
+    }
+    .demo-progress__dot.is-active {
+      background: var(--color-accent);
+      transform: scale(1.25);
+    }
+    .demo-progress__dot.is-completed {
+      background: var(--color-accent-light);
+    }
+
+    /* ── Demo Stage ── */
+    .demo-stage {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: var(--space-10) var(--space-5) var(--space-12);
+      min-height: calc(100dvh - 57px);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    /* ── Step Transitions ── */
+    .demo-step {
+      width: 100%;
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+    .demo-step.is-active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Typography ── */
+    .demo-logo {
+      font-size: var(--font-size-xl);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: var(--space-2);
+      text-align: center;
+    }
+    .demo-logo span { color: var(--color-accent); }
+
+    .demo-title {
+      font-size: var(--font-size-xl);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: var(--space-2);
+    }
+    .demo-subtitle {
+      font-size: var(--font-size-md);
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+      margin-bottom: var(--space-6);
+    }
+    .demo-teach {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+      margin-top: var(--space-6);
+      padding: var(--space-4);
+      background: var(--color-surface-alt);
+      border-radius: var(--radius-md);
+      text-align: center;
+    }
+
+    /* ── Form Elements ── */
+    .demo-form-group {
+      margin-bottom: var(--space-5);
+    }
+    .demo-label {
+      display: block;
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      margin-bottom: var(--space-2);
+      color: var(--color-text-primary);
+    }
+    .demo-input {
+      width: 100%;
+      padding: var(--space-3) var(--space-4);
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-size: 16px; /* prevents iOS zoom */
+      font-family: inherit;
+      color: var(--color-text-primary);
+      background: var(--color-surface);
+      outline: none;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+    .demo-input:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px var(--color-accent-light);
+    }
+    .demo-input::placeholder { color: var(--color-text-secondary); opacity: 0.5; }
+
+    .demo-input-money {
+      position: relative;
+    }
+    .demo-input-money::before {
+      content: '$';
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--color-text-secondary);
+      font-size: 16px;
+      font-weight: 500;
+      pointer-events: none;
+    }
+    .demo-input-money .demo-input {
+      padding-left: 28px;
+    }
+
+    /* ── Toggle Cards (pay frequency) ── */
+    .demo-toggle-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-3);
+    }
+    .demo-toggle-card {
+      padding: var(--space-4);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      text-align: center;
+      cursor: pointer;
+      transition: border-color var(--transition-fast), background var(--transition-fast);
+      background: var(--color-surface);
+    }
+    .demo-toggle-card:hover {
+      border-color: var(--color-accent-light);
+    }
+    .demo-toggle-card.is-selected {
+      border-color: var(--color-accent);
+      background: var(--color-accent-light);
+    }
+    .demo-toggle-card__title {
+      font-size: var(--font-size-md);
+      font-weight: 600;
+    }
+    .demo-toggle-card__sub {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-secondary);
+      margin-top: 2px;
+    }
+
+    /* ── Buttons ── */
+    .demo-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-3) var(--space-6);
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-md);
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      transition: background var(--transition-fast), transform var(--transition-fast);
+      text-decoration: none;
+    }
+    .demo-btn:active { transform: scale(0.97); }
+    .demo-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .demo-btn--primary {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+      width: 100%;
+      padding: var(--space-4) var(--space-6);
+    }
+    .demo-btn--primary:hover { background: var(--color-accent-dark); }
+    .demo-btn--ghost {
+      background: transparent;
+      color: var(--color-accent);
+      border: 1.5px solid var(--color-accent);
+      width: 100%;
+      padding: var(--space-4) var(--space-6);
+    }
+    .demo-btn--ghost:hover { background: var(--color-accent-light); }
+    .demo-btn--link {
+      background: none;
+      color: var(--color-text-secondary);
+      font-size: var(--font-size-sm);
+      padding: var(--space-2);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    /* ── Metric Tiles ── */
+    .demo-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: var(--space-3);
+      margin-bottom: var(--space-5);
+    }
+    .demo-metric {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      text-align: center;
+    }
+    .demo-metric__label {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-secondary);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: var(--space-1);
+    }
+    .demo-metric__value {
+      font-size: var(--font-size-xl);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .demo-metric__value--accent { color: var(--color-accent); }
+    .demo-metric__value--danger { color: var(--color-danger); }
+    .demo-metric__delta {
+      font-size: var(--font-size-xs);
+      font-weight: 600;
+      color: var(--color-danger);
+      margin-top: 2px;
+    }
+    @media (max-width: 400px) {
+      .demo-metrics { grid-template-columns: 1fr; }
+      .demo-metric { display: flex; justify-content: space-between; align-items: center; }
+      .demo-metric__label { margin-bottom: 0; }
+    }
+
+    /* ── Period Cards (Step 4) ── */
+    .demo-periods {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      margin-bottom: var(--space-5);
+    }
+    .demo-period {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+    }
+    .demo-period__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-3);
+      padding-bottom: var(--space-2);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .demo-period__dates {
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+    }
+    .demo-period__income {
+      font-size: var(--font-size-sm);
+      color: var(--color-accent);
+      font-weight: 600;
+    }
+    .demo-period__row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-1) 0;
+      font-size: var(--font-size-sm);
+    }
+    .demo-period__row--expense { color: var(--color-text-secondary); }
+    .demo-period__row--leftover {
+      font-weight: 600;
+      margin-top: var(--space-2);
+      padding-top: var(--space-2);
+      border-top: 1px solid var(--color-border);
+    }
+    .demo-period__highlight {
+      background: var(--color-accent-light);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm);
+      margin: -2px -8px;
+    }
+
+    /* ── Meaning Screen (Step 5) ── */
+    .demo-meaning {
+      text-align: center;
+      padding-top: var(--space-10);
+    }
+    .demo-meaning__title {
+      font-size: var(--font-size-2xl);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: var(--space-5);
+    }
+    .demo-meaning__body {
+      font-size: var(--font-size-lg);
+      color: var(--color-text-secondary);
+      line-height: 1.7;
+      margin-bottom: var(--space-10);
+      max-width: 420px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .demo-meaning__ctas {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      max-width: 300px;
+      margin: 0 auto;
+    }
+
+    /* ── Help Button ── */
+    .demo-help-btn {
+      position: fixed;
+      bottom: var(--space-5);
+      right: var(--space-5);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--color-surface);
+      border: 1.5px solid var(--color-border);
+      box-shadow: var(--shadow-md);
+      font-size: var(--font-size-lg);
+      font-weight: 700;
+      color: var(--color-accent);
+      cursor: pointer;
+      z-index: 50;
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+      display: none; /* shown after Step 0 */
+    }
+    .demo-help-btn.is-visible { display: flex; align-items: center; justify-content: center; }
+    .demo-help-btn:hover { transform: scale(1.08); box-shadow: var(--shadow-lg); }
+
+    /* ── Help Panel ── */
+    .demo-help-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,0.4);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition-mid);
+    }
+    .demo-help-overlay.is-open { opacity: 1; pointer-events: auto; }
+    .demo-help-panel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--color-surface);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      padding: var(--space-5) var(--space-5) var(--space-8);
+      z-index: 110;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+    .demo-help-panel.is-open { transform: translateY(0); }
+    .demo-help-panel__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-5);
+    }
+    .demo-help-panel__title {
+      font-size: var(--font-size-lg);
+      font-weight: 700;
+    }
+    .demo-help-panel__close {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: var(--color-surface-alt);
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-secondary);
+    }
+    .demo-help-card {
+      background: var(--color-surface-alt);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      margin-bottom: var(--space-3);
+    }
+    .demo-help-card__title {
+      font-size: var(--font-size-md);
+      font-weight: 600;
+      margin-bottom: var(--space-1);
+    }
+    .demo-help-card__summary {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      line-height: 1.5;
+    }
+
+    /* ── iOS mobile zoom prevention ── */
+    @media (hover: none) and (pointer: coarse) {
+      input, select, textarea { font-size: 16px !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Minimal header: logo + progress dots -->
+  <header class="demo-header">
+    <a href="/landing" class="demo-header__brand">Budget <span>Peace</span></a>
+    <div class="demo-progress" id="demo-progress"></div>
+  </header>
+
+  <!-- Main stage — one step renders here at a time -->
+  <main class="demo-stage" id="demo-stage"></main>
+
+  <!-- Help button (hidden until Step 1) -->
+  <button class="demo-help-btn" id="demo-help-btn" aria-label="Review concepts">?</button>
+
+  <!-- Help panel (hidden by default) -->
+  <div class="demo-help-overlay" id="demo-help-overlay"></div>
+  <div class="demo-help-panel" id="demo-help-panel"></div>
+
+  <script src="/js/demo-new.js"></script>
+</body>
+</html>

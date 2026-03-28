@@ -65,7 +65,7 @@ function renderAuthScreen() {
         <!-- Demo link -->
         <div class="auth-demo-link">
           Want to try first?
-          <a href="/?demo=true">Try the demo</a>
+          <a href="/demo">Try the demo</a>
         </div>
 
       </div>

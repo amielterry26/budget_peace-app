@@ -7,67 +7,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Real app stylesheet — so real renderers produce correctly styled output -->
+  <link rel="stylesheet" href="/css/main.css" />
+
   <style>
     /* ============================================================
-       Budget Peace — Standalone Demo Styles
-       Tokens copied from design system (source of truth: main.css :root)
+       Demo-specific overrides
+       Concept pane layout, app pane containment, demo chrome
        ============================================================ */
-
-    /* ── Reset ── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    /* ── Tokens ── */
-    :root {
-      --color-bg:             #F4F6F8;
-      --color-surface:        #FFFFFF;
-      --color-surface-alt:    #EEF1F4;
-      --color-border:         #E3E8EE;
-      --color-text-primary:   #0F172A;
-      --color-text-secondary: #64748B;
-      --color-text-inverse:   #FFFFFF;
-      --color-accent:         #4A7C59;
-      --color-accent-dark:    #375C42;
-      --color-accent-light:   #D6E8DC;
-      --color-danger:         #DC2626;
-      --color-danger-light:   #FEE2E2;
-      --color-muted:          #CBD5E1;
-      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      --font-size-xs:  11px;
-      --font-size-sm:  13px;
-      --font-size-md:  15px;
-      --font-size-lg:  18px;
-      --font-size-xl:  24px;
-      --font-size-2xl: 32px;
-      --radius-sm:   8px;
-      --radius-md:   14px;
-      --radius-lg:   20px;
-      --radius-pill: 999px;
-      --shadow-sm:  0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
-      --shadow-md:  0 4px 12px rgba(15,23,42,0.08), 0 2px 4px rgba(15,23,42,0.04);
-      --shadow-lg:  0 12px 40px rgba(15,23,42,0.12), 0 4px 12px rgba(15,23,42,0.06);
-      --space-1: 4px;
-      --space-2: 8px;
-      --space-3: 12px;
-      --space-4: 16px;
-      --space-5: 20px;
-      --space-6: 24px;
-      --space-8: 32px;
-      --space-10: 40px;
-      --space-12: 48px;
-      --transition-fast: 150ms ease;
-      --transition-mid:  250ms ease;
-    }
-
-    /* ── Base ── */
-    html { height: 100%; -webkit-text-size-adjust: 100%; }
-    body {
-      font-family: var(--font-family);
-      color: var(--color-text-primary);
-      background: var(--color-bg);
-      min-height: 100dvh;
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
-    }
 
     /* ── Demo Header ── */
     .demo-header {
@@ -79,7 +27,7 @@
       border-bottom: 1px solid var(--color-border);
       position: sticky;
       top: 0;
-      z-index: 10;
+      z-index: 100;
     }
     .demo-header__brand {
       font-size: var(--font-size-lg);
@@ -111,17 +59,39 @@
       background: var(--color-accent-light);
     }
 
-    /* ── Demo Stage ── */
+    /* ── Demo Stage (dual-pane container) ── */
     .demo-stage {
+      display: flex;
+      gap: var(--space-8);
+      align-items: flex-start;
       max-width: 1080px;
       margin: 0 auto;
       padding: var(--space-8) var(--space-5) var(--space-12);
       min-height: calc(100dvh - 57px);
     }
+    .demo-stage.is-single {
+      justify-content: center;
+    }
+    .demo-stage.is-single #demo-concept {
+      max-width: 520px;
+      flex: none;
+      width: 100%;
+    }
+    @media (max-width: 768px) {
+      .demo-stage {
+        flex-direction: column;
+        gap: var(--space-5);
+      }
+    }
+
+    /* ── Concept Pane (left / top on mobile) ── */
+    #demo-concept {
+      flex: 1;
+      min-width: 0;
+    }
 
     /* ── Step Transitions ── */
     .demo-step {
-      width: 100%;
       opacity: 0;
       transform: translateY(16px);
       transition: opacity 0.35s ease, transform 0.35s ease;
@@ -131,35 +101,132 @@
       transform: translateY(0);
     }
 
-    /* ── Dual-Pane Layout ── */
-    .demo-panes {
-      display: flex;
-      gap: var(--space-8);
-      align-items: flex-start;
-    }
-    .demo-pane--concept {
+    /* ── App Pane (right / bottom on mobile) ── */
+    .demo-app-shell {
       flex: 1;
       min-width: 0;
+      position: relative;
+      overflow: hidden;
+      height: 580px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+      background: var(--color-bg);
+      box-shadow: var(--shadow-sm);
+      pointer-events: none;
     }
-    .demo-pane--mock {
-      flex: 1;
-      min-width: 0;
-    }
-    /* Mobile: stack vertically */
     @media (max-width: 768px) {
-      .demo-panes {
-        flex-direction: column;
-        gap: var(--space-5);
-      }
+      .demo-app-shell { height: 480px; }
+    }
+    .demo-app-shell.is-hidden { display: none; }
+
+    /* Override fixed positioning to absolute within app pane */
+    .demo-app-shell .top-bar {
+      position: absolute !important;
+      top: 0; left: 0; right: 0;
+      z-index: 10;
+      display: flex !important;
+    }
+    .demo-app-shell .top-bar__hamburger,
+    .demo-app-shell .top-bar__tt-inline,
+    .demo-app-shell .top-bar__action,
+    .demo-app-shell .top-bar__nav { display: none !important; }
+
+    .demo-app-shell #main-content {
+      position: absolute !important;
+      top: 56px;
+      bottom: 56px;
+      left: 0; right: 0;
+      overflow-y: auto;
+      padding-bottom: 0 !important;
     }
 
-    /* ── Single-Pane (Setup + Meaning) ── */
-    .demo-single {
-      max-width: 520px;
-      margin: 0 auto;
+    .demo-app-shell .bottom-nav {
+      position: absolute !important;
+      bottom: 0; left: 0; right: 0;
     }
 
-    /* ── Typography ── */
+    .demo-app-shell .fab {
+      position: absolute !important;
+      bottom: 68px; right: 16px;
+      z-index: 15;
+    }
+
+    /* App pane label */
+    .demo-app-label {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-secondary);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: var(--space-3);
+    }
+
+    /* ── Demo Highlight (pulse outline on focused section) ── */
+    .demo-highlight {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 4px;
+      border-radius: 8px;
+      animation: demo-pulse 1.5s ease-in-out 2;
+    }
+    @keyframes demo-pulse {
+      0%, 100% { outline-color: var(--color-accent); }
+      50% { outline-color: transparent; }
+    }
+
+    /* ── FAB pulse (Step 2) ── */
+    .demo-fab-pulse {
+      pointer-events: none;
+      animation: demo-fab-glow 1.2s ease-in-out infinite !important;
+    }
+    @keyframes demo-fab-glow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(74,124,89,0.4); }
+      50% { box-shadow: 0 0 0 12px rgba(74,124,89,0); }
+    }
+
+    /* ── Expense sheet preview (Step 2 overlay) ── */
+    .demo-sheet-preview {
+      position: absolute;
+      bottom: 56px;
+      left: 0; right: 0;
+      background: var(--color-surface);
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+      padding: var(--space-3) var(--space-4) var(--space-4);
+      z-index: 20;
+    }
+    .demo-sheet-preview__handle {
+      width: 32px;
+      height: 3px;
+      background: var(--color-border);
+      border-radius: 2px;
+      margin: 0 auto var(--space-3);
+    }
+    .demo-sheet-preview__title {
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      margin-bottom: var(--space-3);
+    }
+    .demo-sheet-preview__field {
+      height: 32px;
+      background: var(--color-surface-alt);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      margin-bottom: var(--space-2);
+      display: flex;
+      align-items: center;
+      padding: 0 var(--space-3);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-secondary);
+    }
+    .demo-sheet-preview__btn {
+      height: 36px;
+      background: var(--color-accent);
+      border-radius: var(--radius-sm);
+      margin-top: var(--space-2);
+    }
+
+    /* ── Concept Pane Typography ── */
     .demo-logo {
       font-size: var(--font-size-xl);
       font-weight: 800;
@@ -191,7 +258,7 @@
       border-radius: var(--radius-md);
     }
 
-    /* ── Form Elements ── */
+    /* ── Concept Pane Forms ── */
     .demo-form-group { margin-bottom: var(--space-5); }
     .demo-label {
       display: block;
@@ -295,7 +362,7 @@
       text-underline-offset: 2px;
     }
 
-    /* ── Metric Tiles ── */
+    /* ── Concept Pane Metric Tiles (Steps 1 & 3) ── */
     .demo-metrics {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -334,280 +401,6 @@
       .demo-metrics { grid-template-columns: 1fr; }
       .demo-metric { display: flex; justify-content: space-between; align-items: center; }
       .demo-metric__label { margin-bottom: 0; }
-    }
-
-    /* ── Period Cards ── */
-    .demo-periods {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-3);
-      margin-bottom: var(--space-5);
-    }
-    .demo-period {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
-      padding: var(--space-4);
-    }
-    .demo-period__header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: var(--space-3);
-      padding-bottom: var(--space-2);
-      border-bottom: 1px solid var(--color-border);
-    }
-    .demo-period__dates { font-size: var(--font-size-sm); font-weight: 600; }
-    .demo-period__income { font-size: var(--font-size-sm); color: var(--color-accent); font-weight: 600; }
-    .demo-period__row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: var(--space-1) 0;
-      font-size: var(--font-size-sm);
-    }
-    .demo-period__row--expense { color: var(--color-text-secondary); }
-    .demo-period__row--leftover {
-      font-weight: 600;
-      margin-top: var(--space-2);
-      padding-top: var(--space-2);
-      border-top: 1px solid var(--color-border);
-    }
-    .demo-period__highlight {
-      background: var(--color-accent-light);
-      padding: var(--space-1) var(--space-2);
-      border-radius: var(--radius-sm);
-    }
-
-    /* ── App Mock Frame ── */
-    .mock-frame {
-      background: var(--color-surface-alt);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      box-shadow: var(--shadow-sm);
-    }
-    .mock-frame__label {
-      font-size: var(--font-size-xs);
-      color: var(--color-text-secondary);
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: var(--space-3);
-    }
-
-    /* Mock top bar */
-    .mock-topbar {
-      display: flex;
-      align-items: center;
-      gap: var(--space-3);
-      padding: var(--space-3) var(--space-4);
-      background: var(--color-surface);
-      border-bottom: 1px solid var(--color-border);
-    }
-    .mock-topbar__hamburger {
-      width: 18px;
-      height: 14px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .mock-topbar__hamburger span {
-      display: block;
-      height: 2px;
-      background: var(--color-muted);
-      border-radius: 1px;
-    }
-    .mock-topbar__title {
-      font-size: var(--font-size-sm);
-      font-weight: 600;
-      color: var(--color-text-primary);
-    }
-
-    /* Mock bottom nav */
-    .mock-bottomnav {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      padding: var(--space-3) var(--space-2);
-      background: var(--color-surface);
-      border-top: 1px solid var(--color-border);
-      position: relative;
-    }
-    .mock-bottomnav__item {
-      width: 24px;
-      height: 4px;
-      background: var(--color-muted);
-      border-radius: 2px;
-    }
-    .mock-bottomnav__item.is-active {
-      background: var(--color-accent);
-    }
-
-    /* Mock FAB */
-    .mock-fab {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: var(--color-accent);
-      color: var(--color-text-inverse);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      font-weight: 700;
-      box-shadow: var(--shadow-md);
-      position: absolute;
-      right: var(--space-4);
-      top: -18px;
-    }
-    .mock-fab--pulse {
-      animation: fabPulse 2s infinite;
-    }
-    @keyframes fabPulse {
-      0%, 100% { box-shadow: var(--shadow-md); }
-      50% { box-shadow: 0 0 0 8px rgba(74,124,89,0.15), var(--shadow-md); }
-    }
-
-    /* Mock content blocks (muted placeholders) */
-    .mock-placeholder {
-      height: 12px;
-      background: var(--color-border);
-      border-radius: 6px;
-      opacity: 0.5;
-    }
-    .mock-placeholder--wide { width: 80%; }
-    .mock-placeholder--med  { width: 55%; }
-    .mock-placeholder--short { width: 35%; }
-    .mock-placeholder--block {
-      height: 48px;
-      border-radius: var(--radius-sm);
-    }
-
-    /* Mock section highlight */
-    .mock-section {
-      padding: var(--space-3);
-      margin: var(--space-2) var(--space-3);
-      border-radius: var(--radius-sm);
-    }
-    .mock-section--highlight {
-      border: 2px solid var(--color-accent);
-      background: rgba(74,124,89,0.04);
-    }
-    .mock-section--muted {
-      opacity: 0.35;
-    }
-
-    /* Mock content area */
-    .mock-content {
-      padding: var(--space-3);
-      background: var(--color-bg);
-      min-height: 200px;
-    }
-
-    /* Mock sheet overlay (Step 2) */
-    .mock-sheet-overlay {
-      background: rgba(15,23,42,0.15);
-      padding: var(--space-3);
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      min-height: 220px;
-    }
-    .mock-sheet {
-      background: var(--color-surface);
-      border-radius: var(--radius-md) var(--radius-md) 0 0;
-      padding: var(--space-4);
-    }
-    .mock-sheet__handle {
-      width: 32px;
-      height: 3px;
-      background: var(--color-border);
-      border-radius: 2px;
-      margin: 0 auto var(--space-3);
-    }
-    .mock-sheet__title {
-      font-size: var(--font-size-sm);
-      font-weight: 600;
-      margin-bottom: var(--space-3);
-    }
-    .mock-sheet__field {
-      height: 28px;
-      background: var(--color-surface-alt);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-sm);
-      margin-bottom: var(--space-2);
-    }
-    .mock-sheet__btn {
-      height: 32px;
-      background: var(--color-accent);
-      border-radius: var(--radius-sm);
-      margin-top: var(--space-2);
-    }
-
-    /* Mock mini metrics (inside mock frame) */
-    .mock-metrics {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: var(--space-2);
-    }
-    .mock-metric-tile {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-sm);
-      padding: var(--space-2);
-      text-align: center;
-    }
-    .mock-metric-tile__label {
-      font-size: 9px;
-      color: var(--color-text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    .mock-metric-tile__value {
-      font-size: var(--font-size-sm);
-      font-weight: 700;
-    }
-
-    /* Mock expense pill */
-    .mock-expense-pill {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-sm);
-      padding: var(--space-2) var(--space-3);
-      font-size: var(--font-size-xs);
-      margin-top: var(--space-2);
-    }
-    .mock-expense-pill--highlight {
-      border-color: var(--color-accent);
-      background: rgba(74,124,89,0.04);
-    }
-
-    /* Mock period card (pay period view) */
-    .mock-period-card {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-sm);
-      padding: var(--space-3);
-      margin-bottom: var(--space-2);
-    }
-    .mock-period-card__header {
-      display: flex;
-      justify-content: space-between;
-      font-size: 10px;
-      font-weight: 600;
-      margin-bottom: var(--space-2);
-      padding-bottom: var(--space-1);
-      border-bottom: 1px solid var(--color-border);
-    }
-    .mock-period-card__row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 10px;
-      padding: 2px 0;
     }
 
     /* ── Meaning Screen ── */
@@ -720,14 +513,51 @@
 </head>
 <body>
 
-  <!-- Minimal header: logo + progress dots -->
+  <!-- Minimal demo header: logo + progress dots -->
   <header class="demo-header">
     <a href="/landing" class="demo-header__brand">Budget <span>Peace</span></a>
     <div class="demo-progress" id="demo-progress"></div>
   </header>
 
-  <!-- Main stage — one step renders here at a time -->
-  <main class="demo-stage" id="demo-stage"></main>
+  <!-- Stage: concept pane (left) + app pane (right) -->
+  <div class="demo-stage" id="demo-stage">
+
+    <!-- Concept pane — demo-new.js writes teaching content here -->
+    <div id="demo-concept"></div>
+
+    <!-- App pane — real app shell elements, render functions write to #main-content -->
+    <div id="demo-app" class="demo-app-shell is-hidden">
+      <header class="top-bar">
+        <button id="hamburger" class="top-bar__hamburger" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
+        <a class="top-bar__brand" href="javascript:void(0)">Budget <span>Peace</span></a>
+        <span id="page-title" class="top-bar__title">Home</span>
+      </header>
+
+      <div id="scenario-selector" class="scenario-selector is-hidden"></div>
+      <div id="time-travel-strip" class="time-travel-strip is-hidden">
+        <span class="time-travel-strip__label">Viewing as: <strong id="tt-date"></strong></span>
+      </div>
+
+      <main id="main-content" class="main-content"></main>
+
+      <nav id="bottom-nav" class="bottom-nav">
+        <button class="bottom-nav__item" data-page="home">Home</button>
+        <button class="bottom-nav__item" data-page="pay-period">Period</button>
+        <button class="bottom-nav__item" data-page="budgets">Budgets</button>
+        <button class="bottom-nav__item" data-page="expenses">Expenses</button>
+        <button class="bottom-nav__item" data-page="cards">Cards</button>
+      </nav>
+
+      <div id="speed-dial" class="speed-dial is-hidden"></div>
+      <button id="fab" class="fab is-hidden" aria-label="Add">+</button>
+
+      <!-- Invisible stubs for elements some code might query -->
+      <div id="nav-overlay" style="display:none;"></div>
+      <nav id="side-nav" style="display:none;"></nav>
+    </div>
+  </div>
 
   <!-- Help button (hidden until Step 1) -->
   <button class="demo-help-btn" id="demo-help-btn" aria-label="Review concepts">?</button>
@@ -736,6 +566,12 @@
   <div class="demo-help-overlay" id="demo-help-overlay"></div>
   <div class="demo-help-panel" id="demo-help-panel"></div>
 
+  <!-- Scripts: shim first, then real app modules, then demo engine -->
+  <script src="/js/demo-shim.js"></script>
+  <script src="/js/shared.js"></script>
+  <script src="/js/pages/home.js"></script>
+  <script src="/js/pages/expenses.js"></script>
+  <script src="/js/pages/pay-period.js"></script>
   <script src="/js/demo-new.js"></script>
 </body>
 </html>

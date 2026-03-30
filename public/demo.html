@@ -168,6 +168,10 @@
     .demo-app-shell .home-card--side .card-header {
       display: block !important;
     }
+    /* Hide Notes bar in demo — reduces clutter, keeps focus on taught sections */
+    .demo-app-shell .notes-card {
+      display: none !important;
+    }
 
     /* Hide bottom nav by default — only show during nav tour and sandbox */
     .demo-app-shell .bottom-nav {
@@ -543,6 +547,16 @@
     }
     .demo-help-card__title { font-size: var(--font-size-md); font-weight: 600; margin-bottom: var(--space-1); }
     .demo-help-card__summary { font-size: var(--font-size-sm); color: var(--color-text-secondary); line-height: 1.5; }
+
+    /* ── Nav Tour: dim content to focus on navigation bar ── */
+    .demo-app-shell.nav-focus-mode #main-content {
+      opacity: 0.12;
+      filter: grayscale(1);
+      pointer-events: none;
+    }
+    .demo-app-shell.nav-focus-mode .top-bar {
+      opacity: 0.2;
+    }
 
     /* ── Nav Tour: bottom-nav item highlight ── */
     .demo-nav-highlight {

@@ -479,6 +479,7 @@ const DemoEngine = (() => {
     stopExpenseLoop(); // Clean up Step 2 animation loop if active
     // Hide bottom nav unless entering nav tour (step 5) or sandbox
     document.getElementById('demo-app').classList.remove('show-nav');
+    document.getElementById('demo-app').classList.remove('nav-focus-mode');
     currentStep = index;
     currentSubStep = null;
     renderCurrentStep();
@@ -943,29 +944,87 @@ function renderStep3_SeeImpact(container) {
 
 
 // ============================================================
-// Step 4 — Financial Health (dual pane)
+// Step 4 — Financial Health (dual pane, 3→6→12 month horizons)
 // ============================================================
 function renderStep4_FinancialHealth(container) {
   const state = DemoEngine.getState();
 
-  container.innerHTML = `
-    <h1 class="demo-title">See around corners</h1>
-    <p class="demo-subtitle">Budget Peace projects your finances forward — not just this paycheck, but months ahead.</p>
+  const horizons = [
+    { months: 3, label: '3 months',
+      desc: 'Start with a <strong>3-month view</strong>. See how your income and expenses trend over the next quarter.' },
+    { months: 6, label: '6 months',
+      desc: 'Now expand to <strong>6 months</strong>. Patterns emerge — you can spot seasonal shortfalls or surpluses.' },
+    { months: 12, label: '12 months',
+      desc: 'The full <strong>12-month projection</strong>. See your financial trajectory for the entire year ahead.' },
+  ];
+  let horizonIdx = 0;
 
-    <div class="demo-teach">
-      The Financial Health section shows projections: how your income and expenses trend over 3, 6, or 12 months.
-      You can spot shortfalls before they happen and adjust while there's still time.
-    </div>
+  function renderConceptPane() {
+    const h = horizons[horizonIdx];
+    const isLast = horizonIdx === horizons.length - 1;
+    const dots = horizons.map((_, i) =>
+      `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${i === horizonIdx ? 'var(--color-accent)' : 'var(--color-border)'};margin:0 3px;"></span>`
+    ).join('');
 
-    <button class="demo-btn demo-btn--primary" id="demo-continue" style="margin-top:var(--space-6);">
-      Continue
-    </button>
-  `;
+    container.innerHTML = `
+      <h1 class="demo-title">See around corners</h1>
+      <p class="demo-subtitle">Budget Peace projects your finances forward — not just this paycheck, but months ahead.</p>
 
-  renderDemoFinancialHealth(state);
+      <div class="demo-teach">
+        ${h.desc} ${dots}
+      </div>
 
+      <div style="display:flex;gap:var(--space-3);margin-top:var(--space-6);">
+        ${horizonIdx > 0 ? '<button class="demo-btn demo-btn--ghost" id="health-prev" style="flex:1;">&larr; Back</button>' : ''}
+        <button class="demo-btn demo-btn--primary" id="health-next" style="flex:1;">
+          ${isLast ? 'Continue' : 'Next &rarr;'}
+        </button>
+      </div>
+    `;
+
+    container.querySelector('#health-next')?.addEventListener('click', () => {
+      if (isLast) {
+        DemoEngine.next();
+      } else {
+        horizonIdx++;
+        renderConceptPane();
+        showHorizon();
+      }
+    });
+
+    container.querySelector('#health-prev')?.addEventListener('click', () => {
+      horizonIdx--;
+      renderConceptPane();
+      showHorizon();
+    });
+  }
+
+  function showHorizon() {
+    const h = horizons[horizonIdx];
+    showAppPane('home');
+    _healthData = {
+      scenario: buildDemoScenario(state),
+      periods: buildDemoPeriods(state),
+      expenses: state.userExpense ? [buildDemoExpense(state)] : [],
+    };
+    renderHealth(h.months);
+
+    setTimeout(() => {
+      const mainEl = document.getElementById('main-content');
+      const projGrid = mainEl.querySelector('.home-section-health .proj-grid');
+      const health = projGrid || mainEl.querySelector('.home-section-health');
+      if (health) {
+        const mainRect = mainEl.getBoundingClientRect();
+        const targetRect = health.getBoundingClientRect();
+        mainEl.scrollTop += (targetRect.top - mainRect.top) - 16;
+        health.classList.add('demo-highlight');
+      }
+    }, 80);
+  }
+
+  renderConceptPane();
+  showHorizon();
   DemoEngine.unlockConcept('financial-health');
-  container.querySelector('#demo-continue').addEventListener('click', () => DemoEngine.next());
 }
 
 
@@ -982,8 +1041,8 @@ function renderStep5_NavTour(container) {
 
   const descriptions = {
     home: {
-      title: 'Home — your command center',
-      body: 'Everything starts here. Your financial structure, current pay period, health projections, and recurring bills — all on one screen.',
+      title: 'This is how you navigate',
+      body: 'The bottom bar is your main navigation. Each tab takes you to a different view of your finances. Let\'s walk through them.',
     },
     expenses: {
       title: 'Expenses — every bill tracked',
@@ -1026,7 +1085,11 @@ function renderStep5_NavTour(container) {
   `;
 
   // Show bottom nav for the nav tour
-  document.getElementById('demo-app').classList.add('show-nav');
+  const shell = document.getElementById('demo-app');
+  shell.classList.add('show-nav');
+
+  // On "home" sub-step, dim content to focus on the nav bar itself
+  shell.classList.toggle('nav-focus-mode', sub === 'home');
 
   // Render the current sub-step page directly (first visit or already on this page)
   renderNavSubStep(sub, state);

@@ -113,6 +113,7 @@
       background: var(--color-bg);
       box-shadow: var(--shadow-sm);
       pointer-events: none;
+      transition: height 0.3s ease;
     }
     @media (max-width: 768px) {
       .demo-app-shell { height: 520px; }
@@ -170,6 +171,15 @@
     }
     /* Hide Notes bar in demo — reduces clutter, keeps focus on taught sections */
     .demo-app-shell .notes-card {
+      display: none !important;
+    }
+
+    /* Step 4: isolate Financial Health section so it's fully visible */
+    .demo-app-shell.health-focus .home-welcome,
+    .demo-app-shell.health-focus .home-mode-switch,
+    .demo-app-shell.health-focus .home-section-period,
+    .demo-app-shell.health-focus .home-section-structure,
+    .demo-app-shell.health-focus .home-section-bills {
       display: none !important;
     }
 
@@ -548,14 +558,15 @@
     .demo-help-card__title { font-size: var(--font-size-md); font-weight: 600; margin-bottom: var(--space-1); }
     .demo-help-card__summary { font-size: var(--font-size-sm); color: var(--color-text-secondary); line-height: 1.5; }
 
-    /* ── Nav Tour: dim content to focus on navigation bar ── */
+    /* ── Nav Tour: shrink pane to focus on navigation bar ── */
+    .demo-app-shell.nav-focus-mode {
+      height: 160px;
+    }
     .demo-app-shell.nav-focus-mode #main-content {
-      opacity: 0.12;
-      filter: grayscale(1);
-      pointer-events: none;
+      display: none !important;
     }
     .demo-app-shell.nav-focus-mode .top-bar {
-      opacity: 0.2;
+      opacity: 0.25;
     }
 
     /* ── Nav Tour: bottom-nav item highlight ── */

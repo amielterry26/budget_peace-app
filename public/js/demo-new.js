@@ -480,6 +480,7 @@ const DemoEngine = (() => {
     // Hide bottom nav unless entering nav tour (step 5) or sandbox
     document.getElementById('demo-app').classList.remove('show-nav');
     document.getElementById('demo-app').classList.remove('nav-focus-mode');
+    document.getElementById('demo-app').classList.remove('health-focus');
     currentStep = index;
     currentSubStep = null;
     renderCurrentStep();
@@ -1002,6 +1003,8 @@ function renderStep4_FinancialHealth(container) {
   function showHorizon() {
     const h = horizons[horizonIdx];
     showAppPane('home');
+    // Hide all sections except Financial Health so it's at the top and fully visible
+    document.getElementById('demo-app').classList.add('health-focus');
     _healthData = {
       scenario: buildDemoScenario(state),
       periods: buildDemoPeriods(state),
@@ -1011,14 +1014,9 @@ function renderStep4_FinancialHealth(container) {
 
     setTimeout(() => {
       const mainEl = document.getElementById('main-content');
-      const projGrid = mainEl.querySelector('.home-section-health .proj-grid');
-      const health = projGrid || mainEl.querySelector('.home-section-health');
-      if (health) {
-        const mainRect = mainEl.getBoundingClientRect();
-        const targetRect = health.getBoundingClientRect();
-        mainEl.scrollTop += (targetRect.top - mainRect.top) - 16;
-        health.classList.add('demo-highlight');
-      }
+      mainEl.scrollTop = 0;
+      const health = mainEl.querySelector('.home-section-health');
+      if (health) health.classList.add('demo-highlight');
     }, 80);
   }
 

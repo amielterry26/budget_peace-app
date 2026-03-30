@@ -144,6 +144,27 @@
       opacity: 0;
     }
 
+    /* Force home-page 3-col grid into single-column inside narrow demo pane.
+       Without this, media queries check viewport width (wide) not container
+       width, so the 3-col grid renders in ~450px causing sections to sit
+       side-by-side instead of stacking vertically — making scroll useless. */
+    .demo-app-shell .home-page {
+      display: block !important;
+      padding: var(--space-4) var(--space-4) 0 !important;
+    }
+    .demo-app-shell .home-page .dash-section {
+      margin-top: var(--space-4);
+    }
+    .demo-app-shell .home-page .rail-title {
+      display: block;
+    }
+    .demo-app-shell .home-card--side {
+      padding: var(--space-3) var(--space-4);
+    }
+    .demo-app-shell .home-card--side .card-header {
+      display: block !important;
+    }
+
     .demo-app-shell .bottom-nav {
       position: absolute !important;
       bottom: 0; left: 0; right: 0;

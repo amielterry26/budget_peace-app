@@ -1034,21 +1034,25 @@ function renderStep5_NavTour(container) {
   DemoEngine.setSubStep(sub);
 
   const state = DemoEngine.getState();
-  const subSteps = ['home', 'expenses', 'pay-period', 'cards'];
+  const subSteps = ['home', 'pay-period', 'budgets', 'expenses', 'cards'];
   const subIndex = subSteps.indexOf(sub);
 
   const descriptions = {
     home: {
-      title: 'This is how you navigate',
-      body: 'The bottom bar is your main navigation. Each tab takes you to a different view of your finances. Let\'s walk through them.',
-    },
-    expenses: {
-      title: 'Expenses — every bill tracked',
-      body: 'See all your recurring and one-time expenses at a glance. Each one feeds into your budget structure and pay periods automatically.',
+      title: 'Home — your command center',
+      body: 'Everything starts here. Your financial structure, current pay period, health projections, and recurring bills — all on one screen.',
     },
     'pay-period': {
       title: 'Pay Period — paycheck-level clarity',
       body: 'Each paycheck has its own budget. You can see exactly which bills come out of which check — this is where your expense shows up mapped to a specific paycheck.',
+    },
+    budgets: {
+      title: 'Budgets — spending categories',
+      body: 'Set limits for categories like groceries, dining, or entertainment. Track how much you\'ve spent versus what you planned.',
+    },
+    expenses: {
+      title: 'Expenses — every bill tracked',
+      body: 'See all your recurring and one-time expenses at a glance. Each one feeds into your budget structure and pay periods automatically.',
     },
     cards: {
       title: 'Cards — your wallet, organized',
@@ -1086,8 +1090,8 @@ function renderStep5_NavTour(container) {
   const shell = document.getElementById('demo-app');
   shell.classList.add('show-nav');
 
-  // On "home" sub-step, dim content to focus on the nav bar itself
-  shell.classList.toggle('nav-focus-mode', sub === 'home');
+  // No nav-focus-mode — show full page content on all sub-steps
+  shell.classList.remove('nav-focus-mode');
 
   // Render the current sub-step page directly (first visit or already on this page)
   renderNavSubStep(sub, state);
@@ -1135,13 +1139,24 @@ function renderNavSubStep(sub, state) {
       renderDemoHomeSnapshot(state, null);
       highlightNavItem('home');
       break;
-    case 'expenses':
-      renderDemoExpenses(state);
-      highlightNavItem('expenses');
-      break;
     case 'pay-period':
       renderDemoPayPeriod(state);
       highlightNavItem('pay-period');
+      break;
+    case 'budgets':
+      showAppPane('budgets');
+      highlightNavItem('budgets');
+      document.getElementById('main-content').innerHTML = `
+        <div style="padding:var(--space-6) var(--space-4);text-align:center;">
+          <div style="font-size:var(--font-size-lg);font-weight:700;margin-bottom:var(--space-2);">Budgets</div>
+          <div style="color:var(--color-text-secondary);font-size:var(--font-size-sm);line-height:1.6;">
+            Set spending limits by category.<br>Track how much you've used each pay period.
+          </div>
+        </div>`;
+      break;
+    case 'expenses':
+      renderDemoExpenses(state);
+      highlightNavItem('expenses');
       break;
     case 'cards':
       renderDemoCards(state);

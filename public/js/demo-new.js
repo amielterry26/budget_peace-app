@@ -86,7 +86,7 @@ function buildDemoExpense(state) {
   };
 }
 
-function buildDemoCards(state) {
+function buildDemoCards() {
   return [
     {
       cardId: 'demo-card-1',
@@ -148,9 +148,7 @@ function showAppPane(page) {
   shell.querySelectorAll('.demo-sheet-preview').forEach(el => el.remove());
 
   // Remove leftover highlights
-  shell.querySelectorAll('.demo-highlight, .demo-highlight-strong, .demo-nav-highlight').forEach(el => {
-    el.classList.remove('demo-highlight', 'demo-highlight-strong', 'demo-nav-highlight');
-  });
+  clearHighlights();
 }
 
 function hideAppPane() {
@@ -158,7 +156,6 @@ function hideAppPane() {
   document.getElementById('demo-stage').classList.add('is-single');
 }
 
-/** Clear all demo highlight classes from app pane */
 function clearHighlights() {
   const shell = document.getElementById('demo-app');
   shell.querySelectorAll('.demo-highlight, .demo-highlight-strong, .demo-nav-highlight').forEach(el => {
@@ -166,7 +163,6 @@ function clearHighlights() {
   });
 }
 
-/** Highlight a bottom-nav item by data-page */
 function highlightNavItem(page) {
   const shell = document.getElementById('demo-app');
   shell.querySelectorAll('.bottom-nav__item').forEach(btn => {
@@ -174,33 +170,63 @@ function highlightNavItem(page) {
   });
 }
 
+/** Scroll #main-content to a target element using explicit scrollTop */
+function scrollToSection(selector) {
+  const mainEl = document.getElementById('main-content');
+  const target = mainEl.querySelector(selector);
+  if (target) {
+    mainEl.scrollTop = target.offsetTop - 16;
+  }
+  return target;
+}
+
+/**
+ * Transition to a new page with visual flow:
+ * 1. Highlight target nav item
+ * 2. Fade content out
+ * 3. Call renderer
+ * 4. Fade content in
+ */
+function transitionToPage(toPage, renderFn) {
+  const mainEl = document.getElementById('main-content');
+  highlightNavItem(toPage);
+  mainEl.classList.add('is-transitioning');
+  setTimeout(() => {
+    renderFn();
+    requestAnimationFrame(() => {
+      mainEl.classList.remove('is-transitioning');
+    });
+  }, 350);
+}
+
 
 // ---- Section 4: Demo Framing Helpers --------------------------
-// Each helper: injects fake data -> calls real renderer -> scrolls/highlights
 
-// Step 1 & 5A: Home screen with structure highlighted
-function renderDemoHomeSnapshot(state, highlightSection) {
+// Home screen with optional highlight
+function renderDemoHomeSnapshot(state, highlightSelector) {
   showAppPane('home');
   _healthData = {
     scenario: buildDemoScenario(state),
     periods: buildDemoPeriods(state),
-    expenses: [],
+    expenses: state.userExpense ? [buildDemoExpense(state)] : [],
   };
   renderHealth(6);
 
-  if (highlightSection) {
-    requestAnimationFrame(() => {
-      const mainEl = document.getElementById('main-content');
-      const section = mainEl.querySelector(highlightSection);
-      if (section) {
-        section.classList.add('demo-highlight');
-        section.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  requestAnimationFrame(() => {
+    const mainEl = document.getElementById('main-content');
+    if (highlightSelector) {
+      const target = mainEl.querySelector(highlightSelector);
+      if (target) {
+        mainEl.scrollTop = target.offsetTop - 16;
+        target.classList.add('demo-highlight');
       }
-    });
-  }
+    } else {
+      mainEl.scrollTop = 0;
+    }
+  });
 }
 
-// Step 2: Home + FAB pulse + sheet preview
+// Home + empty expenses + FAB pulse + delayed sheet preview
 function renderDemoAddExpenseContext(state) {
   showAppPane('home');
   _healthData = {
@@ -210,25 +236,27 @@ function renderDemoAddExpenseContext(state) {
   };
   renderHealth(6);
 
+  // Phase 1: FAB pulses immediately
   const fab = document.getElementById('fab');
   fab.classList.remove('is-hidden');
   fab.classList.add('demo-fab-pulse');
 
-  requestAnimationFrame(() => {
+  // Phase 2: Sheet slides up after delay (teaches the flow)
+  setTimeout(() => {
     document.getElementById('demo-app').insertAdjacentHTML('beforeend', `
       <div class="demo-sheet-preview">
         <div class="demo-sheet-preview__handle"></div>
         <div class="demo-sheet-preview__title">New Expense</div>
-        <div class="demo-sheet-preview__field">Name</div>
-        <div class="demo-sheet-preview__field">Amount</div>
-        <div class="demo-sheet-preview__field">Frequency</div>
+        <div class="demo-sheet-preview__field">Expense name</div>
+        <div class="demo-sheet-preview__field">$0.00</div>
+        <div class="demo-sheet-preview__field">Monthly</div>
         <div class="demo-sheet-preview__btn"></div>
       </div>
     `);
-  });
+  }, 1200);
 }
 
-// Step 3 multi-stage: Home with expense, sequential highlight stages
+// Multi-stage impact: bills -> structure -> period (tight timing)
 function renderDemoImpactMultiStage(state) {
   showAppPane('home');
   _healthData = {
@@ -240,60 +268,58 @@ function renderDemoImpactMultiStage(state) {
 
   const mainEl = document.getElementById('main-content');
 
-  // Stage 1: highlight bills section (immediate)
+  // Stage A (0ms): Highlight bills section
   requestAnimationFrame(() => {
-    const bills = mainEl.querySelector('.home-section-bills') || mainEl.querySelector('.card');
+    const bills = mainEl.querySelector('.home-section-bills');
     if (bills) {
+      mainEl.scrollTop = bills.offsetTop - 16;
       bills.classList.add('demo-highlight');
-      bills.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
   });
 
-  // Stage 2: scroll to structure metrics (after delay)
+  // Stage B (1500ms): Scroll to structure metrics
   setTimeout(() => {
     clearHighlights();
-    const structure = mainEl.querySelector('.home-section-structure')
-                   || mainEl.querySelector('.metric-grid');
+    const structure = mainEl.querySelector('.home-section-structure');
     if (structure) {
+      mainEl.scrollTop = structure.offsetTop - 16;
       structure.classList.add('demo-highlight-strong');
-      structure.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
-  }, 2000);
+  }, 1500);
 
-  // Stage 3: scroll to period shortcut cards
+  // Stage C (3000ms): Scroll to period card
   setTimeout(() => {
     clearHighlights();
-    const periods = mainEl.querySelector('.home-section-period')
-                 || mainEl.querySelector('.period-shortcut-card');
-    if (periods) {
-      periods.classList.add('demo-highlight');
-      periods.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    const period = mainEl.querySelector('.home-section-period')
+                || mainEl.querySelector('.period-shortcut-card');
+    if (period) {
+      mainEl.scrollTop = period.offsetTop - 16;
+      period.classList.add('demo-highlight');
     }
-  }, 4000);
+  }, 3000);
 }
 
-// Step 4: Home with financial health section highlighted
+// Financial health section highlighted
 function renderDemoFinancialHealth(state) {
   showAppPane('home');
   _healthData = {
     scenario: buildDemoScenario(state),
     periods: buildDemoPeriods(state),
-    expenses: [buildDemoExpense(state)],
+    expenses: state.userExpense ? [buildDemoExpense(state)] : [],
   };
   renderHealth(6);
 
   requestAnimationFrame(() => {
     const mainEl = document.getElementById('main-content');
-    const health = mainEl.querySelector('.home-section-health')
-                || mainEl.querySelector('.proj-grid');
+    const health = mainEl.querySelector('.home-section-health');
     if (health) {
+      mainEl.scrollTop = health.offsetTop - 16;
       health.classList.add('demo-highlight');
-      health.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
   });
 }
 
-// Step 5B: Expenses list
+// Expenses page with at least 1 visible expense
 function renderDemoExpenses(state) {
   showAppPane('expenses');
   const expense = buildDemoExpense(state);
@@ -307,59 +333,61 @@ function renderDemoExpenses(state) {
     const mainEl = document.getElementById('main-content');
     const pill = mainEl.querySelector('.expense-pill');
     if (pill) {
+      mainEl.scrollTop = pill.offsetTop - 60;
       pill.classList.add('demo-highlight');
     }
   });
 }
 
-// Step 5C: Pay Period
+// Pay Period with expense visibly mapped
 function renderDemoPayPeriod(state) {
   showAppPane('pay-period');
   _pd = {
     periods: buildDemoPeriods(state),
-    expenses: [buildDemoExpense(state)],
+    expenses: state.userExpense ? [buildDemoExpense(state)] : [],
   };
   renderPeriod(0);
 
   requestAnimationFrame(() => {
     const mainEl = document.getElementById('main-content');
-    mainEl.querySelectorAll('.pd-bill-card').forEach(card => {
-      card.classList.add('demo-highlight');
-    });
+    const billCard = mainEl.querySelector('.pd-bill-card');
+    if (billCard) {
+      mainEl.scrollTop = billCard.offsetTop - 100;
+      billCard.classList.add('demo-highlight');
+    }
   });
 }
 
-// Step 5D: Cards
+// Cards page
 function renderDemoCards(state) {
   showAppPane('cards');
-  const cards = buildDemoCards(state);
-  _cards = cards;
-  _cardExpenses = buildDemoExpense(state) ? [buildDemoExpense(state)] : [];
-  _selectedCard = cards[0].cardId;
+  _cards = buildDemoCards();
+  _cardExpenses = state.userExpense ? [buildDemoExpense(state)] : [];
+  _selectedCard = _cards[0].cardId;
   renderCardsPage();
 
   requestAnimationFrame(() => {
     const mainEl = document.getElementById('main-content');
     const walletRow = mainEl.querySelector('.wallet-row');
     if (walletRow) {
+      mainEl.scrollTop = 0;
       walletRow.classList.add('demo-highlight');
     }
   });
 }
 
-// Step 6: Scenarios
+// Scenarios page with delayed highlight on alternate
 function renderDemoScenarios(state) {
   showAppPane('scenarios');
-  const scenarios = buildDemoScenarios(state);
-  renderScenarios(scenarios);
+  renderScenarios(buildDemoScenarios(state));
 
-  requestAnimationFrame(() => {
+  setTimeout(() => {
     const mainEl = document.getElementById('main-content');
     const cards = mainEl.querySelectorAll('.sc-card');
     if (cards.length > 1) {
       cards[1].classList.add('demo-highlight');
     }
-  });
+  }, 1500);
 }
 
 
@@ -374,8 +402,11 @@ const DemoEngine = (() => {
   };
 
   let currentStep = 0;
-  let currentSubStep = null; // for nav tour sub-steps
+  let currentSubStep = null;
   const completedConcepts = [];
+
+  // Store step renderer for concept review restore
+  let _preReviewRestoreFn = null;
 
   const STEPS = [
     { id: 'setup',            render: renderStep0_Setup,           single: true  },
@@ -468,6 +499,16 @@ const DemoEngine = (() => {
   function getSubStep() { return currentSubStep; }
   function setSubStep(s) { currentSubStep = s; }
 
+  // Pre-review state for restoring app pane after concept review
+  function setPreReviewRestore(fn) { _preReviewRestoreFn = fn; }
+  function restorePreReview() {
+    if (_preReviewRestoreFn) {
+      _preReviewRestoreFn();
+      _preReviewRestoreFn = null;
+    }
+  }
+  function getCurrentStepData() { return STEPS[currentStep]; }
+
   // Sandbox mode
   let sandboxActive = false;
 
@@ -476,20 +517,16 @@ const DemoEngine = (() => {
     const shell = document.getElementById('demo-app');
     shell.classList.add('is-sandbox');
 
-    // Add banner
     if (!shell.querySelector('.demo-sandbox-banner')) {
       shell.insertAdjacentHTML('afterbegin',
         '<div class="demo-sandbox-banner">Preview Mode — data won\'t be saved</div>');
     }
 
-    // Wire bottom-nav clicks for page switching
     shell.querySelectorAll('.bottom-nav__item').forEach(btn => {
       btn.addEventListener('click', handleSandboxNav);
     });
 
-    // Wire FAB for sheet preview
-    const fab = document.getElementById('fab');
-    fab.addEventListener('click', handleSandboxFab);
+    document.getElementById('fab').addEventListener('click', handleSandboxFab);
   }
 
   function exitSandbox() {
@@ -528,16 +565,14 @@ const DemoEngine = (() => {
   function handleSandboxFab(e) {
     e.stopPropagation();
     const shell = document.getElementById('demo-app');
-    // Remove existing sheet preview if present
     shell.querySelectorAll('.demo-sheet-preview').forEach(el => el.remove());
-    // Show sheet preview
     shell.insertAdjacentHTML('beforeend', `
       <div class="demo-sheet-preview" style="cursor:default;">
         <div class="demo-sheet-preview__handle" style="cursor:pointer;" onclick="this.closest('.demo-sheet-preview').remove()"></div>
         <div class="demo-sheet-preview__title">New Expense</div>
-        <div class="demo-sheet-preview__field">Name</div>
-        <div class="demo-sheet-preview__field">Amount</div>
-        <div class="demo-sheet-preview__field">Frequency</div>
+        <div class="demo-sheet-preview__field">Expense name</div>
+        <div class="demo-sheet-preview__field">$0.00</div>
+        <div class="demo-sheet-preview__field">Monthly</div>
         <div class="demo-sheet-preview__btn"></div>
       </div>
     `);
@@ -547,8 +582,9 @@ const DemoEngine = (() => {
 
   return {
     init, next, goTo, reset, getState, getCompletedConcepts, unlockConcept,
-    getCurrentStep, getSubStep, setSubStep,
+    getCurrentStep, getSubStep, setSubStep, getCurrentStepData,
     enterSandbox, exitSandbox, isSandbox,
+    setPreReviewRestore, restorePreReview,
   };
 })();
 
@@ -630,15 +666,16 @@ function renderStep0_Setup(container) {
 
 
 // ============================================================
-// Step 1 — Financial Snapshot (dual pane)
+// Step 1 — Snapshot (dual pane, paycheck-based framing)
 // ============================================================
 function renderStep1_Snapshot(container) {
   const state = DemoEngine.getState();
   const income = state.income;
+  const cadenceLabel = state.cadence === 'biweekly' ? 'per paycheck' : 'per month';
 
   container.innerHTML = `
     <h1 class="demo-title">Here's your snapshot, ${esc(state.name)}</h1>
-    <p class="demo-subtitle">This is your financial picture at a glance.</p>
+    <p class="demo-subtitle">Your financial picture ${cadenceLabel}, at a glance.</p>
 
     <div class="demo-metrics">
       <div class="demo-metric">
@@ -656,7 +693,8 @@ function renderStep1_Snapshot(container) {
     </div>
 
     <div class="demo-teach">
-      This is your financial picture. Money in, money out, what remains.
+      This is your financial structure: money in, money out, what remains.
+      The app shows this on the Home screen — look at the highlighted section.
     </div>
 
     <button class="demo-btn demo-btn--primary" id="demo-continue" style="margin-top:var(--space-6);">
@@ -664,7 +702,8 @@ function renderStep1_Snapshot(container) {
     </button>
   `;
 
-  renderDemoHomeSnapshot(state, '.home-section-structure, .metric-grid');
+  // Show Home with NO expenses, highlight Financial Structure
+  renderDemoHomeSnapshot(state, '.home-section-structure');
 
   DemoEngine.unlockConcept('snapshot');
   container.querySelector('#demo-continue').addEventListener('click', () => DemoEngine.next());
@@ -672,14 +711,17 @@ function renderStep1_Snapshot(container) {
 
 
 // ============================================================
-// Step 2 — Add Expense (dual pane)
+// Step 2 — Add Expense (dual pane, 2-phase visual flow)
 // ============================================================
 function renderStep2_AddExpense(container) {
   const state = DemoEngine.getState();
 
   container.innerHTML = `
     <h1 class="demo-title">Let's add your first expense</h1>
-    <p class="demo-subtitle">Start with anything — this is just to see how it works.</p>
+    <p class="demo-subtitle">
+      In the app, you tap the <strong>+</strong> button to add an expense.
+      Watch the app pane — the sheet slides up.
+    </p>
 
     <div class="demo-form-group">
       <label class="demo-label" for="demo-exp-name">Name</label>
@@ -703,6 +745,7 @@ function renderStep2_AddExpense(container) {
     </button>
   `;
 
+  // Phase 1: Home screen + FAB pulse. Phase 2: sheet slides up (1200ms delay)
   renderDemoAddExpenseContext(state);
 
   DemoEngine.unlockConcept('adding-expenses');
@@ -724,7 +767,7 @@ function renderStep2_AddExpense(container) {
 
 
 // ============================================================
-// Step 3 — See Impact (dual pane, multi-stage highlights)
+// Step 3 — See Impact (dual pane, 3-stage at 0/1.5s/3s)
 // ============================================================
 function renderStep3_SeeImpact(container) {
   const state = DemoEngine.getState();
@@ -755,8 +798,7 @@ function renderStep3_SeeImpact(container) {
     </div>
 
     <div class="demo-teach">
-      Watch the app pane — Budget Peace highlights each section that changed.
-      Bills, structure, and period cards all update in real time.
+      Watch the app — every section updates. Bills appear, structure changes, and your pay period reflects the new expense.
     </div>
 
     <button class="demo-btn demo-btn--primary" id="demo-continue" style="margin-top:var(--space-6);">
@@ -764,6 +806,7 @@ function renderStep3_SeeImpact(container) {
     </button>
   `;
 
+  // 3-stage highlight sequence: bills (0ms) -> structure (1.5s) -> period (3s)
   renderDemoImpactMultiStage(state);
 
   container.querySelector('#demo-continue').addEventListener('click', () => DemoEngine.next());
@@ -775,15 +818,14 @@ function renderStep3_SeeImpact(container) {
 // ============================================================
 function renderStep4_FinancialHealth(container) {
   const state = DemoEngine.getState();
-  const expense = state.userExpense;
 
   container.innerHTML = `
-    <h1 class="demo-title">Financial health at a glance</h1>
-    <p class="demo-subtitle">Budget Peace projects your finances forward so you can see around corners.</p>
+    <h1 class="demo-title">See around corners</h1>
+    <p class="demo-subtitle">Budget Peace projects your finances forward — not just this paycheck, but months ahead.</p>
 
     <div class="demo-teach">
-      The health section shows projections — how your balance trends over the coming months.
-      ${expense ? `With <strong>${esc(expense.name)}</strong> factored in, you can see exactly how it affects your trajectory.` : ''}
+      The Financial Health section shows projections: how your income and expenses trend over 3, 6, or 12 months.
+      You can spot shortfalls before they happen and adjust while there's still time.
     </div>
 
     <button class="demo-btn demo-btn--primary" id="demo-continue" style="margin-top:var(--space-6);">
@@ -799,7 +841,7 @@ function renderStep4_FinancialHealth(container) {
 
 
 // ============================================================
-// Step 5 — Navigation Tour (dual pane, sub-steps 5A–5D)
+// Step 5 — Navigation Tour (dual pane, sub-steps with transitions)
 // ============================================================
 function renderStep5_NavTour(container) {
   const sub = DemoEngine.getSubStep() || 'home';
@@ -812,26 +854,25 @@ function renderStep5_NavTour(container) {
   const descriptions = {
     home: {
       title: 'Home — your command center',
-      body: 'Everything starts here. Income, bills, leftover, health projections, and period shortcuts — all on one screen.',
+      body: 'Everything starts here. Your financial structure, current pay period, health projections, and recurring bills — all on one screen.',
     },
     expenses: {
       title: 'Expenses — every bill tracked',
-      body: 'See all your recurring and one-time expenses. Filter, sort, and track what\'s active. Each one feeds into your budget automatically.',
+      body: 'See all your recurring and one-time expenses at a glance. Each one feeds into your budget structure and pay periods automatically.',
     },
     'pay-period': {
       title: 'Pay Period — paycheck-level clarity',
-      body: 'Each paycheck has its own budget. You can see exactly which bills come out of which check — no more guessing at the end of the month.',
+      body: 'Each paycheck has its own budget. You can see exactly which bills come out of which check — this is where your expense shows up mapped to a specific paycheck.',
     },
     cards: {
       title: 'Cards — your wallet, organized',
-      body: 'Link expenses to specific cards. See at a glance what each card is carrying and how your spending is distributed.',
+      body: 'Link expenses to specific cards. See at a glance what each card carries and how your spending is distributed across payment methods.',
     },
   };
 
   const desc = descriptions[sub];
   const isLast = subIndex === subSteps.length - 1;
 
-  // Progress dots for sub-steps
   const subDots = subSteps.map((s, i) =>
     `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${i === subIndex ? 'var(--color-accent)' : 'var(--color-border)'};margin:0 3px;"></span>`
   ).join('');
@@ -844,7 +885,7 @@ function renderStep5_NavTour(container) {
     <p class="demo-subtitle">${desc.body}</p>
 
     <div class="demo-teach">
-      Look at the bottom navigation bar — the highlighted tab shows where you are.
+      Watch the bottom navigation bar — the highlighted tab shows where you are.
     </div>
 
     <div style="display:flex;gap:var(--space-3);margin-top:var(--space-6);">
@@ -855,7 +896,47 @@ function renderStep5_NavTour(container) {
     </div>
   `;
 
-  // Render the appropriate page in app pane
+  // Render the current sub-step page directly (first visit or already on this page)
+  renderNavSubStep(sub, state);
+
+  DemoEngine.unlockConcept('pay-periods');
+  DemoEngine.unlockConcept('cards');
+
+  // Sub-step navigation with visual transition
+  function goToSubStep(newSub, useTransition) {
+    DemoEngine.setSubStep(newSub);
+
+    if (useTransition) {
+      // Show the navigation flow: highlight nav -> fade -> render
+      transitionToPage(newSub, () => {
+        renderNavSubStep(newSub, state);
+      });
+    }
+
+    // Re-render concept pane
+    const concept = document.getElementById('demo-concept');
+    const wrapper = document.createElement('div');
+    wrapper.className = 'demo-step is-active';
+    renderStep5_NavTour(wrapper);
+    concept.innerHTML = '';
+    concept.appendChild(wrapper);
+  }
+
+  container.querySelector('#demo-sub-next')?.addEventListener('click', () => {
+    if (isLast) {
+      DemoEngine.next();
+    } else {
+      goToSubStep(subSteps[subIndex + 1], true);
+    }
+  });
+
+  container.querySelector('#demo-sub-prev')?.addEventListener('click', () => {
+    goToSubStep(subSteps[subIndex - 1], true);
+  });
+}
+
+/** Render a nav tour sub-step's page in the app pane */
+function renderNavSubStep(sub, state) {
   switch (sub) {
     case 'home':
       renderDemoHomeSnapshot(state, null);
@@ -874,32 +955,6 @@ function renderStep5_NavTour(container) {
       highlightNavItem('cards');
       break;
   }
-
-  DemoEngine.unlockConcept('pay-periods');
-  DemoEngine.unlockConcept('cards');
-
-  // Wire sub-step navigation
-  function goToSubStep(newSub) {
-    DemoEngine.setSubStep(newSub);
-    const concept = document.getElementById('demo-concept');
-    const wrapper = document.createElement('div');
-    wrapper.className = 'demo-step is-active';
-    renderStep5_NavTour(wrapper);
-    concept.innerHTML = '';
-    concept.appendChild(wrapper);
-  }
-
-  container.querySelector('#demo-sub-next')?.addEventListener('click', () => {
-    if (isLast) {
-      DemoEngine.next();
-    } else {
-      goToSubStep(subSteps[subIndex + 1]);
-    }
-  });
-
-  container.querySelector('#demo-sub-prev')?.addEventListener('click', () => {
-    goToSubStep(subSteps[subIndex - 1]);
-  });
 }
 
 
@@ -916,7 +971,8 @@ function renderStep6_Scenarios(container) {
 
     <div class="demo-teach">
       Here you see two scenarios: your <strong>Main</strong> setup, and a <strong>"Side Hustle"</strong>
-      scenario with ${formatMoney(altIncome)} income. You can create as many as you need — then compare them side by side.
+      scenario with ${formatMoney(altIncome)} per paycheck. Test a different income or situation —
+      compare without damaging your main plan.
     </div>
 
     <button class="demo-btn demo-btn--primary" id="demo-continue" style="margin-top:var(--space-6);">
@@ -986,7 +1042,7 @@ function renderStep7_Understanding(container) {
 
 
 // ============================================================
-// Step 8 — Final CTA + Sandbox (single pane -> sandbox)
+// Step 8 — Final CTA + Sandbox
 // ============================================================
 function renderStep8_Final(container) {
   const state = DemoEngine.getState();
@@ -1020,12 +1076,10 @@ function renderStep8_Final(container) {
   container.querySelector('#demo-review').addEventListener('click', () => HelpSystem.open());
 
   container.querySelector('#demo-explore').addEventListener('click', () => {
-    // Switch to dual-pane and enter sandbox
     showAppPane('home');
     renderDemoHomeSnapshot(state, null);
     DemoEngine.enterSandbox();
 
-    // Update concept pane to sandbox message
     const concept = document.getElementById('demo-concept');
     concept.innerHTML = `
       <div class="demo-step is-active">
@@ -1054,7 +1108,7 @@ function renderStep8_Final(container) {
 }
 
 
-// ---- Section 7: Help System -----------------------------------
+// ---- Section 7: Help System (with visual context on review) ----
 
 const HelpSystem = (() => {
   const CONCEPTS = {
@@ -1090,9 +1144,28 @@ const HelpSystem = (() => {
     },
   };
 
+  // Map concepts to app pane renderers for visual context
+  const CONCEPT_RENDERERS = {
+    'snapshot': (s) => renderDemoHomeSnapshot(s, '.home-section-structure'),
+    'adding-expenses': (s) => renderDemoAddExpenseContext(s),
+    'pay-periods': (s) => renderDemoPayPeriod(s),
+    'financial-health': (s) => renderDemoFinancialHealth(s),
+    'cards': (s) => renderDemoCards(s),
+    'scenarios': (s) => renderDemoScenarios(s),
+  };
+
   function open() {
     const overlay = document.getElementById('demo-help-overlay');
     const panel = document.getElementById('demo-help-panel');
+
+    // Store restore function for current step's app pane
+    const step = DemoEngine.getCurrentStepData();
+    if (step && !step.single) {
+      DemoEngine.setPreReviewRestore(() => {
+        step.render(document.getElementById('demo-concept').querySelector('.demo-step') || document.createElement('div'));
+      });
+    }
+
     renderCards(panel, DemoEngine.getCompletedConcepts());
     overlay.classList.add('is-open');
     panel.classList.add('is-open');
@@ -1102,6 +1175,9 @@ const HelpSystem = (() => {
   function close() {
     document.getElementById('demo-help-overlay').classList.remove('is-open');
     document.getElementById('demo-help-panel').classList.remove('is-open');
+
+    // Restore previous step's app pane state
+    DemoEngine.restorePreReview();
   }
 
   function renderCards(panel, unlocked) {
@@ -1138,6 +1214,7 @@ const HelpSystem = (() => {
   function renderDetail(panel, id) {
     const c = CONCEPTS[id];
     if (!c) return;
+
     panel.innerHTML = `
       <div class="demo-help-panel__header">
         <div class="demo-help-panel__title">${esc(c.title)}</div>
@@ -1150,6 +1227,16 @@ const HelpSystem = (() => {
         &larr; All concepts
       </button>
     `;
+
+    // Show visual context in app pane
+    const renderer = CONCEPT_RENDERERS[id];
+    if (renderer) {
+      const shell = document.getElementById('demo-app');
+      shell.classList.remove('is-hidden');
+      document.getElementById('demo-stage').classList.remove('is-single');
+      renderer(DemoEngine.getState());
+    }
+
     panel.querySelector('#help-close').addEventListener('click', close);
     panel.querySelector('#help-back').addEventListener('click', () => {
       renderCards(panel, DemoEngine.getCompletedConcepts());

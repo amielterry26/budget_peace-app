@@ -67,9 +67,11 @@ function buildDemoScenario(state) {
 
 function buildDemoExpense(state) {
   if (!state.userExpense) return null;
-  const periods = buildDemoPeriods(state);
-  const startD = new Date(periods[0].startDate + 'T00:00:00');
-  const dueDay = startD.getDate() + 5;
+  // Use a dueDay that falls within the CURRENT period (period[1] for biweekly,
+  // current month for monthly). Previously used period[0]'s start + 5 which
+  // could land outside the current period, making the pay period card show $0.
+  const today = new Date();
+  const dueDay = Math.min(today.getDate() + 2, 28);
   return {
     expenseId: 'demo-exp-1',
     name: state.userExpense.name,
@@ -77,7 +79,7 @@ function buildDemoExpense(state) {
     recurrence: 'recurring',
     recurrenceFrequency: 'monthly',
     recurrenceStartDate: '2025-01-01',
-    dueDay: Math.min(dueDay, 28),
+    dueDay: dueDay,
     dueDate: null,
     periodStart: null,
     cardId: 'demo-card-1',
@@ -324,16 +326,20 @@ function renderDemoFinancialHealth(state) {
   };
   renderHealth(6);
 
+  // Health is the LAST section in single-column layout — needs full layout
+  // before measuring. Use 80ms to ensure all preceding sections are painted.
   setTimeout(() => {
     const mainEl = document.getElementById('main-content');
-    const health = mainEl.querySelector('.home-section-health');
+    // Target the projection grid inside health section for focused highlight
+    const projGrid = mainEl.querySelector('.home-section-health .proj-grid');
+    const health = projGrid || mainEl.querySelector('.home-section-health');
     if (health) {
       const mainRect = mainEl.getBoundingClientRect();
       const targetRect = health.getBoundingClientRect();
       mainEl.scrollTop += (targetRect.top - mainRect.top) - 16;
       health.classList.add('demo-highlight');
     }
-  }, 50);
+  }, 80);
 }
 
 // Expenses page with at least 1 visible expense
@@ -788,7 +794,7 @@ function renderStep2_AddExpense(container) {
 
 
 // ============================================================
-// Step 3 — See Impact (dual pane, 3-stage at 0/1.5s/3s)
+// Step 3 — See Impact (dual pane, 3 stages with manual controls)
 // ============================================================
 function renderStep3_SeeImpact(container) {
   const state = DemoEngine.getState();
@@ -798,39 +804,99 @@ function renderStep3_SeeImpact(container) {
   const leftover = income - bills;
   const leftoverClass = leftover >= 0 ? 'demo-metric__value--accent' : 'demo-metric__value--danger';
 
-  container.innerHTML = `
-    <h1 class="demo-title">See the impact</h1>
-    <p class="demo-subtitle">You added <strong>${esc(expense ? expense.name : 'an expense')}</strong> for <strong>${formatMoney(bills)}</strong>.</p>
+  const stages = [
+    { label: 'Bills', selector: '.home-section-bills', cls: 'demo-highlight',
+      desc: 'Your new expense appears in <strong>Recurring Bills</strong>.' },
+    { label: 'Structure', selector: '.home-section-structure', cls: 'demo-highlight-strong',
+      desc: 'The <strong>Financial Structure</strong> now reflects the deduction.' },
+    { label: 'Pay Period', selector: '.home-section-period', cls: 'demo-highlight',
+      desc: 'Your <strong>Current Pay Period</strong> shows the expense mapped to this paycheck.' },
+  ];
+  let stageIdx = 0;
 
-    <div class="demo-metrics">
-      <div class="demo-metric">
-        <div class="demo-metric__label">Income</div>
-        <div class="demo-metric__value demo-metric__value--accent">${formatMoney(income)}</div>
+  function renderConceptPane() {
+    const s = stages[stageIdx];
+    const isLast = stageIdx === stages.length - 1;
+    const dots = stages.map((_, i) =>
+      `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${i === stageIdx ? 'var(--color-accent)' : 'var(--color-border)'};margin:0 3px;"></span>`
+    ).join('');
+
+    container.innerHTML = `
+      <h1 class="demo-title">See the impact</h1>
+      <p class="demo-subtitle">You added <strong>${esc(expense ? expense.name : 'an expense')}</strong> for <strong>${formatMoney(bills)}</strong>.</p>
+
+      <div class="demo-metrics">
+        <div class="demo-metric">
+          <div class="demo-metric__label">Income</div>
+          <div class="demo-metric__value demo-metric__value--accent">${formatMoney(income)}</div>
+        </div>
+        <div class="demo-metric">
+          <div class="demo-metric__label">Bills</div>
+          <div class="demo-metric__value">${formatMoney(bills)}</div>
+        </div>
+        <div class="demo-metric">
+          <div class="demo-metric__label">Leftover</div>
+          <div class="demo-metric__value ${leftoverClass}">${formatMoney(leftover)}</div>
+          <div class="demo-metric__delta">&minus;${formatMoney(bills)}</div>
+        </div>
       </div>
-      <div class="demo-metric">
-        <div class="demo-metric__label">Bills</div>
-        <div class="demo-metric__value">${formatMoney(bills)}</div>
+
+      <div class="demo-teach">
+        ${s.desc} ${dots}
       </div>
-      <div class="demo-metric">
-        <div class="demo-metric__label">Leftover</div>
-        <div class="demo-metric__value ${leftoverClass}">${formatMoney(leftover)}</div>
-        <div class="demo-metric__delta">&minus;${formatMoney(bills)}</div>
+
+      <div style="display:flex;gap:var(--space-3);margin-top:var(--space-6);">
+        ${stageIdx > 0 ? '<button class="demo-btn demo-btn--ghost" id="impact-prev" style="flex:1;">&larr; Back</button>' : ''}
+        <button class="demo-btn demo-btn--primary" id="impact-next" style="flex:1;">
+          ${isLast ? 'Continue' : 'Next &rarr;'}
+        </button>
       </div>
-    </div>
+    `;
 
-    <div class="demo-teach">
-      Watch the app — every section updates. Bills appear, structure changes, and your pay period reflects the new expense.
-    </div>
+    container.querySelector('#impact-next')?.addEventListener('click', () => {
+      if (isLast) {
+        DemoEngine.next();
+      } else {
+        stageIdx++;
+        renderConceptPane();
+        showStage();
+      }
+    });
 
-    <button class="demo-btn demo-btn--primary" id="demo-continue" style="margin-top:var(--space-6);">
-      Continue
-    </button>
-  `;
+    container.querySelector('#impact-prev')?.addEventListener('click', () => {
+      stageIdx--;
+      renderConceptPane();
+      showStage();
+    });
+  }
 
-  // 3-stage highlight sequence: bills (0ms) -> structure (1.5s) -> period (3s)
-  renderDemoImpactMultiStage(state);
+  function showStage() {
+    const mainEl = document.getElementById('main-content');
+    clearHighlights();
+    const s = stages[stageIdx];
+    setTimeout(() => {
+      const target = mainEl.querySelector(s.selector)
+                  || mainEl.querySelector('.period-shortcut-card');
+      if (target) {
+        const mainRect = mainEl.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        mainEl.scrollTop += (targetRect.top - mainRect.top) - 16;
+        target.classList.add(s.cls);
+      }
+    }, 50);
+  }
 
-  container.querySelector('#demo-continue').addEventListener('click', () => DemoEngine.next());
+  // Render home with expense data, then show first stage
+  showAppPane('home');
+  _healthData = {
+    scenario: buildDemoScenario(state),
+    periods: buildDemoPeriods(state),
+    expenses: [buildDemoExpense(state)],
+  };
+  renderHealth(6);
+
+  renderConceptPane();
+  showStage();
 }
 
 

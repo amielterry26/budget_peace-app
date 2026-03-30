@@ -371,10 +371,22 @@ function renderDemoFinancialHealth(state) {
 function renderDemoExpenses(state) {
   showAppPane('expenses');
   const expense = buildDemoExpense(state);
-  _expenses = expense ? [expense] : [];
+  const today = new Date();
+  const dueDay = Math.min(today.getDate() + 2, 28);
+  const extras = [
+    { expenseId: 'demo-exp-2', name: 'Spotify', amount: 10.99, recurrence: 'recurring',
+      recurrenceFrequency: 'monthly', recurrenceStartDate: '2025-01-01',
+      dueDay: dueDay, dueDate: null, periodStart: null,
+      cardId: 'demo-card-2', scenarioId: 'demo', userId: 'demo-user' },
+    { expenseId: 'demo-exp-3', name: 'Car Insurance', amount: 145, recurrence: 'recurring',
+      recurrenceFrequency: 'monthly', recurrenceStartDate: '2025-01-01',
+      dueDay: dueDay, dueDate: null, periodStart: null,
+      cardId: 'demo-card-1', scenarioId: 'demo', userId: 'demo-user' },
+  ];
+  _expenses = expense ? [expense, ...extras] : extras;
   _periods = buildDemoPeriods(state);
   _expScenario = buildDemoScenario(state);
-  _expFilter = 'active';
+  _expFilter = 'current';
   renderExpensesList();
 
   setTimeout(() => {
@@ -467,9 +479,10 @@ const DemoEngine = (() => {
     { id: 'see-impact',       render: renderStep3_SeeImpact,       single: false },
     { id: 'financial-health', render: renderStep4_FinancialHealth, single: false },
     { id: 'nav-tour',         render: renderStep5_NavTour,         single: false },
-    { id: 'scenarios',        render: renderStep6_Scenarios,       single: false },
-    { id: 'understanding',    render: renderStep7_Understanding,   single: true  },
-    { id: 'final',            render: renderStep8_Final,           single: true  },
+    { id: 'cards-deep',       render: renderStep6_Cards,           single: false },
+    { id: 'scenarios',        render: renderStep7_Scenarios,       single: false },
+    { id: 'understanding',    render: renderStep8_Understanding,   single: true  },
+    { id: 'final',            render: renderStep9_Final,           single: true  },
   ];
 
   const TOTAL_STEPS = STEPS.length;
@@ -1143,17 +1156,36 @@ function renderNavSubStep(sub, state) {
       renderDemoPayPeriod(state);
       highlightNavItem('pay-period');
       break;
-    case 'budgets':
+    case 'budgets': {
       showAppPane('budgets');
       highlightNavItem('budgets');
+      const userAmt = state.userExpense ? state.userExpense.amount : 78;
+      const budgets = [
+        { name: 'Groceries', limit: 200, used: userAmt, color: 'var(--color-accent)' },
+        { name: 'Dining Out', limit: 150, used: 45, color: '#f59e0b' },
+        { name: 'Entertainment', limit: 100, used: 25, color: '#8b5cf6' },
+      ];
+      const budgetCards = budgets.map(b => {
+        const pct = Math.min(Math.round((b.used / b.limit) * 100), 100);
+        return `
+          <div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:var(--space-4);margin-bottom:var(--space-3);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-2);">
+              <span style="font-weight:600;font-size:var(--font-size-sm);">${b.name}</span>
+              <span style="font-size:var(--font-size-xs);color:var(--color-text-secondary);">$${b.used.toFixed(2)} / $${b.limit.toFixed(2)}</span>
+            </div>
+            <div style="height:6px;background:var(--color-surface-alt);border-radius:3px;overflow:hidden;">
+              <div style="height:100%;width:${pct}%;background:${b.color};border-radius:3px;transition:width 0.3s;"></div>
+            </div>
+            <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-top:4px;">${pct}% used</div>
+          </div>`;
+      }).join('');
       document.getElementById('main-content').innerHTML = `
-        <div style="padding:var(--space-6) var(--space-4);text-align:center;">
-          <div style="font-size:var(--font-size-lg);font-weight:700;margin-bottom:var(--space-2);">Budgets</div>
-          <div style="color:var(--color-text-secondary);font-size:var(--font-size-sm);line-height:1.6;">
-            Set spending limits by category.<br>Track how much you've used each pay period.
-          </div>
+        <div style="padding:var(--space-4);">
+          <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:var(--space-3);">This Pay Period</div>
+          ${budgetCards}
         </div>`;
       break;
+    }
     case 'expenses':
       renderDemoExpenses(state);
       highlightNavItem('expenses');
@@ -1167,9 +1199,114 @@ function renderNavSubStep(sub, state) {
 
 
 // ============================================================
-// Step 6 — Scenarios (dual pane, focused)
+// Step 6 — Cards Deep Dive (dual pane, 3 stages)
 // ============================================================
-function renderStep6_Scenarios(container) {
+function renderStep6_Cards(container) {
+  const state = DemoEngine.getState();
+
+  const stages = [
+    { label: 'Your cards',
+      desc: 'These are your payment methods — debit and credit cards in your wallet.' },
+    { label: 'Add a card',
+      desc: 'Tap <strong>+</strong> to add a new card to your wallet.' },
+    { label: 'Connected',
+      desc: 'Each expense links to a card. See what each card carries at a glance.' },
+  ];
+  let stageIdx = 0;
+
+  function renderConceptPane() {
+    const s = stages[stageIdx];
+    const isLast = stageIdx === stages.length - 1;
+    const dots = stages.map((_, i) =>
+      `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${i === stageIdx ? 'var(--color-accent)' : 'var(--color-border)'};margin:0 3px;"></span>`
+    ).join('');
+
+    container.innerHTML = `
+      <h1 class="demo-title">Your wallet, organized</h1>
+      <p class="demo-subtitle">Link expenses to specific cards so you always know what each card carries.</p>
+
+      <div class="demo-teach">
+        ${s.desc} ${dots}
+      </div>
+
+      <div style="display:flex;gap:var(--space-3);margin-top:var(--space-6);">
+        ${stageIdx > 0 ? '<button class="demo-btn demo-btn--ghost" id="cards-prev" style="flex:1;">&larr; Back</button>' : ''}
+        <button class="demo-btn demo-btn--primary" id="cards-next" style="flex:1;">
+          ${isLast ? 'Continue' : 'Next &rarr;'}
+        </button>
+      </div>
+    `;
+
+    container.querySelector('#cards-next')?.addEventListener('click', () => {
+      if (isLast) {
+        DemoEngine.next();
+      } else {
+        stageIdx++;
+        renderConceptPane();
+        showStage();
+      }
+    });
+
+    container.querySelector('#cards-prev')?.addEventListener('click', () => {
+      stageIdx--;
+      renderConceptPane();
+      showStage();
+    });
+  }
+
+  function showStage() {
+    const shell = document.getElementById('demo-app');
+
+    if (stageIdx === 0) {
+      // Stage A: Show cards, highlight wallet row
+      renderDemoCards(state);
+    } else if (stageIdx === 1) {
+      // Stage B: Show cards + FAB pulse + add card sheet
+      renderDemoCards(state);
+      shell.querySelectorAll('.demo-sheet-preview').forEach(el => el.remove());
+      const fab = document.getElementById('fab');
+      fab.classList.remove('is-hidden');
+      fab.classList.add('demo-fab-pulse');
+      setTimeout(() => {
+        shell.insertAdjacentHTML('beforeend', `
+          <div class="demo-sheet-preview">
+            <div class="demo-sheet-preview__handle"></div>
+            <div class="demo-sheet-preview__title">Add Card</div>
+            <div class="demo-sheet-preview__field">Card name</div>
+            <div class="demo-sheet-preview__field">Last 4 digits</div>
+            <div class="demo-sheet-preview__field">Debit / Credit</div>
+            <div class="demo-sheet-preview__btn"></div>
+          </div>
+        `);
+      }, 800);
+    } else if (stageIdx === 2) {
+      // Stage C: Show cards with expense detail highlighted
+      shell.querySelectorAll('.demo-sheet-preview').forEach(el => el.remove());
+      document.getElementById('fab').classList.remove('demo-fab-pulse');
+      renderDemoCards(state);
+      setTimeout(() => {
+        const mainEl = document.getElementById('main-content');
+        const detail = mainEl.querySelector('#card-detail-area');
+        if (detail) {
+          const mainRect = mainEl.getBoundingClientRect();
+          const detailRect = detail.getBoundingClientRect();
+          mainEl.scrollTop += (detailRect.top - mainRect.top) - 60;
+          detail.classList.add('demo-highlight');
+        }
+      }, 80);
+    }
+  }
+
+  renderConceptPane();
+  showStage();
+  DemoEngine.unlockConcept('cards');
+}
+
+
+// ============================================================
+// Step 7 — Scenarios (dual pane, focused)
+// ============================================================
+function renderStep7_Scenarios(container) {
   const state = DemoEngine.getState();
   const altIncome = Math.round(state.income * 1.3);
 
@@ -1196,9 +1333,9 @@ function renderStep6_Scenarios(container) {
 
 
 // ============================================================
-// Step 7 — System Understanding (single pane)
+// Step 8 — System Understanding (single pane)
 // ============================================================
-function renderStep7_Understanding(container) {
+function renderStep8_Understanding(container) {
   const state = DemoEngine.getState();
 
   container.innerHTML = `
@@ -1250,9 +1387,9 @@ function renderStep7_Understanding(container) {
 
 
 // ============================================================
-// Step 8 — Final CTA + Sandbox
+// Step 9 — Final CTA + Sandbox
 // ============================================================
-function renderStep8_Final(container) {
+function renderStep9_Final(container) {
   const state = DemoEngine.getState();
 
   container.innerHTML = `
@@ -1310,7 +1447,7 @@ function renderStep8_Final(container) {
 
     concept.querySelector('#sandbox-exit').addEventListener('click', () => {
       DemoEngine.exitSandbox();
-      DemoEngine.goTo(8);
+      DemoEngine.goTo(9);
     });
   });
 }

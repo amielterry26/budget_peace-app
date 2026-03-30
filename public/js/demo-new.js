@@ -236,8 +236,14 @@ function renderDemoHomeSnapshot(state, highlightSelector) {
   }, 50);
 }
 
-// Home + empty expenses + FAB pulse + delayed sheet preview
+// Home + looping FAB pulse → sheet slide-up animation
+// Returns a cleanup function to stop the loop when leaving Step 2.
+let _expenseLoopTimer = null;
+
 function renderDemoAddExpenseContext(state) {
+  // Clear any previous loop
+  if (_expenseLoopTimer) { clearTimeout(_expenseLoopTimer); _expenseLoopTimer = null; }
+
   showAppPane('home');
   _healthData = {
     scenario: buildDemoScenario(state),
@@ -246,24 +252,43 @@ function renderDemoAddExpenseContext(state) {
   };
   renderHealth(6);
 
-  // Phase 1: FAB pulses immediately
+  const shell = document.getElementById('demo-app');
   const fab = document.getElementById('fab');
-  fab.classList.remove('is-hidden');
-  fab.classList.add('demo-fab-pulse');
 
-  // Phase 2: Sheet slides up after delay (teaches the flow)
-  setTimeout(() => {
-    document.getElementById('demo-app').insertAdjacentHTML('beforeend', `
-      <div class="demo-sheet-preview">
-        <div class="demo-sheet-preview__handle"></div>
-        <div class="demo-sheet-preview__title">New Expense</div>
-        <div class="demo-sheet-preview__field">Expense name</div>
-        <div class="demo-sheet-preview__field">$0.00</div>
-        <div class="demo-sheet-preview__field">Monthly</div>
-        <div class="demo-sheet-preview__btn"></div>
-      </div>
-    `);
-  }, 1200);
+  function runCycle() {
+    // Phase 1: FAB pulses
+    fab.classList.remove('is-hidden');
+    fab.classList.add('demo-fab-pulse');
+    shell.querySelectorAll('.demo-sheet-preview').forEach(el => el.remove());
+
+    // Phase 2: Sheet slides up at 1200ms
+    _expenseLoopTimer = setTimeout(() => {
+      shell.insertAdjacentHTML('beforeend', `
+        <div class="demo-sheet-preview">
+          <div class="demo-sheet-preview__handle"></div>
+          <div class="demo-sheet-preview__title">New Expense</div>
+          <div class="demo-sheet-preview__field">Expense name</div>
+          <div class="demo-sheet-preview__field">$0.00</div>
+          <div class="demo-sheet-preview__field">Monthly</div>
+          <div class="demo-sheet-preview__btn"></div>
+        </div>
+      `);
+
+      // Phase 3: Hold sheet visible, then reset and loop
+      _expenseLoopTimer = setTimeout(() => {
+        shell.querySelectorAll('.demo-sheet-preview').forEach(el => el.remove());
+        fab.classList.remove('demo-fab-pulse');
+        // Brief pause before next cycle
+        _expenseLoopTimer = setTimeout(runCycle, 600);
+      }, 2200);
+    }, 1200);
+  }
+
+  runCycle();
+}
+
+function stopExpenseLoop() {
+  if (_expenseLoopTimer) { clearTimeout(_expenseLoopTimer); _expenseLoopTimer = null; }
 }
 
 // Multi-stage impact: bills -> structure -> period (tight timing)
@@ -451,6 +476,9 @@ const DemoEngine = (() => {
 
   function goTo(index) {
     if (index < 0 || index >= TOTAL_STEPS) return;
+    stopExpenseLoop(); // Clean up Step 2 animation loop if active
+    // Hide bottom nav unless entering nav tour (step 5) or sandbox
+    document.getElementById('demo-app').classList.remove('show-nav');
     currentStep = index;
     currentSubStep = null;
     renderCurrentStep();
@@ -501,9 +529,21 @@ const DemoEngine = (() => {
       let cls = 'demo-progress__dot';
       if (i === currentStep) cls += ' is-active';
       else if (i < currentStep) cls += ' is-completed';
-      html += `<div class="${cls}"></div>`;
+      // Completed dots are clickable to go back
+      if (i < currentStep) {
+        html += `<button class="${cls}" data-step="${i}" aria-label="Go to step ${i + 1}" style="cursor:pointer;border:none;padding:0;"></button>`;
+      } else {
+        html += `<div class="${cls}"></div>`;
+      }
     }
     container.innerHTML = html;
+
+    // Wire click handlers on completed dots
+    container.querySelectorAll('button[data-step]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        goTo(parseInt(btn.dataset.step, 10));
+      });
+    });
   }
 
   function updateHelpVisibility() {
@@ -543,6 +583,7 @@ const DemoEngine = (() => {
     sandboxActive = true;
     const shell = document.getElementById('demo-app');
     shell.classList.add('is-sandbox');
+    shell.classList.add('show-nav');
 
     if (!shell.querySelector('.demo-sandbox-banner')) {
       shell.insertAdjacentHTML('afterbegin',
@@ -560,6 +601,7 @@ const DemoEngine = (() => {
     sandboxActive = false;
     const shell = document.getElementById('demo-app');
     shell.classList.remove('is-sandbox');
+    shell.classList.remove('show-nav');
     const banner = shell.querySelector('.demo-sandbox-banner');
     if (banner) banner.remove();
 
@@ -982,6 +1024,9 @@ function renderStep5_NavTour(container) {
       </button>
     </div>
   `;
+
+  // Show bottom nav for the nav tour
+  document.getElementById('demo-app').classList.add('show-nav');
 
   // Render the current sub-step page directly (first visit or already on this page)
   renderNavSubStep(sub, state);

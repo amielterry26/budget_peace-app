@@ -170,12 +170,17 @@ function highlightNavItem(page) {
   });
 }
 
-/** Scroll #main-content to a target element using explicit scrollTop */
+/**
+ * Scroll #main-content so `selector` is visible near the top.
+ * Uses getBoundingClientRect for accuracy inside CSS-grid / absolute containers.
+ */
 function scrollToSection(selector) {
   const mainEl = document.getElementById('main-content');
   const target = mainEl.querySelector(selector);
   if (target) {
-    mainEl.scrollTop = target.offsetTop - 16;
+    const mainRect = mainEl.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    mainEl.scrollTop += (targetRect.top - mainRect.top) - 16;
   }
   return target;
 }
@@ -212,18 +217,21 @@ function renderDemoHomeSnapshot(state, highlightSelector) {
   };
   renderHealth(6);
 
-  requestAnimationFrame(() => {
+  // setTimeout(0) lets the browser finish layout after innerHTML before we measure
+  setTimeout(() => {
     const mainEl = document.getElementById('main-content');
     if (highlightSelector) {
       const target = mainEl.querySelector(highlightSelector);
       if (target) {
-        mainEl.scrollTop = target.offsetTop - 16;
+        const mainRect = mainEl.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        mainEl.scrollTop = mainEl.scrollTop + (targetRect.top - mainRect.top) - 16;
         target.classList.add('demo-highlight');
       }
     } else {
       mainEl.scrollTop = 0;
     }
-  });
+  }, 50);
 }
 
 // Home + empty expenses + FAB pulse + delayed sheet preview
@@ -266,23 +274,30 @@ function renderDemoImpactMultiStage(state) {
   };
   renderHealth(6);
 
+  /** Scroll mainEl so target is visible, using getBoundingClientRect */
+  function scrollTo(mainEl, target) {
+    const mainRect = mainEl.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    mainEl.scrollTop += (targetRect.top - mainRect.top) - 16;
+  }
+
   const mainEl = document.getElementById('main-content');
 
-  // Stage A (0ms): Highlight bills section
-  requestAnimationFrame(() => {
+  // Stage A (50ms — after layout): Highlight bills section
+  setTimeout(() => {
     const bills = mainEl.querySelector('.home-section-bills');
     if (bills) {
-      mainEl.scrollTop = bills.offsetTop - 16;
+      scrollTo(mainEl, bills);
       bills.classList.add('demo-highlight');
     }
-  });
+  }, 50);
 
   // Stage B (1500ms): Scroll to structure metrics
   setTimeout(() => {
     clearHighlights();
     const structure = mainEl.querySelector('.home-section-structure');
     if (structure) {
-      mainEl.scrollTop = structure.offsetTop - 16;
+      scrollTo(mainEl, structure);
       structure.classList.add('demo-highlight-strong');
     }
   }, 1500);
@@ -293,7 +308,7 @@ function renderDemoImpactMultiStage(state) {
     const period = mainEl.querySelector('.home-section-period')
                 || mainEl.querySelector('.period-shortcut-card');
     if (period) {
-      mainEl.scrollTop = period.offsetTop - 16;
+      scrollTo(mainEl, period);
       period.classList.add('demo-highlight');
     }
   }, 3000);
@@ -309,14 +324,16 @@ function renderDemoFinancialHealth(state) {
   };
   renderHealth(6);
 
-  requestAnimationFrame(() => {
+  setTimeout(() => {
     const mainEl = document.getElementById('main-content');
     const health = mainEl.querySelector('.home-section-health');
     if (health) {
-      mainEl.scrollTop = health.offsetTop - 16;
+      const mainRect = mainEl.getBoundingClientRect();
+      const targetRect = health.getBoundingClientRect();
+      mainEl.scrollTop += (targetRect.top - mainRect.top) - 16;
       health.classList.add('demo-highlight');
     }
-  });
+  }, 50);
 }
 
 // Expenses page with at least 1 visible expense
@@ -329,14 +346,16 @@ function renderDemoExpenses(state) {
   _expFilter = 'active';
   renderExpensesList();
 
-  requestAnimationFrame(() => {
+  setTimeout(() => {
     const mainEl = document.getElementById('main-content');
     const pill = mainEl.querySelector('.expense-pill');
     if (pill) {
-      mainEl.scrollTop = pill.offsetTop - 60;
+      const mainRect = mainEl.getBoundingClientRect();
+      const pillRect = pill.getBoundingClientRect();
+      mainEl.scrollTop += (pillRect.top - mainRect.top) - 60;
       pill.classList.add('demo-highlight');
     }
-  });
+  }, 50);
 }
 
 // Pay Period with expense visibly mapped
@@ -348,14 +367,16 @@ function renderDemoPayPeriod(state) {
   };
   renderPeriod(0);
 
-  requestAnimationFrame(() => {
+  setTimeout(() => {
     const mainEl = document.getElementById('main-content');
     const billCard = mainEl.querySelector('.pd-bill-card');
     if (billCard) {
-      mainEl.scrollTop = billCard.offsetTop - 100;
+      const mainRect = mainEl.getBoundingClientRect();
+      const cardRect = billCard.getBoundingClientRect();
+      mainEl.scrollTop += (cardRect.top - mainRect.top) - 100;
       billCard.classList.add('demo-highlight');
     }
-  });
+  }, 50);
 }
 
 // Cards page
@@ -366,14 +387,14 @@ function renderDemoCards(state) {
   _selectedCard = _cards[0].cardId;
   renderCardsPage();
 
-  requestAnimationFrame(() => {
+  setTimeout(() => {
     const mainEl = document.getElementById('main-content');
     const walletRow = mainEl.querySelector('.wallet-row');
     if (walletRow) {
       mainEl.scrollTop = 0;
       walletRow.classList.add('demo-highlight');
     }
-  });
+  }, 50);
 }
 
 // Scenarios page with delayed highlight on alternate

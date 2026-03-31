@@ -27,6 +27,15 @@ function formatShortDate(dateStr) {
 
 // ---- Section 2: Fake Data Factories ---------------------------
 
+// Format a Date as YYYY-MM-DD using LOCAL time (not UTC).
+// Avoids the UTC-shift bug where toISOString() returns a different
+// calendar date than effectiveToday() in western time zones.
+function fmtLocalDate(d) {
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
+
 function buildDemoPeriods(state) {
   const today = new Date();
   const isBiweekly = state.cadence === 'biweekly';
@@ -44,8 +53,8 @@ function buildDemoPeriods(state) {
       end = new Date(today.getFullYear(), today.getMonth() + i, 0);
     }
     periods.push({
-      startDate: start.toISOString().split('T')[0],
-      endDate: end.toISOString().split('T')[0],
+      startDate: fmtLocalDate(start),
+      endDate: fmtLocalDate(end),
       income: state.income,
     });
   }
@@ -67,11 +76,10 @@ function buildDemoScenario(state) {
 
 function buildDemoExpense(state) {
   if (!state.userExpense) return null;
-  // Use a dueDay that falls within the CURRENT period (period[1] for biweekly,
-  // current month for monthly). Previously used period[0]'s start + 5 which
-  // could land outside the current period, making the pay period card show $0.
+  // dueDay = today's day-of-month. The current biweekly period always
+  // includes today, so dueDayInPeriod() is guaranteed to match.
   const today = new Date();
-  const dueDay = Math.min(today.getDate() + 2, 28);
+  const dueDay = today.getDate();
   return {
     expenseId: 'demo-exp-1',
     name: state.userExpense.name,
@@ -1060,8 +1068,8 @@ function renderStep5_NavTour(container) {
       body: 'Each paycheck has its own budget. You can see exactly which bills come out of which check — this is where your expense shows up mapped to a specific paycheck.',
     },
     budgets: {
-      title: 'Budgets — spending categories',
-      body: 'Set limits for categories like groceries, dining, or entertainment. Track how much you\'ve spent versus what you planned.',
+      title: 'Budgets — every paycheck planned',
+      body: 'Each pay period gets its own budget. See income, expenses, and what\'s remaining for every paycheck at a glance.',
     },
     expenses: {
       title: 'Expenses — every bill tracked',
@@ -1159,30 +1167,41 @@ function renderNavSubStep(sub, state) {
     case 'budgets': {
       showAppPane('budgets');
       highlightNavItem('budgets');
-      const userAmt = state.userExpense ? state.userExpense.amount : 78;
-      const budgets = [
-        { name: 'Groceries', limit: 200, used: userAmt, color: 'var(--color-accent)' },
-        { name: 'Dining Out', limit: 150, used: 45, color: '#f59e0b' },
-        { name: 'Entertainment', limit: 100, used: 25, color: '#8b5cf6' },
-      ];
-      const budgetCards = budgets.map(b => {
-        const pct = Math.min(Math.round((b.used / b.limit) * 100), 100);
+      const periods = buildDemoPeriods(state);
+      const expAmt = state.userExpense ? state.userExpense.amount : 0;
+      const today = effectiveToday();
+      const periodCards = periods.map((p, i) => {
+        const isCurrent = p.startDate <= today && p.endDate >= today;
+        const totalExp = isCurrent ? expAmt : 0;
+        const remaining = p.income - totalExp;
+        const isNeg = remaining < 0;
+        const startD = new Date(p.startDate + 'T00:00:00');
+        const endD = new Date(p.endDate + 'T00:00:00');
+        const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         return `
-          <div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:var(--space-4);margin-bottom:var(--space-3);">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-2);">
-              <span style="font-weight:600;font-size:var(--font-size-sm);">${b.name}</span>
-              <span style="font-size:var(--font-size-xs);color:var(--color-text-secondary);">$${b.used.toFixed(2)} / $${b.limit.toFixed(2)}</span>
+          <div style="background:var(--color-surface);border:1px solid ${isCurrent ? 'var(--color-accent)' : 'var(--color-border)'};border-radius:var(--radius-md);padding:var(--space-4);margin-bottom:var(--space-3);${isCurrent ? 'box-shadow:0 0 0 2px var(--color-accent-light);' : ''}">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3);">
+              <span style="font-weight:600;font-size:var(--font-size-sm);">${fmt(startD)} – ${fmt(endD)}</span>
+              ${isCurrent ? '<span style="font-size:var(--font-size-xs);font-weight:600;color:var(--color-accent);background:var(--color-accent-light);padding:2px 8px;border-radius:var(--radius-pill);">Current</span>' : ''}
             </div>
-            <div style="height:6px;background:var(--color-surface-alt);border-radius:3px;overflow:hidden;">
-              <div style="height:100%;width:${pct}%;background:${b.color};border-radius:3px;transition:width 0.3s;"></div>
+            <div style="display:flex;justify-content:space-between;font-size:var(--font-size-sm);margin-bottom:4px;">
+              <span style="color:var(--color-text-secondary);">Income</span>
+              <span>${formatMoney(p.income)}</span>
             </div>
-            <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-top:4px;">${pct}% used</div>
+            <div style="display:flex;justify-content:space-between;font-size:var(--font-size-sm);margin-bottom:4px;">
+              <span style="color:var(--color-text-secondary);">Expenses</span>
+              <span>${formatMoney(totalExp)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:var(--font-size-sm);font-weight:600;padding-top:var(--space-2);border-top:1px solid var(--color-border);">
+              <span>Remaining</span>
+              <span style="${isNeg ? 'color:var(--color-danger);' : 'color:var(--color-accent);'}">${formatMoney(remaining)}</span>
+            </div>
           </div>`;
       }).join('');
       document.getElementById('main-content').innerHTML = `
         <div style="padding:var(--space-4);">
-          <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:var(--space-3);">This Pay Period</div>
-          ${budgetCards}
+          <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:var(--space-3);">Pay Period Budgets</div>
+          ${periodCards}
         </div>`;
       break;
     }
@@ -1205,14 +1224,19 @@ function renderStep6_Cards(container) {
   const state = DemoEngine.getState();
 
   const stages = [
-    { label: 'Your cards',
-      desc: 'These are your payment methods — debit and credit cards in your wallet.' },
-    { label: 'Add a card',
-      desc: 'Tap <strong>+</strong> to add a new card to your wallet.' },
-    { label: 'Connected',
-      desc: 'Each expense links to a card. See what each card carries at a glance.' },
+    { desc: 'These are your payment methods — debit and credit cards in your wallet.' },
+    { desc: 'Tap <strong>+</strong> to add a new card to your wallet.' },
+    { desc: 'Your new card now appears in the wallet.' },
+    { desc: 'Tap a card to select it and see its details.' },
+    { desc: 'Each expense links to a card. See what each card carries at a glance.' },
   ];
   let stageIdx = 0;
+
+  // Extra card that "appears" in stage C
+  const newCard = {
+    cardId: 'demo-card-3', name: 'Apple Card', lastFour: '5555',
+    type: 'Credit', colorIndex: 5, userId: 'demo-user',
+  };
 
   function renderConceptPane() {
     const s = stages[stageIdx];
@@ -1256,14 +1280,25 @@ function renderStep6_Cards(container) {
 
   function showStage() {
     const shell = document.getElementById('demo-app');
+    shell.querySelectorAll('.demo-sheet-preview').forEach(el => el.remove());
+    document.getElementById('fab').classList.remove('demo-fab-pulse');
 
     if (stageIdx === 0) {
-      // Stage A: Show cards, highlight wallet row
-      renderDemoCards(state);
+      // Stage A: Show 2 cards, highlight wallet row
+      _cards = buildDemoCards();
+      _cardExpenses = state.userExpense ? [buildDemoExpense(state)] : [];
+      _selectedCard = _cards[0].cardId;
+      showAppPane('cards');
+      renderCardsPage();
+      setTimeout(() => {
+        const walletRow = document.getElementById('main-content').querySelector('.wallet-row');
+        if (walletRow) walletRow.classList.add('demo-highlight');
+      }, 50);
+
     } else if (stageIdx === 1) {
-      // Stage B: Show cards + FAB pulse + add card sheet
-      renderDemoCards(state);
-      shell.querySelectorAll('.demo-sheet-preview').forEach(el => el.remove());
+      // Stage B: FAB pulse + add card sheet
+      showAppPane('cards');
+      renderCardsPage();
       const fab = document.getElementById('fab');
       fab.classList.remove('is-hidden');
       fab.classList.add('demo-fab-pulse');
@@ -1279,11 +1314,40 @@ function renderStep6_Cards(container) {
           </div>
         `);
       }, 800);
+
     } else if (stageIdx === 2) {
-      // Stage C: Show cards with expense detail highlighted
-      shell.querySelectorAll('.demo-sheet-preview').forEach(el => el.remove());
-      document.getElementById('fab').classList.remove('demo-fab-pulse');
-      renderDemoCards(state);
+      // Stage C: New card appears in wallet — highlight it
+      _cards = [...buildDemoCards(), newCard];
+      _cardExpenses = state.userExpense ? [buildDemoExpense(state)] : [];
+      _selectedCard = _cards[0].cardId;
+      showAppPane('cards');
+      renderCardsPage();
+      setTimeout(() => {
+        const allCards = document.getElementById('main-content').querySelectorAll('.wallet-card');
+        const last = allCards[allCards.length - 1];
+        if (last) last.classList.add('demo-highlight');
+      }, 50);
+
+    } else if (stageIdx === 3) {
+      // Stage D: Select the new card
+      _cards = [...buildDemoCards(), newCard];
+      _cardExpenses = state.userExpense ? [buildDemoExpense(state)] : [];
+      _selectedCard = newCard.cardId;
+      showAppPane('cards');
+      renderCardsPage();
+      setTimeout(() => {
+        const allCards = document.getElementById('main-content').querySelectorAll('.wallet-card');
+        const last = allCards[allCards.length - 1];
+        if (last) last.classList.add('demo-highlight');
+      }, 50);
+
+    } else if (stageIdx === 4) {
+      // Stage E: Show first card selected with expense detail
+      _cards = [...buildDemoCards(), newCard];
+      _cardExpenses = state.userExpense ? [buildDemoExpense(state)] : [];
+      _selectedCard = _cards[0].cardId;
+      showAppPane('cards');
+      renderCardsPage();
       setTimeout(() => {
         const mainEl = document.getElementById('main-content');
         const detail = mainEl.querySelector('#card-detail-area');

@@ -171,6 +171,21 @@ function openCardSheet(card) {
               </div>`).join('')}
           </div>
         </div>
+        ${editing ? `
+        <div class="form-group">
+          <label class="form-label">Attach Expenses</label>
+          <div class="text-muted text-xs" style="margin-bottom:var(--space-2);">Select one or more expenses to assign to this card</div>
+          <div id="cs-expense-list" style="max-height:200px;overflow-y:auto;border:1px solid var(--color-border);border-radius:var(--radius-sm);">
+            ${_cardExpenses.length ? _cardExpenses.map(e => {
+              const checked = e.cardId === card.cardId;
+              return `<label data-eid="${e.expenseId}" class="cs-exp-row" style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);cursor:pointer;border-bottom:1px solid var(--color-border);transition:background 150ms;${checked ? 'background:var(--color-accent-light);' : ''}">
+                <input type="checkbox" value="${e.expenseId}" ${checked ? 'checked' : ''} style="accent-color:var(--color-accent);flex-shrink:0;" />
+                <span style="flex:1;font-size:var(--font-size-sm);">${esc(e.name)}</span>
+                <span style="font-size:var(--font-size-sm);font-weight:600;white-space:nowrap;">${money(e.amount)}</span>
+              </label>`;
+            }).join('') : '<div class="text-muted text-sm" style="padding:var(--space-3);text-align:center;">No expenses yet.</div>'}
+          </div>
+        </div>` : ''}
         <div style="display:flex;gap:12px;padding-top:8px;">
           <button class="btn btn--ghost btn--full" id="cs-cancel">Cancel</button>
           <button class="btn btn--primary btn--full" id="cs-save">${editing ? 'Save Changes' : 'Add Card'}</button>
@@ -182,6 +197,18 @@ function openCardSheet(card) {
     document.getElementById('card-sheet-overlay').classList.add('is-open');
     document.getElementById('card-sheet').classList.add('is-open');
   });
+
+  // Wire expense row click → toggle checkbox + highlight
+  if (editing) {
+    document.querySelectorAll('#card-sheet .cs-exp-row').forEach(row => {
+      row.addEventListener('click', (e) => {
+        // If they clicked the checkbox itself, it already toggled — just update highlight
+        const cb = row.querySelector('input[type="checkbox"]');
+        if (e.target !== cb) cb.checked = !cb.checked;
+        row.style.background = cb.checked ? 'var(--color-accent-light)' : '';
+      });
+    });
+  }
 
   let selectedType       = editing ? card.type : 'Debit';
   let selectedColorIndex = editing ? (card.colorIndex ?? 0) : 0;
@@ -239,6 +266,17 @@ function openCardSheet(card) {
           body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error('Save failed');
+
+        // Bulk-assign selected expenses to this card
+        const selectedExpenseIds = Array.from(
+          document.querySelectorAll('#cs-expense-list input[type="checkbox"]:checked')
+        ).map(cb => cb.value);
+
+        const expRes = await authFetch(`/api/cards/${userId()}/${card.cardId}/expenses`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ expenseIds: selectedExpenseIds }),
+        });
+        if (!expRes.ok) throw new Error('Failed to update expenses');
       } else {
         const res = await authFetch('/api/cards', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -249,7 +287,11 @@ function openCardSheet(card) {
         _selectedCard = saved.cardId;
       }
       Store.invalidate('cards');
-      _cards = await Store.get('cards');
+      Store.invalidate('expenses');
+      [_cards, _cardExpenses] = await Promise.all([
+        Store.get('cards'),
+        Store.get('expenses'),
+      ]);
       closeSheet();
       renderCardsPage();
       document.getElementById('fab').onclick = () => openCardSheet(null);

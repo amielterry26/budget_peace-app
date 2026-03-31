@@ -1,6 +1,6 @@
 const express = require('express');
 const {
-  QueryCommand, PutCommand, DeleteCommand, GetCommand,
+  QueryCommand, PutCommand, DeleteCommand, GetCommand, UpdateCommand,
 } = require('@aws-sdk/lib-dynamodb');
 const { randomUUID } = require('crypto');
 const router = express.Router();
@@ -87,6 +87,56 @@ router.put('/:userId/:cardId', verifyOwner, async (req, res) => {
   } catch (err) {
     console.error('PUT /api/cards error:', err);
     res.status(500).json({ error: 'Failed to update card' });
+  }
+});
+
+// PUT /api/cards/:userId/:cardId/expenses — bulk-assign expenses to a card
+// expense.cardId is the single source of truth for card↔expense links.
+router.put('/:userId/:cardId/expenses', verifyOwner, async (req, res) => {
+  try {
+    const { userId, cardId } = req.params;
+    const { expenseIds } = req.body;
+
+    if (!Array.isArray(expenseIds)) {
+      return res.status(400).json({ error: 'expenseIds must be an array' });
+    }
+
+    const newSet = new Set(expenseIds);
+    const now = new Date().toISOString();
+
+    // 1. Find expenses currently linked to this card
+    const linked = await db.send(new QueryCommand({
+      TableName:                 'bp_expenses',
+      KeyConditionExpression:    'userId = :uid',
+      FilterExpression:          'cardId = :cid',
+      ExpressionAttributeValues: { ':uid': userId, ':cid': cardId },
+    }));
+
+    // 2. Unlink expenses that were on this card but are no longer selected
+    const unlinkOps = (linked.Items || [])
+      .filter(e => !newSet.has(e.expenseId))
+      .map(e => db.send(new UpdateCommand({
+        TableName: 'bp_expenses',
+        Key: { userId, expenseId: e.expenseId },
+        UpdateExpression: 'REMOVE cardId SET updatedAt = :now',
+        ExpressionAttributeValues: { ':now': now },
+      })));
+
+    // 3. Link selected expenses to this card (works even if already on another card)
+    const linkOps = expenseIds.map(expenseId =>
+      db.send(new UpdateCommand({
+        TableName: 'bp_expenses',
+        Key: { userId, expenseId },
+        UpdateExpression: 'SET cardId = :cid, updatedAt = :now',
+        ExpressionAttributeValues: { ':cid': cardId, ':now': now },
+      }))
+    );
+
+    await Promise.all([...unlinkOps, ...linkOps]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('PUT /api/cards/:cardId/expenses error:', err);
+    res.status(500).json({ error: 'Failed to update card expenses' });
   }
 });
 

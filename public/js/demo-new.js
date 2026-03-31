@@ -1458,6 +1458,7 @@ function renderStep7_Scenarios(container) {
     { desc: `Scenarios aren't in the bottom nav. Open the <strong>menu</strong> to find them.` },
     { desc: `You have two scenarios: <strong>Main</strong> at ${formatMoney(state.income)}/check and <strong>Side Hustle</strong> at ${formatMoney(altIncome)}/check.` },
     { desc: `Expand a scenario to see its snapshot — income, expenses, and what's remaining each month.` },
+    { desc: `To compare scenarios, open the <strong>menu</strong> again and tap <strong>Compare</strong>.` },
     { desc: `Compare scenarios side by side to see which plan works best for you.` },
   ];
   let stageIdx = 0;
@@ -1580,7 +1581,24 @@ function renderStep7_Scenarios(container) {
         </div>`;
 
     } else if (stageIdx === 3) {
-      // Stage D: Compare mode — side by side
+      // Stage D: Hamburger menu with "Compare" highlighted
+      showAppPane('scenarios');
+      renderScenarios(buildDemoScenarios(state));
+      setTimeout(() => {
+        shell.insertAdjacentHTML('beforeend', `
+          <div class="demo-sheet-preview" style="bottom:0;top:0;right:auto;left:0;width:200px;border-radius:0 16px 16px 0;padding:var(--space-5) var(--space-4);animation:demo-sheet-left 0.4s ease-out;">
+            <div style="font-weight:700;font-size:var(--font-size-md);margin-bottom:var(--space-5);">Menu</div>
+            <div style="padding:var(--space-2) 0;font-size:var(--font-size-sm);color:var(--color-text-secondary);">Home</div>
+            <div style="padding:var(--space-2) 0;font-size:var(--font-size-sm);color:var(--color-text-secondary);">Pay Period</div>
+            <div style="padding:var(--space-2) 0;font-size:var(--font-size-sm);color:var(--color-text-secondary);">Scenarios</div>
+            <div style="padding:var(--space-2) 0;font-size:var(--font-size-sm);color:var(--color-accent);font-weight:600;background:var(--color-accent-light);margin:0 calc(-1 * var(--space-4));padding-left:var(--space-4);padding-right:var(--space-4);border-radius:var(--radius-sm);">Compare</div>
+            <div style="padding:var(--space-2) 0;font-size:var(--font-size-sm);color:var(--color-text-secondary);">Settings</div>
+          </div>
+        `);
+      }, 500);
+
+    } else if (stageIdx === 4) {
+      // Stage E: Compare mode — side by side
       showAppPane('scenarios');
       const mainRem = mainMonthlyInc - mainExp;
       const altRem  = altMonthlyInc  - mainExp;

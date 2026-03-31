@@ -77,10 +77,22 @@
       flex: none;
       width: 100%;
     }
-    @media (max-width: 768px) {
+    @media (max-width: 900px) {
       .demo-stage {
         flex-direction: column;
+        align-items: center;
         gap: var(--space-5);
+      }
+      #demo-concept {
+        width: 100%;
+        max-width: 375px;
+      }
+      .demo-app-shell {
+        width: 375px;
+        max-width: 100%;
+        height: 600px;
+        flex: none;
+        margin-inline: auto;
       }
     }
 
@@ -114,9 +126,6 @@
       box-shadow: var(--shadow-sm);
       pointer-events: none;
       transition: height 0.3s ease;
-    }
-    @media (max-width: 768px) {
-      .demo-app-shell { height: 520px; }
     }
     .demo-app-shell.is-hidden { display: none; }
 

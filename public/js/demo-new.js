@@ -135,7 +135,58 @@ function buildDemoScenarios(state) {
 
 // ---- Section 3: App Pane Helpers ------------------------------
 
+function isMobileDemo() {
+  return document.getElementById('demo-stage').classList.contains('is-mobile-demo');
+}
+
+// Shared mobile preview wrapper
+function mobilePreview(label, html) {
+  return `<div class="demo-mobile-preview">
+    <div class="demo-mobile-preview__label">${label}</div>
+    <div class="demo-mobile-preview__body">${html}</div>
+  </div>`;
+}
+
+// Shared mobile snapshot rows (Income / Bills / Leftover)
+function mobileSnapshotRows(income, cadence, expTotal) {
+  const monthly = cadence === 'biweekly' ? income * 2 : income;
+  const leftover = monthly - expTotal;
+  const leftoverCls = leftover < 0 ? 'demo-mp-row__value--danger' : 'demo-mp-row__value--accent';
+  return `
+    <div class="demo-mp-row">
+      <span class="demo-mp-row__label">Monthly income</span>
+      <span class="demo-mp-row__value">${formatMoney(monthly)}</span>
+    </div>
+    <div class="demo-mp-row">
+      <span class="demo-mp-row__label">Bills</span>
+      <span class="demo-mp-row__value">${formatMoney(expTotal)}</span>
+    </div>
+    <div class="demo-mp-row">
+      <span class="demo-mp-row__label">Leftover</span>
+      <span class="demo-mp-row__value ${leftoverCls}">${formatMoney(leftover)}</span>
+    </div>`;
+}
+
+// Shared mobile nav bar preview
+function mobileNavBar(activePage) {
+  const pages = ['Home', 'Period', 'Budgets', 'Expenses', 'Cards'];
+  const keys  = ['home', 'pay-period', 'budgets', 'expenses', 'cards'];
+  return `<div style="display:flex;justify-content:center;gap:var(--space-3);padding:var(--space-3) 0;border-bottom:1px solid var(--color-border);">
+    ${pages.map((p, i) => `<span style="font-size:var(--font-size-xs);font-weight:${keys[i] === activePage ? '700' : '400'};color:${keys[i] === activePage ? 'var(--color-accent)' : 'var(--color-text-secondary)'};padding:var(--space-1) var(--space-2);${keys[i] === activePage ? 'border-bottom:2px solid var(--color-accent);' : ''}">${p}</span>`).join('')}
+  </div>`;
+}
+
+// Shared mobile menu preview (side-nav simulation)
+function mobileMenuPreview(highlightItem) {
+  const items = ['Home', 'Pay Period', 'Scenarios', 'Compare', 'Settings'];
+  return items.map(item => {
+    const active = item === highlightItem;
+    return `<div style="padding:var(--space-2) var(--space-3);font-size:var(--font-size-sm);border-radius:var(--radius-sm);${active ? 'color:var(--color-accent);font-weight:600;background:var(--color-accent-light);' : 'color:var(--color-text-secondary);'}">${item}</div>`;
+  }).join('');
+}
+
 function showAppPane(page) {
+  if (isMobileDemo()) return; // mobile renders inline, skip shell
   const shell = document.getElementById('demo-app');
   shell.classList.remove('is-hidden');
   document.getElementById('demo-stage').classList.remove('is-single');
@@ -571,7 +622,7 @@ const DemoEngine = (() => {
     if (existing) existing.classList.remove('is-active');
 
     setTimeout(() => {
-      if (step.single) hideAppPane();
+      if (step.single || isMobileDemo()) hideAppPane();
 
       const wrapper = document.createElement('div');
       wrapper.className = 'demo-step';
@@ -830,16 +881,19 @@ function renderStep1_Snapshot(container) {
 
     <div class="demo-teach">
       This is your financial structure: money in, money out, what remains.
-      The app shows this on the Home screen — look at the highlighted section.
+      ${isMobileDemo() ? 'The app shows this on the Home screen.' : 'The app shows this on the Home screen — look at the highlighted section.'}
     </div>
+
+    ${isMobileDemo() ? mobilePreview('Home Screen', mobileSnapshotRows(income, state.cadence, 0)) : ''}
 
     <button class="demo-btn demo-btn--primary" id="demo-continue" style="margin-top:var(--space-6);">
       Continue
     </button>
   `;
 
-  // Show Home with NO expenses, highlight Financial Structure
-  renderDemoHomeSnapshot(state, '.home-section-structure');
+  if (!isMobileDemo()) {
+    renderDemoHomeSnapshot(state, '.home-section-structure');
+  }
 
   DemoEngine.unlockConcept('snapshot');
   container.querySelector('#demo-continue').addEventListener('click', () => DemoEngine.next());
@@ -855,8 +909,9 @@ function renderStep2_AddExpense(container) {
   container.innerHTML = `
     <h1 class="demo-title">Let's add your first expense</h1>
     <p class="demo-subtitle">
-      In the app, you tap the <strong>+</strong> button to add an expense.
-      Watch the app pane — the sheet slides up.
+      ${isMobileDemo()
+        ? 'In the app, you tap the <strong>+</strong> button to add an expense.'
+        : 'In the app, you tap the <strong>+</strong> button to add an expense. Watch the app pane — the sheet slides up.'}
     </p>
 
     <div class="demo-form-group">
@@ -876,13 +931,22 @@ function renderStep2_AddExpense(container) {
       Every bill you track gets accounted for automatically.
     </div>
 
+    ${isMobileDemo() ? mobilePreview('Expense Sheet', `
+      <div style="font-size:var(--font-size-sm);font-weight:600;margin-bottom:var(--space-2);">New Expense</div>
+      <div class="demo-sheet-preview__field">Expense name</div>
+      <div class="demo-sheet-preview__field">$0.00</div>
+      <div class="demo-sheet-preview__field">Monthly</div>
+      <div class="demo-sheet-preview__btn"></div>
+    `) : ''}
+
     <button class="demo-btn demo-btn--primary" id="demo-add" style="margin-top:var(--space-6);">
       Add to budget
     </button>
   `;
 
-  // Phase 1: Home screen + FAB pulse. Phase 2: sheet slides up (1200ms delay)
-  renderDemoAddExpenseContext(state);
+  if (!isMobileDemo()) {
+    renderDemoAddExpenseContext(state);
+  }
 
   DemoEngine.unlockConcept('adding-expenses');
 
@@ -954,6 +1018,8 @@ function renderStep3_SeeImpact(container) {
         ${s.desc} ${dots}
       </div>
 
+      ${isMobileDemo() ? mobilePreview(s.label, mobileSnapshotRows(income, state.cadence, bills)) : ''}
+
       <div style="display:flex;gap:var(--space-3);margin-top:var(--space-6);">
         ${stageIdx > 0 ? '<button class="demo-btn demo-btn--ghost" id="impact-prev" style="flex:1;">&larr; Back</button>' : ''}
         <button class="demo-btn demo-btn--primary" id="impact-next" style="flex:1;">
@@ -968,14 +1034,14 @@ function renderStep3_SeeImpact(container) {
       } else {
         stageIdx++;
         renderConceptPane();
-        showStage();
+        if (!isMobileDemo()) showStage();
       }
     });
 
     container.querySelector('#impact-prev')?.addEventListener('click', () => {
       stageIdx--;
       renderConceptPane();
-      showStage();
+      if (!isMobileDemo()) showStage();
     });
   }
 
@@ -995,17 +1061,18 @@ function renderStep3_SeeImpact(container) {
     }, 50);
   }
 
-  // Render home with expense data, then show first stage
-  showAppPane('home');
-  _healthData = {
-    scenario: buildDemoScenario(state),
-    periods: buildDemoPeriods(state),
-    expenses: [buildDemoExpense(state)],
-  };
-  renderHealth(6);
+  if (!isMobileDemo()) {
+    showAppPane('home');
+    _healthData = {
+      scenario: buildDemoScenario(state),
+      periods: buildDemoPeriods(state),
+      expenses: [buildDemoExpense(state)],
+    };
+    renderHealth(6);
+    showStage();
+  }
 
   renderConceptPane();
-  showStage();
 }
 
 
@@ -1040,6 +1107,13 @@ function renderStep4_FinancialHealth(container) {
         ${h.desc} ${dots}
       </div>
 
+      ${isMobileDemo() ? mobilePreview(h.label + ' projection', `
+        <div class="demo-mp-row"><span class="demo-mp-row__label">Horizon</span><span class="demo-mp-row__value">${h.months} months</span></div>
+        <div class="demo-mp-row"><span class="demo-mp-row__label">Projected income</span><span class="demo-mp-row__value">${formatMoney((state.cadence === 'biweekly' ? state.income * 2 : state.income) * h.months)}</span></div>
+        <div class="demo-mp-row"><span class="demo-mp-row__label">Projected expenses</span><span class="demo-mp-row__value">${formatMoney((state.userExpense ? state.userExpense.amount : 0) * h.months)}</span></div>
+        <div class="demo-mp-row"><span class="demo-mp-row__label">Net savings</span><span class="demo-mp-row__value demo-mp-row__value--accent">${formatMoney(((state.cadence === 'biweekly' ? state.income * 2 : state.income) - (state.userExpense ? state.userExpense.amount : 0)) * h.months)}</span></div>
+      `) : ''}
+
       <div style="display:flex;gap:var(--space-3);margin-top:var(--space-6);">
         ${horizonIdx > 0 ? '<button class="demo-btn demo-btn--ghost" id="health-prev" style="flex:1;">&larr; Back</button>' : ''}
         <button class="demo-btn demo-btn--primary" id="health-next" style="flex:1;">
@@ -1054,21 +1128,20 @@ function renderStep4_FinancialHealth(container) {
       } else {
         horizonIdx++;
         renderConceptPane();
-        showHorizon();
+        if (!isMobileDemo()) showHorizon();
       }
     });
 
     container.querySelector('#health-prev')?.addEventListener('click', () => {
       horizonIdx--;
       renderConceptPane();
-      showHorizon();
+      if (!isMobileDemo()) showHorizon();
     });
   }
 
   function showHorizon() {
     const h = horizons[horizonIdx];
     showAppPane('home');
-    // Hide all sections except Financial Health so it's at the top and fully visible
     document.getElementById('demo-app').classList.add('health-focus');
     _healthData = {
       scenario: buildDemoScenario(state),
@@ -1086,7 +1159,7 @@ function renderStep4_FinancialHealth(container) {
   }
 
   renderConceptPane();
-  showHorizon();
+  if (!isMobileDemo()) showHorizon();
   DemoEngine.unlockConcept('financial-health');
 }
 
@@ -1140,8 +1213,10 @@ function renderStep5_NavTour(container) {
     <p class="demo-subtitle">${desc.body}</p>
 
     <div class="demo-teach">
-      Watch the bottom navigation bar — the highlighted tab shows where you are.
+      ${isMobileDemo() ? 'The bottom navigation lets you switch between pages.' : 'Watch the bottom navigation bar — the highlighted tab shows where you are.'}
     </div>
+
+    ${isMobileDemo() ? mobilePreview('Navigation', mobileNavBar(sub)) : ''}
 
     <div style="display:flex;gap:var(--space-3);margin-top:var(--space-6);">
       ${subIndex > 0 ? '<button class="demo-btn demo-btn--ghost" id="demo-sub-prev" style="flex:1;">Back</button>' : ''}
@@ -1151,15 +1226,12 @@ function renderStep5_NavTour(container) {
     </div>
   `;
 
-  // Show bottom nav for the nav tour
-  const shell = document.getElementById('demo-app');
-  shell.classList.add('show-nav');
-
-  // No nav-focus-mode — show full page content on all sub-steps
-  shell.classList.remove('nav-focus-mode');
-
-  // Render the current sub-step page directly (first visit or already on this page)
-  renderNavSubStep(sub, state);
+  if (!isMobileDemo()) {
+    const shell = document.getElementById('demo-app');
+    shell.classList.add('show-nav');
+    shell.classList.remove('nav-focus-mode');
+    renderNavSubStep(sub, state);
+  }
 
   DemoEngine.unlockConcept('pay-periods');
   DemoEngine.unlockConcept('cards');
@@ -1168,8 +1240,7 @@ function renderStep5_NavTour(container) {
   function goToSubStep(newSub, useTransition) {
     DemoEngine.setSubStep(newSub);
 
-    if (useTransition) {
-      // Show the navigation flow: highlight nav -> fade -> render
+    if (useTransition && !isMobileDemo()) {
       transitionToPage(newSub, () => {
         renderNavSubStep(newSub, state);
       });
@@ -1300,6 +1371,8 @@ function renderStep6_Cards(container) {
         ${s.desc} ${dots}
       </div>
 
+      ${isMobileDemo() ? mobileCardPreview(stageIdx) : ''}
+
       <div style="display:flex;gap:var(--space-3);margin-top:var(--space-6);">
         ${stageIdx > 0 ? '<button class="demo-btn demo-btn--ghost" id="cards-prev" style="flex:1;">&larr; Back</button>' : ''}
         <button class="demo-btn demo-btn--primary" id="cards-next" style="flex:1;">
@@ -1314,15 +1387,49 @@ function renderStep6_Cards(container) {
       } else {
         stageIdx++;
         renderConceptPane();
-        showStage();
+        if (!isMobileDemo()) showStage();
       }
     });
 
     container.querySelector('#cards-prev')?.addEventListener('click', () => {
       stageIdx--;
       renderConceptPane();
-      showStage();
+      if (!isMobileDemo()) showStage();
     });
+  }
+
+  function mobileCardTile(name, lastFour, bg) {
+    return `<div style="display:inline-block;width:120px;height:72px;border-radius:8px;background:${bg};padding:8px 10px;color:#fff;font-size:11px;vertical-align:top;margin-right:8px;">
+      <div style="font-size:9px;opacity:0.7;margin-bottom:auto;">Debit</div>
+      <div style="margin-top:20px;">•••• ${esc(lastFour)}</div>
+      <div style="font-weight:600;font-size:10px;">${esc(name)}</div>
+    </div>`;
+  }
+
+  function mobileCardPreview(idx) {
+    const cards = buildDemoCards();
+    const tile1 = mobileCardTile(cards[0].name, cards[0].lastFour, CARD_PALETTES[cards[0].colorIndex]);
+    const tile2 = mobileCardTile(cards[1].name, cards[1].lastFour, CARD_PALETTES[cards[1].colorIndex]);
+    const tileNew = mobileCardTile('Chase Checking', '4821', CARD_PALETTES[0]);
+
+    if (idx === 0) return mobilePreview('Wallet', `<div style="white-space:nowrap;overflow-x:auto;">${tile1}${tile2}</div>`);
+    if (idx === 1) return mobilePreview('New Card Form', `
+      <div style="font-size:var(--font-size-sm);font-weight:600;margin-bottom:var(--space-2);">New Card</div>
+      <div class="demo-sheet-preview__field" style="color:var(--color-text);font-weight:500;">Chase Checking</div>
+      <div class="demo-sheet-preview__field" style="color:var(--color-text);font-weight:500;">4821</div>
+      <div class="demo-sheet-preview__field" style="color:var(--color-text);font-weight:500;">Debit</div>
+    `);
+    if (idx === 2 || idx === 3) return mobilePreview('Wallet', `<div style="white-space:nowrap;overflow-x:auto;">${tileNew}${tile1}${tile2}</div>`);
+    if (idx === 4) return mobilePreview('Link Expense', `
+      <div class="demo-mp-row"><span class="demo-mp-row__label">${esc(expName)}</span><span class="demo-mp-row__value">${formatMoney(expAmt)}</span></div>
+      <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);text-align:center;padding:var(--space-2) 0;">Assign to <strong style="color:var(--color-text);">Chase Checking •••• 4821</strong></div>
+    `);
+    if (idx === 5) return mobilePreview('Card Detail', `
+      <div style="font-weight:600;font-size:var(--font-size-sm);margin-bottom:var(--space-2);">Chase Checking •••• 4821</div>
+      <div class="demo-mp-row"><span class="demo-mp-row__label">${esc(expName)}</span><span class="demo-mp-row__value">${formatMoney(expAmt)}</span></div>
+      <div class="demo-mp-row"><span class="demo-mp-row__label">Total on card</span><span class="demo-mp-row__value demo-mp-row__value--accent">${formatMoney(expAmt)}</span></div>
+    `);
+    return '';
   }
 
   function showStage() {
@@ -1439,7 +1546,7 @@ function renderStep6_Cards(container) {
   }
 
   renderConceptPane();
-  showStage();
+  if (!isMobileDemo()) showStage();
   DemoEngine.unlockConcept('cards');
 }
 
@@ -1478,6 +1585,8 @@ function renderStep7_Scenarios(container) {
         ${s.desc} ${dots}
       </div>
 
+      ${isMobileDemo() ? mobileScenarioPreview(stageIdx) : ''}
+
       <div style="display:flex;gap:var(--space-3);margin-top:var(--space-6);">
         ${stageIdx > 0 ? '<button class="demo-btn demo-btn--ghost" id="sc-prev" style="flex:1;">&larr; Back</button>' : ''}
         <button class="demo-btn demo-btn--primary" id="sc-next" style="flex:1;">
@@ -1487,11 +1596,53 @@ function renderStep7_Scenarios(container) {
     `;
 
     container.querySelector('#sc-next')?.addEventListener('click', () => {
-      if (isLast) { DemoEngine.next(); } else { stageIdx++; renderConceptPane(); showStage(); }
+      if (isLast) { DemoEngine.next(); } else { stageIdx++; renderConceptPane(); if (!isMobileDemo()) showStage(); }
     });
     container.querySelector('#sc-prev')?.addEventListener('click', () => {
-      stageIdx--; renderConceptPane(); showStage();
+      stageIdx--; renderConceptPane(); if (!isMobileDemo()) showStage();
     });
+  }
+
+  function mobileScenarioPreview(idx) {
+    const cadLabel = state.cadence === 'biweekly' ? 'Bi-weekly' : 'Monthly';
+    if (idx === 0 || idx === 3) {
+      return mobilePreview('Menu', mobileMenuPreview(idx === 0 ? 'Scenarios' : 'Compare'));
+    }
+    if (idx === 1) {
+      return mobilePreview('Scenarios', `
+        <div style="border:1px solid var(--color-accent);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);margin-bottom:var(--space-2);">
+          <div style="font-weight:600;font-size:var(--font-size-sm);">Main</div>
+          <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);">${cadLabel} · ${formatMoney(state.income)}/check</div>
+        </div>
+        <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);">
+          <div style="font-weight:600;font-size:var(--font-size-sm);">Side Hustle</div>
+          <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);">${cadLabel} · ${formatMoney(altIncome)}/check</div>
+        </div>
+      `);
+    }
+    if (idx === 2) {
+      return mobilePreview('Expanded Snapshot', `
+        <div style="font-weight:600;font-size:var(--font-size-sm);margin-bottom:var(--space-1);">Main — ${formatMoney(state.income)}/check</div>
+        ${mobileSnapshotRows(state.income, state.cadence, mainExp)}
+      `);
+    }
+    if (idx === 4) {
+      return mobilePreview('Compare', `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
+          <div>
+            <div style="font-weight:600;font-size:var(--font-size-sm);margin-bottom:var(--space-1);">Main</div>
+            <div class="demo-mp-row"><span class="demo-mp-row__label">Income</span><span class="demo-mp-row__value">${formatMoney(mainMonthlyInc)}</span></div>
+            <div class="demo-mp-row"><span class="demo-mp-row__label">Left</span><span class="demo-mp-row__value demo-mp-row__value--accent">${formatMoney(mainMonthlyInc - mainExp)}</span></div>
+          </div>
+          <div>
+            <div style="font-weight:600;font-size:var(--font-size-sm);margin-bottom:var(--space-1);">Side Hustle</div>
+            <div class="demo-mp-row"><span class="demo-mp-row__label">Income</span><span class="demo-mp-row__value">${formatMoney(altMonthlyInc)}</span></div>
+            <div class="demo-mp-row"><span class="demo-mp-row__label">Left</span><span class="demo-mp-row__value demo-mp-row__value--accent">${formatMoney(altMonthlyInc - mainExp)}</span></div>
+          </div>
+        </div>
+      `);
+    }
+    return '';
   }
 
   // Build a demo snapshot block for inline rendering
@@ -1632,7 +1783,7 @@ function renderStep7_Scenarios(container) {
   }
 
   renderConceptPane();
-  showStage();
+  if (!isMobileDemo()) showStage();
   DemoEngine.unlockConcept('scenarios');
 }
 
@@ -1744,9 +1895,7 @@ function renderStep9_Final(container) {
         <a href="/landing#pricing" class="demo-btn demo-btn--primary" style="text-decoration:none;">
           Get Pro Now
         </a>
-        <button class="demo-btn demo-btn--ghost" id="demo-explore">
-          Explore Freely
-        </button>
+        ${isMobileDemo() ? '' : '<button class="demo-btn demo-btn--ghost" id="demo-explore">Explore Freely</button>'}
         <button class="demo-btn demo-btn--link" id="demo-replay">
           Replay walkthrough
         </button>
@@ -1760,7 +1909,7 @@ function renderStep9_Final(container) {
   container.querySelector('#demo-replay').addEventListener('click', () => DemoEngine.reset());
   container.querySelector('#demo-review').addEventListener('click', () => HelpSystem.open());
 
-  container.querySelector('#demo-explore').addEventListener('click', () => {
+  container.querySelector('#demo-explore')?.addEventListener('click', () => {
     showAppPane('home');
     renderDemoHomeSnapshot(state, null);
     DemoEngine.enterSandbox();

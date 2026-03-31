@@ -82,60 +82,49 @@
         flex-direction: column;
         gap: var(--space-5);
       }
-      #demo-concept {
-        width: 100%;
-      }
-
-      /* ── Mobile: inline preview card instead of mini-phone ── */
-      .demo-app-shell {
-        width: 100%;
-        height: auto !important;
-        overflow: visible;
-        flex: none;
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-md);
-        background: var(--color-bg);
-        box-shadow: var(--shadow-sm);
-      }
-      /* Hide redundant shell chrome */
-      .demo-app-shell .top-bar { display: none !important; }
-      .demo-app-shell .fab     { display: none !important; }
-      /* Main-content flows naturally */
-      .demo-app-shell #main-content {
-        position: static !important;
-        overflow: visible !important;
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
-      }
-      /* Bottom nav hidden by default, shown inline for nav tour */
-      .demo-app-shell .bottom-nav {
-        position: static !important;
+      /* Hide app shell entirely on mobile — previews render inline */
+      .is-mobile-demo #demo-app {
         display: none !important;
       }
-      .demo-app-shell.show-nav .bottom-nav {
-        display: flex !important;
-        justify-content: center !important;
-        border-top: 1px solid var(--color-border);
-      }
-      /* Nav-focus-mode: just show the nav bar inline */
-      .demo-app-shell.nav-focus-mode {
-        height: auto !important;
-      }
-      .demo-app-shell.nav-focus-mode .top-bar {
-        display: none !important;
-      }
-      /* Sheet overlays flow inline instead of absolute */
-      .demo-app-shell .demo-sheet-preview {
-        position: relative !important;
-        bottom: auto !important;
-        top: auto !important;
-        left: auto !important;
-        right: auto !important;
-        width: 100% !important;
-        border-radius: var(--radius-md) !important;
-        animation: none !important;
+      .is-mobile-demo #demo-concept {
+        width: 100%;
       }
     }
+
+    /* ── Mobile inline preview card ── */
+    .demo-mobile-preview {
+      margin-top: var(--space-4);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-bg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+    .demo-mobile-preview__label {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-secondary);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: var(--space-3) var(--space-4) var(--space-1);
+    }
+    .demo-mobile-preview__body {
+      padding: var(--space-2) var(--space-4) var(--space-4);
+    }
+    .demo-mp-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-2) 0;
+      font-size: var(--font-size-sm);
+    }
+    .demo-mp-row + .demo-mp-row {
+      border-top: 1px solid var(--color-border);
+    }
+    .demo-mp-row__label { color: var(--color-text-secondary); }
+    .demo-mp-row__value { font-weight: 600; }
+    .demo-mp-row__value--accent { color: var(--color-accent); }
+    .demo-mp-row__value--danger { color: var(--color-danger); }
 
     /* ── Concept Pane (left / top on mobile) ── */
     #demo-concept {
@@ -776,6 +765,12 @@
   <!-- Help panel (hidden by default) -->
   <div class="demo-help-overlay" id="demo-help-overlay"></div>
   <div class="demo-help-panel" id="demo-help-panel"></div>
+
+  <!-- Mobile detection — must run before demo engine -->
+  <script>
+    if (window.matchMedia('(max-width: 900px)').matches)
+      document.getElementById('demo-stage').classList.add('is-mobile-demo');
+  </script>
 
   <!-- Scripts: shim first, then real app modules, then demo engine -->
   <script src="/js/demo-shim.js"></script>

@@ -1222,17 +1222,20 @@ function renderNavSubStep(sub, state) {
 // ============================================================
 function renderStep6_Cards(container) {
   const state = DemoEngine.getState();
+  const expName = state.userExpense ? state.userExpense.name : 'Rent';
+  const expAmt  = state.userExpense ? state.userExpense.amount : 1200;
 
   const stages = [
     { desc: 'These are your payment methods — debit and credit cards in your wallet.' },
-    { desc: 'Tap <strong>+</strong> to add a new card to your wallet.' },
-    { desc: 'Your new card now appears in the wallet.' },
+    { desc: 'Fill in the details — card name, last four digits, and type — then save.' },
+    { desc: 'Card saved! Your new <strong>Apple Card</strong> now appears in the wallet.' },
     { desc: 'Tap a card to select it and see its details.' },
-    { desc: 'Each expense links to a card. See what each card carries at a glance.' },
+    { desc: `Now link your <strong>${esc(expName)}</strong> expense to this card.` },
+    { desc: `Done — <strong>${esc(expName)}</strong> is now assigned to <strong>Apple Card</strong>.` },
   ];
   let stageIdx = 0;
 
-  // Extra card that "appears" in stage C
+  // Extra card that "appears" after the add-card form
   const newCard = {
     cardId: 'demo-card-3', name: 'Apple Card', lastFour: '5555',
     type: 'Credit', colorIndex: 5, userId: 'demo-user',
@@ -1284,9 +1287,9 @@ function renderStep6_Cards(container) {
     document.getElementById('fab').classList.remove('demo-fab-pulse');
 
     if (stageIdx === 0) {
-      // Stage A: Show 2 cards, highlight wallet row
+      // Stage A: Show 2 existing cards, highlight wallet row
       _cards = buildDemoCards();
-      _cardExpenses = state.userExpense ? [buildDemoExpense(state)] : [];
+      _cardExpenses = [];
       _selectedCard = _cards[0].cardId;
       showAppPane('cards');
       renderCardsPage();
@@ -1296,7 +1299,10 @@ function renderStep6_Cards(container) {
       }, 50);
 
     } else if (stageIdx === 1) {
-      // Stage B: FAB pulse + add card sheet
+      // Stage B: Add-card sheet with PREFILLED realistic values
+      _cards = buildDemoCards();
+      _cardExpenses = [];
+      _selectedCard = _cards[0].cardId;
       showAppPane('cards');
       renderCardsPage();
       const fab = document.getElementById('fab');
@@ -1306,20 +1312,20 @@ function renderStep6_Cards(container) {
         shell.insertAdjacentHTML('beforeend', `
           <div class="demo-sheet-preview">
             <div class="demo-sheet-preview__handle"></div>
-            <div class="demo-sheet-preview__title">Add Card</div>
-            <div class="demo-sheet-preview__field">Card name</div>
-            <div class="demo-sheet-preview__field">Last 4 digits</div>
-            <div class="demo-sheet-preview__field">Debit / Credit</div>
-            <div class="demo-sheet-preview__btn"></div>
+            <div class="demo-sheet-preview__title">New Card</div>
+            <div class="demo-sheet-preview__field" style="color:var(--color-text);font-weight:500;">Apple Card</div>
+            <div class="demo-sheet-preview__field" style="color:var(--color-text);font-weight:500;">5555</div>
+            <div class="demo-sheet-preview__field" style="color:var(--color-text);font-weight:500;">Credit</div>
+            <div class="demo-sheet-preview__btn" style="display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--font-size-xs);font-weight:600;">Add Card</div>
           </div>
         `);
       }, 800);
 
     } else if (stageIdx === 2) {
-      // Stage C: New card appears in wallet — highlight it
+      // Stage C: Card saved — new card appears in wallet, highlighted
       _cards = [...buildDemoCards(), newCard];
-      _cardExpenses = state.userExpense ? [buildDemoExpense(state)] : [];
-      _selectedCard = _cards[0].cardId;
+      _cardExpenses = [];
+      _selectedCard = newCard.cardId;
       showAppPane('cards');
       renderCardsPage();
       setTimeout(() => {
@@ -1329,9 +1335,9 @@ function renderStep6_Cards(container) {
       }, 50);
 
     } else if (stageIdx === 3) {
-      // Stage D: Select the new card
+      // Stage D: Select the new card — highlight it, show empty detail
       _cards = [...buildDemoCards(), newCard];
-      _cardExpenses = state.userExpense ? [buildDemoExpense(state)] : [];
+      _cardExpenses = [];
       _selectedCard = newCard.cardId;
       showAppPane('cards');
       renderCardsPage();
@@ -1342,10 +1348,39 @@ function renderStep6_Cards(container) {
       }, 50);
 
     } else if (stageIdx === 4) {
-      // Stage E: Show first card selected with expense detail
+      // Stage E: "Link expense" sheet — simulated assignment
       _cards = [...buildDemoCards(), newCard];
-      _cardExpenses = state.userExpense ? [buildDemoExpense(state)] : [];
-      _selectedCard = _cards[0].cardId;
+      _cardExpenses = [];
+      _selectedCard = newCard.cardId;
+      showAppPane('cards');
+      renderCardsPage();
+      setTimeout(() => {
+        shell.insertAdjacentHTML('beforeend', `
+          <div class="demo-sheet-preview">
+            <div class="demo-sheet-preview__handle"></div>
+            <div class="demo-sheet-preview__title">Link Expense to Card</div>
+            <div style="padding:var(--space-2) var(--space-3);margin-bottom:var(--space-2);background:var(--color-surface-alt);border:1px solid var(--color-border);border-radius:var(--radius-sm);">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  <div style="font-size:var(--font-size-sm);font-weight:600;">${esc(expName)}</div>
+                  <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);">Monthly · recurring</div>
+                </div>
+                <div style="font-size:var(--font-size-sm);font-weight:700;">${formatMoney(expAmt)}</div>
+              </div>
+            </div>
+            <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:var(--space-2);text-align:center;">Assign to <strong style="color:var(--color-text);">Apple Card •••• 5555</strong></div>
+            <div class="demo-sheet-preview__btn" style="display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--font-size-xs);font-weight:600;">Link Expense</div>
+          </div>
+        `);
+      }, 600);
+
+    } else if (stageIdx === 5) {
+      // Stage F: Linked — show card detail with expense, highlight detail area
+      _cards = [...buildDemoCards(), newCard];
+      const linkedExp = buildDemoExpense(state);
+      if (linkedExp) linkedExp.cardId = newCard.cardId;
+      _cardExpenses = linkedExp ? [linkedExp] : [];
+      _selectedCard = newCard.cardId;
       showAppPane('cards');
       renderCardsPage();
       setTimeout(() => {

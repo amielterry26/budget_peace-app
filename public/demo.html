@@ -80,19 +80,60 @@
     @media (max-width: 900px) {
       .demo-stage {
         flex-direction: column;
-        align-items: center;
         gap: var(--space-5);
       }
       #demo-concept {
         width: 100%;
-        max-width: 375px;
       }
+
+      /* ── Mobile: inline preview card instead of mini-phone ── */
       .demo-app-shell {
-        width: 375px;
-        max-width: 100%;
-        height: 600px;
+        width: 100%;
+        height: auto !important;
+        overflow: visible;
         flex: none;
-        margin-inline: auto;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        background: var(--color-bg);
+        box-shadow: var(--shadow-sm);
+      }
+      /* Hide redundant shell chrome */
+      .demo-app-shell .top-bar { display: none !important; }
+      .demo-app-shell .fab     { display: none !important; }
+      /* Main-content flows naturally */
+      .demo-app-shell #main-content {
+        position: static !important;
+        overflow: visible !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+      }
+      /* Bottom nav hidden by default, shown inline for nav tour */
+      .demo-app-shell .bottom-nav {
+        position: static !important;
+        display: none !important;
+      }
+      .demo-app-shell.show-nav .bottom-nav {
+        display: flex !important;
+        justify-content: center !important;
+        border-top: 1px solid var(--color-border);
+      }
+      /* Nav-focus-mode: just show the nav bar inline */
+      .demo-app-shell.nav-focus-mode {
+        height: auto !important;
+      }
+      .demo-app-shell.nav-focus-mode .top-bar {
+        display: none !important;
+      }
+      /* Sheet overlays flow inline instead of absolute */
+      .demo-app-shell .demo-sheet-preview {
+        position: relative !important;
+        bottom: auto !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        width: 100% !important;
+        border-radius: var(--radius-md) !important;
+        animation: none !important;
       }
     }
 

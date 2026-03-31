@@ -1322,21 +1322,20 @@ function renderStep6_Cards(container) {
       }, 800);
 
     } else if (stageIdx === 2) {
-      // Stage C: Card saved — new card appears in wallet, highlighted
-      _cards = [...buildDemoCards(), newCard];
+      // Stage C: Card saved — new card appears FIRST in wallet so it's visible
+      _cards = [newCard, ...buildDemoCards()];
       _cardExpenses = [];
       _selectedCard = newCard.cardId;
       showAppPane('cards');
       renderCardsPage();
       setTimeout(() => {
-        const allCards = document.getElementById('main-content').querySelectorAll('.wallet-card');
-        const last = allCards[allCards.length - 1];
-        if (last) last.classList.add('demo-highlight');
+        const first = document.getElementById('main-content').querySelector('.wallet-card');
+        if (first) first.classList.add('demo-highlight');
       }, 50);
 
     } else if (stageIdx === 3) {
       // Stage D: Select the new card — strong green highlight on it
-      _cards = [...buildDemoCards(), newCard];
+      _cards = [newCard, ...buildDemoCards()];
       _cardExpenses = [];
       _selectedCard = newCard.cardId;
       showAppPane('cards');
@@ -1348,7 +1347,7 @@ function renderStep6_Cards(container) {
 
     } else if (stageIdx === 4) {
       // Stage E: "Link expense" sheet — simulated assignment
-      _cards = [...buildDemoCards(), newCard];
+      _cards = [newCard, ...buildDemoCards()];
       _cardExpenses = [];
       _selectedCard = newCard.cardId;
       showAppPane('cards');
@@ -1375,7 +1374,7 @@ function renderStep6_Cards(container) {
 
     } else if (stageIdx === 5) {
       // Stage F: Linked — show card detail with expense, highlight detail area
-      _cards = [...buildDemoCards(), newCard];
+      _cards = [newCard, ...buildDemoCards()];
       const linkedExp = buildDemoExpense(state);
       if (linkedExp) linkedExp.cardId = newCard.cardId;
       _cardExpenses = linkedExp ? [linkedExp] : [];

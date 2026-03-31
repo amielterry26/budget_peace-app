@@ -100,10 +100,10 @@ function buildDemoCards() {
   return [
     {
       cardId: 'demo-card-1',
-      name: 'Chase Checking',
-      lastFour: '4821',
+      name: 'Wells Fargo',
+      lastFour: '6543',
       type: 'Debit',
-      colorIndex: 0,
+      colorIndex: 2,
       userId: 'demo-user',
     },
     {
@@ -1228,17 +1228,17 @@ function renderStep6_Cards(container) {
   const stages = [
     { desc: 'These are your payment methods — debit and credit cards in your wallet.' },
     { desc: 'Fill in the details — card name, last four digits, and type — then save.' },
-    { desc: 'Card saved! Your new <strong>Apple Card</strong> now appears in the wallet.' },
+    { desc: 'Card saved! Your new <strong>Chase Checking</strong> card now appears in the wallet.' },
     { desc: 'Tap a card to select it and see its details.' },
     { desc: `Now link your <strong>${esc(expName)}</strong> expense to this card.` },
-    { desc: `Done — <strong>${esc(expName)}</strong> is now assigned to <strong>Apple Card</strong>.` },
+    { desc: `Done — <strong>${esc(expName)}</strong> is now assigned to <strong>Chase Checking</strong>.` },
   ];
   let stageIdx = 0;
 
   // Extra card that "appears" after the add-card form
   const newCard = {
-    cardId: 'demo-card-3', name: 'Apple Card', lastFour: '5555',
-    type: 'Credit', colorIndex: 5, userId: 'demo-user',
+    cardId: 'demo-card-3', name: 'Chase Checking',  lastFour: '4821',
+    type: 'Debit', colorIndex: 0, userId: 'demo-user',
   };
 
   function renderConceptPane() {
@@ -1313,9 +1313,9 @@ function renderStep6_Cards(container) {
           <div class="demo-sheet-preview">
             <div class="demo-sheet-preview__handle"></div>
             <div class="demo-sheet-preview__title">New Card</div>
-            <div class="demo-sheet-preview__field" style="color:var(--color-text);font-weight:500;">Apple Card</div>
-            <div class="demo-sheet-preview__field" style="color:var(--color-text);font-weight:500;">5555</div>
-            <div class="demo-sheet-preview__field" style="color:var(--color-text);font-weight:500;">Credit</div>
+            <div class="demo-sheet-preview__field" style="color:var(--color-text);font-weight:500;">Chase Checking</div>
+            <div class="demo-sheet-preview__field" style="color:var(--color-text);font-weight:500;">4821</div>
+            <div class="demo-sheet-preview__field" style="color:var(--color-text);font-weight:500;">Debit</div>
             <div class="demo-sheet-preview__btn" style="display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--font-size-xs);font-weight:600;">Add Card</div>
           </div>
         `);
@@ -1335,16 +1335,15 @@ function renderStep6_Cards(container) {
       }, 50);
 
     } else if (stageIdx === 3) {
-      // Stage D: Select the new card — highlight it, show empty detail
+      // Stage D: Select the new card — strong green highlight on it
       _cards = [...buildDemoCards(), newCard];
       _cardExpenses = [];
       _selectedCard = newCard.cardId;
       showAppPane('cards');
       renderCardsPage();
       setTimeout(() => {
-        const allCards = document.getElementById('main-content').querySelectorAll('.wallet-card');
-        const last = allCards[allCards.length - 1];
-        if (last) last.classList.add('demo-highlight');
+        const selected = document.getElementById('main-content').querySelector('.wallet-card.is-selected');
+        if (selected) selected.classList.add('demo-highlight-strong');
       }, 50);
 
     } else if (stageIdx === 4) {
@@ -1368,7 +1367,7 @@ function renderStep6_Cards(container) {
                 <div style="font-size:var(--font-size-sm);font-weight:700;">${formatMoney(expAmt)}</div>
               </div>
             </div>
-            <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:var(--space-2);text-align:center;">Assign to <strong style="color:var(--color-text);">Apple Card •••• 5555</strong></div>
+            <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:var(--space-2);text-align:center;">Assign to <strong style="color:var(--color-text);">Chase Checking •••• 4821</strong></div>
             <div class="demo-sheet-preview__btn" style="display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--font-size-xs);font-weight:600;">Link Expense</div>
           </div>
         `);

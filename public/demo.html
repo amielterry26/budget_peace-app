@@ -460,18 +460,18 @@
     }
 
     /* ── Meaning Screen ── */
-    .demo-meaning { text-align: center; padding-top: var(--space-10); }
+    .demo-meaning { text-align: center; padding-top: var(--space-8); }
     .demo-meaning__title {
       font-size: var(--font-size-2xl);
       font-weight: 800;
       letter-spacing: -0.03em;
-      margin-bottom: var(--space-5);
+      margin-bottom: var(--space-3);
     }
     .demo-meaning__body {
-      font-size: var(--font-size-lg);
+      font-size: var(--font-size-md);
       color: var(--color-text-secondary);
       line-height: 1.7;
-      margin-bottom: var(--space-10);
+      margin-bottom: var(--space-6);
       max-width: 420px;
       margin-left: auto;
       margin-right: auto;
@@ -482,6 +482,50 @@
       gap: var(--space-3);
       max-width: 300px;
       margin: 0 auto;
+    }
+
+    /* ── Final Feature Tiles ── */
+    .demo-final-features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-3);
+      max-width: 440px;
+      margin: 0 auto var(--space-2);
+      text-align: left;
+    }
+    @media (max-width: 400px) {
+      .demo-final-features { grid-template-columns: 1fr; }
+    }
+    .demo-final-feature {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-2);
+      padding: var(--space-3);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+    }
+    .demo-final-feature__icon {
+      font-size: 20px;
+      line-height: 1;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .demo-final-feature__title {
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      margin-bottom: 1px;
+    }
+    .demo-final-feature__desc {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-secondary);
+      line-height: 1.4;
+    }
+
+    /* ── Side-nav slide-in (Scenarios Stage 0) ── */
+    @keyframes demo-sheet-left {
+      from { transform: translateX(-100%); opacity: 0; }
+      to   { transform: translateX(0);     opacity: 1; }
     }
 
     /* ── Help Button ── */

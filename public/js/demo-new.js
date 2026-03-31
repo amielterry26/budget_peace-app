@@ -462,6 +462,47 @@ function renderDemoScenarios(state) {
   }, 1500);
 }
 
+// Budgets page — reusable for sandbox nav
+function renderDemoBudgets(state) {
+  showAppPane('budgets');
+  const periods = buildDemoPeriods(state);
+  const expAmt = state.userExpense ? state.userExpense.amount : 0;
+  const today = effectiveToday();
+  const periodCards = periods.map(p => {
+    const isCurrent = p.startDate <= today && p.endDate >= today;
+    const totalExp = isCurrent ? expAmt : 0;
+    const remaining = p.income - totalExp;
+    const isNeg = remaining < 0;
+    const startD = new Date(p.startDate + 'T00:00:00');
+    const endD = new Date(p.endDate + 'T00:00:00');
+    const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `
+      <div style="background:var(--color-surface);border:1px solid ${isCurrent ? 'var(--color-accent)' : 'var(--color-border)'};border-radius:var(--radius-md);padding:var(--space-4);margin-bottom:var(--space-3);${isCurrent ? 'box-shadow:0 0 0 2px var(--color-accent-light);' : ''}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3);">
+          <span style="font-weight:600;font-size:var(--font-size-sm);">${fmt(startD)} – ${fmt(endD)}</span>
+          ${isCurrent ? '<span style="font-size:var(--font-size-xs);font-weight:600;color:var(--color-accent);background:var(--color-accent-light);padding:2px 8px;border-radius:var(--radius-pill);">Current</span>' : ''}
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:var(--font-size-sm);margin-bottom:4px;">
+          <span style="color:var(--color-text-secondary);">Income</span>
+          <span>${formatMoney(p.income)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:var(--font-size-sm);margin-bottom:4px;">
+          <span style="color:var(--color-text-secondary);">Expenses</span>
+          <span>${formatMoney(totalExp)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:var(--font-size-sm);font-weight:600;padding-top:var(--space-2);border-top:1px solid var(--color-border);">
+          <span>Remaining</span>
+          <span style="${isNeg ? 'color:var(--color-danger);' : 'color:var(--color-accent);'}">${formatMoney(remaining)}</span>
+        </div>
+      </div>`;
+  }).join('');
+  document.getElementById('main-content').innerHTML = `
+    <div style="padding:var(--space-4);">
+      <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:var(--space-3);">Pay Period Budgets</div>
+      ${periodCards}
+    </div>`;
+}
+
 
 // ---- Section 5: Demo Engine -----------------------------------
 
@@ -650,6 +691,9 @@ const DemoEngine = (() => {
         break;
       case 'cards':
         renderDemoCards(s);
+        break;
+      case 'budgets':
+        renderDemoBudgets(s);
         break;
     }
   }
@@ -1401,31 +1445,177 @@ function renderStep6_Cards(container) {
 
 
 // ============================================================
-// Step 7 — Scenarios (dual pane, focused)
+// Step 7 — Scenarios (multi-stage walkthrough)
 // ============================================================
 function renderStep7_Scenarios(container) {
   const state = DemoEngine.getState();
   const altIncome = Math.round(state.income * 1.3);
+  const mainExp = state.userExpense ? state.userExpense.amount : 0;
+  const mainMonthlyInc = state.cadence === 'biweekly' ? state.income * 2 : state.income;
+  const altMonthlyInc  = state.cadence === 'biweekly' ? altIncome * 2 : altIncome;
 
-  container.innerHTML = `
-    <h1 class="demo-title">What if your income changed?</h1>
-    <p class="demo-subtitle">Scenarios let you model different financial realities without affecting your main budget.</p>
+  const stages = [
+    { desc: `Scenarios aren't in the bottom nav. Open the <strong>menu</strong> to find them.` },
+    { desc: `You have two scenarios: <strong>Main</strong> at ${formatMoney(state.income)}/check and <strong>Side Hustle</strong> at ${formatMoney(altIncome)}/check.` },
+    { desc: `Expand a scenario to see its snapshot — income, expenses, and what's remaining each month.` },
+    { desc: `Compare scenarios side by side to see which plan works best for you.` },
+  ];
+  let stageIdx = 0;
 
-    <div class="demo-teach">
-      Here you see two scenarios: your <strong>Main</strong> setup, and a <strong>"Side Hustle"</strong>
-      scenario with ${formatMoney(altIncome)} per paycheck. Test a different income or situation —
-      compare without damaging your main plan.
-    </div>
+  function renderConceptPane() {
+    const s = stages[stageIdx];
+    const isLast = stageIdx === stages.length - 1;
+    const dots = stages.map((_, i) =>
+      `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${i === stageIdx ? 'var(--color-accent)' : 'var(--color-border)'};margin:0 3px;"></span>`
+    ).join('');
 
-    <button class="demo-btn demo-btn--primary" id="demo-continue" style="margin-top:var(--space-6);">
-      Continue
-    </button>
-  `;
+    container.innerHTML = `
+      <h1 class="demo-title">What if your income changed?</h1>
+      <p class="demo-subtitle">Scenarios let you model different financial realities without affecting your main budget.</p>
 
-  renderDemoScenarios(state);
+      <div class="demo-teach">
+        ${s.desc} ${dots}
+      </div>
 
+      <div style="display:flex;gap:var(--space-3);margin-top:var(--space-6);">
+        ${stageIdx > 0 ? '<button class="demo-btn demo-btn--ghost" id="sc-prev" style="flex:1;">&larr; Back</button>' : ''}
+        <button class="demo-btn demo-btn--primary" id="sc-next" style="flex:1;">
+          ${isLast ? 'Continue' : 'Next &rarr;'}
+        </button>
+      </div>
+    `;
+
+    container.querySelector('#sc-next')?.addEventListener('click', () => {
+      if (isLast) { DemoEngine.next(); } else { stageIdx++; renderConceptPane(); showStage(); }
+    });
+    container.querySelector('#sc-prev')?.addEventListener('click', () => {
+      stageIdx--; renderConceptPane(); showStage();
+    });
+  }
+
+  // Build a demo snapshot block for inline rendering
+  function demoSnapshot(income, cadence, expAmt, expCount) {
+    const monthly = cadence === 'biweekly' ? income * 2 : income;
+    const remaining = monthly - expAmt;
+    const remColor = remaining < 0 ? 'color:var(--color-danger)' : '';
+    return `
+      <div style="background:var(--color-surface-alt);border-radius:var(--radius-sm);padding:var(--space-3) var(--space-4);margin-top:var(--space-2);">
+        <div style="display:flex;justify-content:space-between;padding:var(--space-1) 0;font-size:var(--font-size-sm);">
+          <span class="text-muted">Per-check income</span><span style="font-weight:600;">${formatMoney(income)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:var(--space-1) 0;font-size:var(--font-size-sm);">
+          <span class="text-muted">Expenses</span><span style="font-weight:600;">${expCount}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:var(--space-1) 0;font-size:var(--font-size-sm);">
+          <span class="text-muted">Monthly obligations</span><span style="font-weight:600;">${formatMoney(expAmt)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:var(--space-1) 0;font-size:var(--font-size-sm);border-top:1px solid var(--color-border);margin-top:var(--space-1);padding-top:var(--space-2);">
+          <span style="font-weight:600;">Monthly remaining</span><span style="font-weight:700;${remColor}">${formatMoney(remaining)}</span>
+        </div>
+      </div>`;
+  }
+
+  function showStage() {
+    const shell = document.getElementById('demo-app');
+    shell.querySelectorAll('.demo-sheet-preview').forEach(el => el.remove());
+
+    if (stageIdx === 0) {
+      // Stage A: Show home with simulated side-nav sliding in
+      showAppPane('home');
+      renderDemoHomeSnapshot(state, null);
+      setTimeout(() => {
+        shell.insertAdjacentHTML('beforeend', `
+          <div class="demo-sheet-preview" style="bottom:0;top:0;right:auto;left:0;width:200px;border-radius:0 16px 16px 0;padding:var(--space-5) var(--space-4);animation:demo-sheet-left 0.4s ease-out;">
+            <div style="font-weight:700;font-size:var(--font-size-md);margin-bottom:var(--space-5);">Menu</div>
+            <div style="padding:var(--space-2) 0;font-size:var(--font-size-sm);color:var(--color-text-secondary);">Home</div>
+            <div style="padding:var(--space-2) 0;font-size:var(--font-size-sm);color:var(--color-text-secondary);">Pay Period</div>
+            <div style="padding:var(--space-2) 0;font-size:var(--font-size-sm);color:var(--color-accent);font-weight:600;background:var(--color-accent-light);margin:0 calc(-1 * var(--space-4));padding-left:var(--space-4);padding-right:var(--space-4);border-radius:var(--radius-sm);">Scenarios</div>
+            <div style="padding:var(--space-2) 0;font-size:var(--font-size-sm);color:var(--color-text-secondary);">Settings</div>
+          </div>
+        `);
+      }, 500);
+
+    } else if (stageIdx === 1) {
+      // Stage B: Show scenarios page with both cards
+      showAppPane('scenarios');
+      renderScenarios(buildDemoScenarios(state));
+
+    } else if (stageIdx === 2) {
+      // Stage C: Show scenarios with expanded snapshots
+      showAppPane('scenarios');
+      const scenarios = buildDemoScenarios(state);
+      const cadLabel = state.cadence === 'biweekly' ? 'Bi-weekly' : 'Monthly';
+
+      document.getElementById('main-content').innerHTML = `
+        <div class="page">
+          <div class="text-muted text-sm" style="margin-bottom:var(--space-4);">2 scenarios. Tap to switch.</div>
+          <div class="stack--3">
+            <div class="card sc-card sc-card--active">
+              <div class="sc-card__body">
+                <div style="display:flex;justify-content:space-between;align-items:start;">
+                  <div>
+                    <div class="sc-card__name">Main</div>
+                    <div class="text-muted text-sm" style="margin-top:2px;">${cadLabel} · ${formatMoney(state.income)}/check</div>
+                  </div>
+                  <div style="display:flex;gap:var(--space-1);">
+                    <span class="sc-card__badge sc-card__badge--primary">Primary</span>
+                    <span class="sc-card__badge">Active</span>
+                  </div>
+                </div>
+              </div>
+              ${demoSnapshot(state.income, state.cadence, mainExp, mainExp > 0 ? 1 : 0)}
+            </div>
+            <div class="card sc-card">
+              <div class="sc-card__body">
+                <div style="display:flex;justify-content:space-between;align-items:start;">
+                  <div>
+                    <div class="sc-card__name">Side Hustle</div>
+                    <div class="text-muted text-sm" style="margin-top:2px;">${cadLabel} · ${formatMoney(altIncome)}/check</div>
+                  </div>
+                </div>
+              </div>
+              ${demoSnapshot(altIncome, state.cadence, mainExp, mainExp > 0 ? 1 : 0)}
+            </div>
+          </div>
+        </div>`;
+
+    } else if (stageIdx === 3) {
+      // Stage D: Compare mode — side by side
+      showAppPane('scenarios');
+      const mainRem = mainMonthlyInc - mainExp;
+      const altRem  = altMonthlyInc  - mainExp;
+
+      document.getElementById('main-content').innerHTML = `
+        <div class="page">
+          <div style="font-size:var(--font-size-xs);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;color:var(--color-text-secondary);margin-bottom:var(--space-3);">Compare Scenarios</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
+            <div style="background:var(--color-surface);border:1px solid var(--color-accent);border-radius:var(--radius-md);padding:var(--space-3);box-shadow:0 0 0 2px var(--color-accent-light);">
+              <div style="font-weight:700;font-size:var(--font-size-sm);margin-bottom:var(--space-2);">Main</div>
+              <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:2px;">Monthly income</div>
+              <div style="font-size:var(--font-size-sm);font-weight:600;margin-bottom:var(--space-2);">${formatMoney(mainMonthlyInc)}</div>
+              <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:2px;">Expenses</div>
+              <div style="font-size:var(--font-size-sm);font-weight:600;margin-bottom:var(--space-2);">${formatMoney(mainExp)}</div>
+              <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:2px;">Remaining</div>
+              <div style="font-size:var(--font-size-md);font-weight:700;${mainRem < 0 ? 'color:var(--color-danger)' : 'color:var(--color-accent)'}">${formatMoney(mainRem)}</div>
+            </div>
+            <div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:var(--space-3);">
+              <div style="font-weight:700;font-size:var(--font-size-sm);margin-bottom:var(--space-2);">Side Hustle</div>
+              <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:2px;">Monthly income</div>
+              <div style="font-size:var(--font-size-sm);font-weight:600;margin-bottom:var(--space-2);">${formatMoney(altMonthlyInc)}</div>
+              <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:2px;">Expenses</div>
+              <div style="font-size:var(--font-size-sm);font-weight:600;margin-bottom:var(--space-2);">${formatMoney(mainExp)}</div>
+              <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:2px;">Remaining</div>
+              <div style="font-size:var(--font-size-md);font-weight:700;${altRem < 0 ? 'color:var(--color-danger)' : 'color:var(--color-accent)'}">${formatMoney(altRem)}</div>
+            </div>
+          </div>
+          <div class="text-muted text-sm" style="text-align:center;margin-top:var(--space-4);">Same expenses, different income — see the impact instantly.</div>
+        </div>`;
+    }
+  }
+
+  renderConceptPane();
+  showStage();
   DemoEngine.unlockConcept('scenarios');
-  container.querySelector('#demo-continue').addEventListener('click', () => DemoEngine.next());
 }
 
 
@@ -1491,21 +1681,56 @@ function renderStep9_Final(container) {
 
   container.innerHTML = `
     <div class="demo-meaning">
-      <div class="demo-meaning__title">That's Budget Peace.</div>
+      <div class="demo-meaning__title">Your money, finally clear.</div>
       <div class="demo-meaning__body">
-        No spreadsheets. No guilt. Just clarity about where your money goes
-        and what's left. Every paycheck, you'll know exactly where you stand.
+        No spreadsheets. No guesswork. Budget Peace shows you exactly where every dollar goes —
+        paycheck by paycheck — so you always know what's left before it's gone.
+      </div>
+
+      <div class="demo-final-features">
+        <div class="demo-final-feature">
+          <div class="demo-final-feature__icon">📊</div>
+          <div class="demo-final-feature__text">
+            <div class="demo-final-feature__title">Live Snapshot</div>
+            <div class="demo-final-feature__desc">Income, expenses, and leftover — always up to date</div>
+          </div>
+        </div>
+        <div class="demo-final-feature">
+          <div class="demo-final-feature__icon">📅</div>
+          <div class="demo-final-feature__text">
+            <div class="demo-final-feature__title">Pay-Period Budgets</div>
+            <div class="demo-final-feature__desc">Every paycheck mapped to the bills it covers</div>
+          </div>
+        </div>
+        <div class="demo-final-feature">
+          <div class="demo-final-feature__icon">💳</div>
+          <div class="demo-final-feature__text">
+            <div class="demo-final-feature__title">Card Tracking</div>
+            <div class="demo-final-feature__desc">See exactly what each card carries</div>
+          </div>
+        </div>
+        <div class="demo-final-feature">
+          <div class="demo-final-feature__icon">🔀</div>
+          <div class="demo-final-feature__text">
+            <div class="demo-final-feature__title">What-If Scenarios</div>
+            <div class="demo-final-feature__desc">Model changes before they happen — compare side by side</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);text-align:center;margin:var(--space-4) 0 var(--space-6);line-height:1.5;">
+        Plus budget categories, financial health projections, recurring &amp; one-time tracking, and more.
       </div>
 
       <div class="demo-meaning__ctas">
         <a href="/landing#pricing" class="demo-btn demo-btn--primary" style="text-decoration:none;">
-          See pricing
+          Get Pro Now
         </a>
         <button class="demo-btn demo-btn--ghost" id="demo-explore">
-          Explore the app
+          Explore Freely
         </button>
         <button class="demo-btn demo-btn--link" id="demo-replay">
-          Replay the demo
+          Replay walkthrough
         </button>
         <button class="demo-btn demo-btn--link" id="demo-review">
           Review concepts

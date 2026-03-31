@@ -30,6 +30,74 @@ Router.register('scenarios', async () => {
   }
 });
 
+// ---- Expand / Collapse snapshot ----------------------------
+
+const _expandedScenarios = new Set();
+const _scenarioExpCache  = {};  // scenarioId → [expenses]
+
+async function toggleScenarioExpand(scenario, scenarios) {
+  const id = scenario.scenarioId;
+  if (_expandedScenarios.has(id)) {
+    _expandedScenarios.delete(id);
+    renderScenarios(scenarios);
+    return;
+  }
+
+  _expandedScenarios.add(id);
+
+  // Fetch expenses for this scenario if not cached
+  if (!_scenarioExpCache[id]) {
+    const el = document.querySelector(`#sc-${id} .sc-expand-area`);
+    if (el) el.innerHTML = '<div class="text-muted text-sm text-center" style="padding:var(--space-3);">Loading…</div>';
+    try {
+      const res = await authFetch(`/api/expenses/${userId()}?scenario=${id}`);
+      _scenarioExpCache[id] = res.ok ? await res.json() : [];
+    } catch { _scenarioExpCache[id] = []; }
+  }
+
+  renderScenarios(scenarios);
+}
+
+function buildSnapshotHtml(scenario) {
+  const exps = _scenarioExpCache[scenario.scenarioId] || [];
+  const monthlyIncome = scenario.cadence === 'biweekly' ? scenario.income * 2 : scenario.income;
+
+  // Compute monthly obligations
+  let monthlyExp = 0;
+  for (const e of exps) {
+    if (e.recurrence !== 'recurring') continue;
+    const freq = e.recurrenceFrequency || 'monthly';
+    if (freq === 'monthly') monthlyExp += e.amount;
+    else if (freq === 'biweekly') monthlyExp += e.amount * (26 / 12);
+    else if (freq === 'weekly') monthlyExp += e.amount * (52 / 12);
+  }
+  monthlyExp = Math.round(monthlyExp * 100) / 100;
+
+  const remaining = Math.round((monthlyIncome - monthlyExp) * 100) / 100;
+  const remColor = remaining < 0 ? 'color:var(--color-danger)' : '';
+  const fmt = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  return `
+    <div class="sc-snapshot">
+      <div class="sc-snapshot__row">
+        <span class="text-muted text-sm">Per-check income</span>
+        <span class="text-sm" style="font-weight:600;">${fmt(scenario.income)}</span>
+      </div>
+      <div class="sc-snapshot__row">
+        <span class="text-muted text-sm">Expenses</span>
+        <span class="text-sm" style="font-weight:600;">${exps.length}</span>
+      </div>
+      <div class="sc-snapshot__row">
+        <span class="text-muted text-sm">Monthly obligations</span>
+        <span class="text-sm" style="font-weight:600;">${fmt(monthlyExp)}</span>
+      </div>
+      <div class="sc-snapshot__row" style="border-top:1px solid var(--color-border);padding-top:var(--space-2);margin-top:var(--space-1);">
+        <span class="text-sm" style="font-weight:600;">Monthly remaining</span>
+        <span class="text-sm" style="font-weight:700;${remColor}">${fmt(remaining)}</span>
+      </div>
+    </div>`;
+}
+
 // ---- Render ------------------------------------------------
 
 function renderScenarios(scenarios) {
@@ -63,10 +131,18 @@ function renderScenarios(scenarios) {
     if (!card) return;
 
     // Tap card body to switch
-    card.querySelector('.sc-card__body').addEventListener('click', () => {
+    card.querySelector('.sc-card__body').addEventListener('click', (e) => {
+      // Don't switch if they clicked the expand button
+      if (e.target.closest('.sc-expand-btn')) return;
       if (s.scenarioId !== _activeScenario) {
         setScenario(s.scenarioId).then(() => Router.navigate('scenarios'));
       }
+    });
+
+    // Expand / collapse
+    card.querySelector('.sc-expand-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleScenarioExpand(s, sorted);
     });
 
     // Rename
@@ -98,12 +174,16 @@ function renderScenarios(scenarios) {
 function buildScenarioCard(s) {
   const isActive = s.scenarioId === _activeScenario;
   const isPrimary = !!s.isPrimary;
+  const isExpanded = _expandedScenarios.has(s.scenarioId);
   const cadenceLabel = s.cadence === 'biweekly' ? 'Bi-weekly' : 'Monthly';
   const incomeFmt = '$' + Number(s.income).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const badges = [];
   if (isPrimary) badges.push('<span class="sc-card__badge sc-card__badge--primary">Primary</span>');
   if (isActive)  badges.push('<span class="sc-card__badge">Active</span>');
+
+  const snapshotHtml = isExpanded && _scenarioExpCache[s.scenarioId]
+    ? buildSnapshotHtml(s) : '';
 
   return `
     <div class="card sc-card ${isActive ? 'sc-card--active' : ''}" id="sc-${esc(s.scenarioId)}">
@@ -113,9 +193,15 @@ function buildScenarioCard(s) {
             <div class="sc-card__name" id="sc-name-${esc(s.scenarioId)}">${esc(s.name)}</div>
             <div class="text-muted text-sm" style="margin-top:2px;">${cadenceLabel} · ${incomeFmt}/check</div>
           </div>
-          <div style="display:flex;gap:var(--space-1);">${badges.join('')}</div>
+          <div style="display:flex;align-items:center;gap:var(--space-1);">
+            ${badges.join('')}
+            <button class="btn btn--ghost sc-expand-btn" style="font-size:13px;padding:4px 8px;min-width:0;" title="${isExpanded ? 'Collapse' : 'Expand'}">
+              ${isExpanded ? '▲' : '▼'}
+            </button>
+          </div>
         </div>
       </div>
+      <div class="sc-expand-area">${snapshotHtml}</div>
       <div class="sc-card__actions">
         <button class="btn btn--ghost sc-rename-btn" style="font-size:13px;padding:6px 12px;">Rename</button>
         <button class="btn btn--ghost sc-clear-btn" style="font-size:13px;padding:6px 12px;">Clear</button>

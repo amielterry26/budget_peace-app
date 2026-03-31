@@ -77,7 +77,7 @@
       flex: none;
       width: 100%;
     }
-    @media (max-width: 900px) {
+    @media (max-width: 768px) {
       .demo-stage {
         flex-direction: column;
         gap: var(--space-5);
@@ -101,26 +101,13 @@
       transform: translateY(0);
     }
 
-    /* ── App Preview Wrapper (controls flow on mobile) ── */
-    .demo-app-wrap {
-      flex: 1;
-      min-width: 0;
-    }
-    @media (max-width: 900px) {
-      .demo-app-wrap {
-        width: 100%;
-        overflow: hidden;
-        /* Height set dynamically by JS via --wrap-h */
-        height: var(--wrap-h, 667px);
-      }
-    }
-
     /* ── App Pane (right / bottom on mobile) ── */
     .demo-app-shell {
+      flex: 1;
+      min-width: 0;
       position: relative;
       overflow: hidden;
       height: 640px;
-      width: 100%;
       border-radius: var(--radius-lg);
       border: 1px solid var(--color-border);
       background: var(--color-bg);
@@ -128,17 +115,10 @@
       pointer-events: none;
       transition: height 0.3s ease;
     }
-    @media (max-width: 900px) {
-      .demo-app-shell {
-        width: 375px;
-        height: 667px;
-        transform-origin: top left;
-        /* Scale set dynamically by JS via --preview-scale */
-        transform: scale(var(--preview-scale, 1));
-      }
+    @media (max-width: 768px) {
+      .demo-app-shell { height: 520px; }
     }
     .demo-app-shell.is-hidden { display: none; }
-    .demo-app-wrap:has(.is-hidden) { display: none; }
 
     /* Override fixed positioning to absolute within app pane */
     .demo-app-shell .top-bar {
@@ -706,8 +686,7 @@
     <!-- Concept pane — demo-new.js writes teaching content here -->
     <div id="demo-concept"></div>
 
-    <!-- App pane — outer wrapper controls mobile scaling flow -->
-    <div id="demo-app-wrap" class="demo-app-wrap">
+    <!-- App pane — real app shell elements, render functions write to #main-content -->
     <div id="demo-app" class="demo-app-shell is-hidden">
       <header class="top-bar">
         <button id="hamburger" class="top-bar__hamburger" aria-label="Menu">
@@ -739,7 +718,6 @@
       <div id="nav-overlay" style="display:none;"></div>
       <nav id="side-nav" style="display:none;"></nav>
     </div>
-    </div><!-- /demo-app-wrap -->
   </div>
 
   <!-- Help button (hidden until Step 1) -->
@@ -759,37 +737,5 @@
   <script src="/js/pages/scenarios.js"></script>
   <script src="/js/pages/compare.js"></script>
   <script src="/js/demo-new.js"></script>
-  <script>
-    // Mobile preview scaling — keeps the 375×667 canvas fitted to available width
-    (function () {
-      const SHELL_W = 375;
-      const wrap  = document.getElementById('demo-app-wrap');
-      const shell = document.getElementById('demo-app');
-      const MQ    = window.matchMedia('(max-width: 900px)');
-
-      function recalc() {
-        if (!MQ.matches) {
-          // Desktop — clear any inline overrides
-          wrap.style.removeProperty('--preview-scale');
-          wrap.style.removeProperty('--wrap-h');
-          return;
-        }
-        const available = wrap.parentElement.clientWidth;
-        const scale = Math.min(1, available / SHELL_W);
-        const shellH = shell.offsetHeight || 667;
-        wrap.style.setProperty('--preview-scale', scale);
-        wrap.style.setProperty('--wrap-h', Math.round(shellH * scale) + 'px');
-      }
-
-      // Recalculate on resize
-      window.addEventListener('resize', recalc);
-
-      // Recalculate when shell classes change (nav-focus-mode, is-hidden, etc.)
-      new MutationObserver(recalc).observe(shell, { attributes: true, attributeFilter: ['class'] });
-
-      // Initial calculation after first render
-      requestAnimationFrame(recalc);
-    })();
-  </script>
 </body>
 </html>

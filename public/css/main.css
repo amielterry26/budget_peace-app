@@ -1177,7 +1177,10 @@ img  { display: block; max-width: 100%; }
 }
 .wallet-card:hover  { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
 .wallet-card:active { transform: scale(0.97); }
-.wallet-card.is-selected { box-shadow: 0 0 0 3px #fff, var(--shadow-lg); }
+.wallet-card.is-selected {
+  transform:  translateY(-4px);
+  box-shadow: 0 0 0 2px var(--color-accent), 0 8px 24px rgba(0,0,0,0.18);
+}
 
 .wallet-card__type {
   font-size:      var(--font-size-xs);

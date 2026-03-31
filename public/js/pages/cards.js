@@ -107,6 +107,7 @@ function renderCardDetail(cardId) {
     : `<div class="text-muted text-sm text-center" style="padding:24px 0;">No expenses on this card.</div>`;
 
   area.innerHTML = `
+    <div class="text-muted text-xs" style="padding:var(--space-3) var(--space-4) 0;letter-spacing:0.02em;">Viewing: <strong style="color:var(--color-text);">${esc(card.name)} •••• ${esc(card.lastFour)}</strong></div>
     <div class="card-detail">
       <div class="card-detail__header">
         <div>

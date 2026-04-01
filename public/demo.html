@@ -126,6 +126,88 @@
     .demo-mp-row__value--accent { color: var(--color-accent); }
     .demo-mp-row__value--danger { color: var(--color-danger); }
 
+    /* ── Mobile preview polish (Phase 2) ── */
+    .demo-mp-card {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      overflow: hidden;
+    }
+    .demo-mp-card--active {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 1px var(--color-accent-light);
+    }
+    .demo-mp-card__header {
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .demo-mp-card__header--accent {
+      background: var(--color-accent-light);
+      border-bottom: 1px solid var(--color-accent);
+    }
+    .demo-mp-card__body {
+      padding: 10px 14px;
+    }
+    .demo-mp-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: var(--radius-pill);
+      letter-spacing: 0.02em;
+    }
+    .demo-mp-badge--accent {
+      color: var(--color-accent);
+      background: var(--color-accent-light);
+    }
+    .demo-mp-badge--muted {
+      color: var(--color-text-secondary);
+      background: var(--color-surface-alt);
+    }
+    .demo-mp-wallet-tile {
+      flex-shrink: 0;
+      width: 156px;
+      height: 92px;
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: box-shadow 150ms ease;
+    }
+    .demo-mp-wallet-tile--selected {
+      box-shadow: 0 0 0 2.5px var(--color-accent), 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .demo-mp-form-field {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: var(--font-size-sm);
+      font-weight: 500;
+      background: var(--color-surface);
+    }
+    .demo-mp-btn {
+      background: var(--color-accent);
+      color: #fff;
+      text-align: center;
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+    }
+    .demo-mp-expense-row {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--color-surface);
+    }
+
     /* ── Concept Pane (left / top on mobile) ── */
     #demo-concept {
       flex: 1;

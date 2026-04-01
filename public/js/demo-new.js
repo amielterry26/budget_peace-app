@@ -1070,7 +1070,7 @@ function renderStep3_SeeImpact(container) {
     const leftCls = paycheckLeft < 0 ? 'demo-mp-row__value--danger' : 'demo-mp-row__value--accent';
     return mobilePreview('Current Pay Period', `
       <div class="demo-mp-row">
-        <span class="demo-mp-row__label">Paycheck</span>
+        <span class="demo-mp-row__label">Per paycheck income</span>
         <span class="demo-mp-row__value">${formatMoney(paycheckIncome)}</span>
       </div>
       <div class="demo-mp-row">
@@ -1078,7 +1078,7 @@ function renderStep3_SeeImpact(container) {
         <span class="demo-mp-row__value">${formatMoney(bills)}</span>
       </div>
       <div class="demo-mp-row">
-        <span class="demo-mp-row__label">Remaining</span>
+        <span class="demo-mp-row__label">Remaining this check</span>
         <span class="demo-mp-row__value ${leftCls}">${formatMoney(paycheckLeft)}</span>
       </div>
     `);
@@ -1574,7 +1574,7 @@ function renderStep6_Cards(container) {
         </div>
         <div style="font-size:var(--font-size-sm);font-weight:700;">${formatMoney(expAmt)}</div>
       </div>
-      <div style="background:var(--color-accent);color:#fff;text-align:center;padding:var(--space-2);border-radius:var(--radius-sm);font-size:var(--font-size-sm);font-weight:600;">Link Expense</div>
+      <div style="background:var(--color-accent);color:#fff;text-align:center;padding:var(--space-2);border-radius:var(--radius-sm);font-size:var(--font-size-sm);font-weight:600;">Link to this card</div>
     `);
     if (idx === 5) return mobilePreview('Card Detail', `
       <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-3);">${tileNewSelected}</div>
@@ -1997,7 +1997,7 @@ function renderStep8_Understanding(container) {
       </p>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);margin-bottom:var(--space-6);">
+    <div style="display:grid;grid-template-columns:${isMobileDemo() ? '1fr' : '1fr 1fr'};gap:var(--space-3);margin-bottom:var(--space-6);">
       <div class="demo-metric" style="text-align:left;">
         <div class="demo-metric__label">Income</div>
         <div style="font-size:var(--font-size-sm);color:var(--color-text-secondary);line-height:1.5;margin-top:4px;">

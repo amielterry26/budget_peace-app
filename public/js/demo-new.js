@@ -1018,7 +1018,7 @@ function renderStep3_SeeImpact(container) {
         ${s.desc} ${dots}
       </div>
 
-      ${isMobileDemo() ? mobilePreview(s.label, mobileSnapshotRows(income, state.cadence, bills)) : ''}
+      ${isMobileDemo() ? mobileStep3Preview(stageIdx) : ''}
 
       <div style="display:flex;gap:var(--space-3);margin-top:var(--space-6);">
         ${stageIdx > 0 ? '<button class="demo-btn demo-btn--ghost" id="impact-prev" style="flex:1;">&larr; Back</button>' : ''}
@@ -1043,6 +1043,45 @@ function renderStep3_SeeImpact(container) {
       renderConceptPane();
       if (!isMobileDemo()) showStage();
     });
+  }
+
+  function mobileStep3Preview(idx) {
+    const expName = expense ? esc(expense.name) : 'Expense';
+    if (idx === 0) {
+      // Stage A: Bills — show the expense as a bill item
+      return mobilePreview('Recurring Bills', `
+        <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:var(--font-size-sm);font-weight:600;">${expName}</div>
+            <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);">Monthly · recurring</div>
+          </div>
+          <div style="font-size:var(--font-size-sm);font-weight:700;">${formatMoney(bills)}</div>
+        </div>
+        <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);text-align:center;padding-top:var(--space-2);">Your expense now appears in the bills section</div>
+      `);
+    }
+    if (idx === 1) {
+      // Stage B: Financial Structure — monthly summary
+      return mobilePreview('Financial Structure', mobileSnapshotRows(income, state.cadence, bills));
+    }
+    // Stage C: Pay Period — paycheck-level values (not monthly)
+    const paycheckIncome = income; // income is already per-paycheck
+    const paycheckLeft = paycheckIncome - bills;
+    const leftCls = paycheckLeft < 0 ? 'demo-mp-row__value--danger' : 'demo-mp-row__value--accent';
+    return mobilePreview('Current Pay Period', `
+      <div class="demo-mp-row">
+        <span class="demo-mp-row__label">Paycheck</span>
+        <span class="demo-mp-row__value">${formatMoney(paycheckIncome)}</span>
+      </div>
+      <div class="demo-mp-row">
+        <span class="demo-mp-row__label">Bills this period</span>
+        <span class="demo-mp-row__value">${formatMoney(bills)}</span>
+      </div>
+      <div class="demo-mp-row">
+        <span class="demo-mp-row__label">Remaining</span>
+        <span class="demo-mp-row__value ${leftCls}">${formatMoney(paycheckLeft)}</span>
+      </div>
+    `);
   }
 
   function showStage() {
@@ -1216,7 +1255,7 @@ function renderStep5_NavTour(container) {
       ${isMobileDemo() ? 'The bottom navigation lets you switch between pages.' : 'Watch the bottom navigation bar — the highlighted tab shows where you are.'}
     </div>
 
-    ${isMobileDemo() ? mobilePreview('Navigation', mobileNavBar(sub)) : ''}
+    ${isMobileDemo() ? mobilePreview('Navigation', mobileNavBar(sub) + mobileNavPagePreview(sub, state)) : ''}
 
     <div style="display:flex;gap:var(--space-3);margin-top:var(--space-6);">
       ${subIndex > 0 ? '<button class="demo-btn demo-btn--ghost" id="demo-sub-prev" style="flex:1;">Back</button>' : ''}
@@ -1225,6 +1264,90 @@ function renderStep5_NavTour(container) {
       </button>
     </div>
   `;
+
+  function mobileNavPagePreview(page, st) {
+    const expAmt = st.userExpense ? st.userExpense.amount : 0;
+    const expName = st.userExpense ? esc(st.userExpense.name) : 'Expense';
+    const perCheck = st.income;
+    const monthly = st.cadence === 'biweekly' ? st.income * 2 : st.income;
+    const remaining = monthly - expAmt;
+    const remCls = remaining < 0 ? 'color:var(--color-danger)' : 'color:var(--color-accent)';
+
+    const wrap = (html) => `<div style="padding-top:var(--space-3);border-top:1px solid var(--color-border);margin-top:var(--space-3);">${html}</div>`;
+
+    if (page === 'home') {
+      return wrap(`
+        <div class="demo-mp-row"><span class="demo-mp-row__label">Income</span><span class="demo-mp-row__value">${formatMoney(monthly)}</span></div>
+        <div class="demo-mp-row"><span class="demo-mp-row__label">Bills</span><span class="demo-mp-row__value">${formatMoney(expAmt)}</span></div>
+        <div class="demo-mp-row"><span class="demo-mp-row__label">Leftover</span><span class="demo-mp-row__value" style="${remCls};font-weight:700;">${formatMoney(remaining)}</span></div>
+      `);
+    }
+    if (page === 'pay-period') {
+      const ppLeft = perCheck - expAmt;
+      const ppCls = ppLeft < 0 ? 'color:var(--color-danger)' : 'color:var(--color-accent)';
+      return wrap(`
+        <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:var(--space-2);">Current Paycheck</div>
+        <div class="demo-mp-row"><span class="demo-mp-row__label">Paycheck</span><span class="demo-mp-row__value">${formatMoney(perCheck)}</span></div>
+        ${expAmt > 0 ? `<div class="demo-mp-row"><span class="demo-mp-row__label">${expName}</span><span class="demo-mp-row__value">${formatMoney(expAmt)}</span></div>` : ''}
+        <div class="demo-mp-row"><span class="demo-mp-row__label">Remaining</span><span class="demo-mp-row__value" style="${ppCls};font-weight:700;">${formatMoney(ppLeft)}</span></div>
+      `);
+    }
+    if (page === 'budgets') {
+      return wrap(`
+        <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:var(--space-2);">Pay Period Budgets</div>
+        <div style="border:1px solid var(--color-accent);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);margin-bottom:var(--space-2);">
+          <div style="display:flex;justify-content:space-between;font-size:var(--font-size-sm);">
+            <span style="font-weight:600;">Current Period</span>
+            <span style="font-size:var(--font-size-xs);color:var(--color-accent);font-weight:600;">Active</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-top:4px;">
+            <span>Income: ${formatMoney(perCheck)}</span>
+            <span>Left: <strong style="${remCls}">${formatMoney(perCheck - expAmt)}</strong></span>
+          </div>
+        </div>
+        <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);opacity:0.6;">
+          <div style="font-size:var(--font-size-sm);font-weight:600;">Next Period</div>
+          <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-top:4px;">Income: ${formatMoney(perCheck)}</div>
+        </div>
+      `);
+    }
+    if (page === 'expenses') {
+      return wrap(`
+        <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:var(--space-2);">Expense List</div>
+        ${expAmt > 0 ? `
+          <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-2);">
+            <div>
+              <div style="font-size:var(--font-size-sm);font-weight:600;">${expName}</div>
+              <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);">Monthly · recurring</div>
+            </div>
+            <div style="font-size:var(--font-size-sm);font-weight:700;">${formatMoney(expAmt)}</div>
+          </div>` : '<div style="font-size:var(--font-size-sm);color:var(--color-text-secondary);text-align:center;padding:var(--space-2) 0;">No expenses yet</div>'}
+        <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);display:flex;justify-content:space-between;align-items:center;opacity:0.6;">
+          <div>
+            <div style="font-size:var(--font-size-sm);font-weight:600;">Spotify</div>
+            <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);">Monthly · recurring</div>
+          </div>
+          <div style="font-size:var(--font-size-sm);font-weight:700;">$10.99</div>
+        </div>
+      `);
+    }
+    if (page === 'cards') {
+      const cards = buildDemoCards();
+      return wrap(`
+        <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:var(--space-2);">Wallet</div>
+        <div style="display:flex;gap:var(--space-2);overflow-x:auto;">
+          ${cards.map(c => `<div style="flex-shrink:0;width:140px;height:80px;border-radius:10px;background:${CARD_PALETTES[c.colorIndex]};padding:10px 12px;color:#fff;font-size:11px;display:flex;flex-direction:column;justify-content:space-between;">
+            <div style="font-size:9px;opacity:0.7;">${c.type}</div>
+            <div>
+              <div>•••• ${esc(c.lastFour)}</div>
+              <div style="font-weight:600;font-size:10px;">${esc(c.name)}</div>
+            </div>
+          </div>`).join('')}
+        </div>
+      `);
+    }
+    return '';
+  }
 
   if (!isMobileDemo()) {
     const shell = document.getElementById('demo-app');
@@ -1398,36 +1521,75 @@ function renderStep6_Cards(container) {
     });
   }
 
-  function mobileCardTile(name, lastFour, bg) {
-    return `<div style="display:inline-block;width:120px;height:72px;border-radius:8px;background:${bg};padding:8px 10px;color:#fff;font-size:11px;vertical-align:top;margin-right:8px;">
-      <div style="font-size:9px;opacity:0.7;margin-bottom:auto;">Debit</div>
-      <div style="margin-top:20px;">•••• ${esc(lastFour)}</div>
-      <div style="font-weight:600;font-size:10px;">${esc(name)}</div>
+  function mobileCardTile(name, lastFour, type, bg, selected) {
+    return `<div style="flex-shrink:0;width:150px;height:88px;border-radius:10px;background:${bg};padding:10px 12px;color:#fff;font-size:11px;display:flex;flex-direction:column;justify-content:space-between;${selected ? 'box-shadow:0 0 0 2px var(--color-accent);' : ''}">
+      <div style="font-size:9px;opacity:0.7;">${esc(type)}</div>
+      <div>
+        <div>•••• ${esc(lastFour)}</div>
+        <div style="font-weight:600;font-size:11px;">${esc(name)}</div>
+      </div>
     </div>`;
   }
 
   function mobileCardPreview(idx) {
     const cards = buildDemoCards();
-    const tile1 = mobileCardTile(cards[0].name, cards[0].lastFour, CARD_PALETTES[cards[0].colorIndex]);
-    const tile2 = mobileCardTile(cards[1].name, cards[1].lastFour, CARD_PALETTES[cards[1].colorIndex]);
-    const tileNew = mobileCardTile('Chase Checking', '4821', CARD_PALETTES[0]);
+    const tile1 = mobileCardTile(cards[0].name, cards[0].lastFour, cards[0].type, CARD_PALETTES[cards[0].colorIndex], false);
+    const tile2 = mobileCardTile(cards[1].name, cards[1].lastFour, cards[1].type, CARD_PALETTES[cards[1].colorIndex], false);
+    const tileNew = mobileCardTile('Chase Checking', '4821', 'Debit', CARD_PALETTES[0], false);
+    const tileNewSelected = mobileCardTile('Chase Checking', '4821', 'Debit', CARD_PALETTES[0], true);
 
-    if (idx === 0) return mobilePreview('Wallet', `<div style="white-space:nowrap;overflow-x:auto;">${tile1}${tile2}</div>`);
-    if (idx === 1) return mobilePreview('New Card Form', `
-      <div style="font-size:var(--font-size-sm);font-weight:600;margin-bottom:var(--space-2);">New Card</div>
-      <div class="demo-sheet-preview__field" style="color:var(--color-text);font-weight:500;">Chase Checking</div>
-      <div class="demo-sheet-preview__field" style="color:var(--color-text);font-weight:500;">4821</div>
-      <div class="demo-sheet-preview__field" style="color:var(--color-text);font-weight:500;">Debit</div>
+    if (idx === 0) return mobilePreview('Wallet', `
+      <div style="display:flex;gap:var(--space-2);overflow-x:auto;padding-bottom:var(--space-1);">${tile1}${tile2}</div>
     `);
-    if (idx === 2 || idx === 3) return mobilePreview('Wallet', `<div style="white-space:nowrap;overflow-x:auto;">${tileNew}${tile1}${tile2}</div>`);
+    if (idx === 1) return mobilePreview('New Card Form', `
+      <div style="font-size:var(--font-size-sm);font-weight:600;margin-bottom:var(--space-3);">Add New Card</div>
+      <div style="margin-bottom:var(--space-2);">
+        <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:2px;">Card name</div>
+        <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:var(--font-size-sm);font-weight:500;">Chase Checking</div>
+      </div>
+      <div style="margin-bottom:var(--space-2);">
+        <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:2px;">Last 4 digits</div>
+        <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:var(--font-size-sm);font-weight:500;">4821</div>
+      </div>
+      <div style="margin-bottom:var(--space-3);">
+        <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:2px;">Type</div>
+        <div style="display:inline-block;border:1px solid var(--color-accent);border-radius:var(--radius-sm);padding:var(--space-1) var(--space-3);font-size:var(--font-size-sm);font-weight:600;color:var(--color-accent);background:var(--color-accent-light);">Debit</div>
+      </div>
+      <div style="background:var(--color-accent);color:#fff;text-align:center;padding:var(--space-2);border-radius:var(--radius-sm);font-size:var(--font-size-sm);font-weight:600;">Add Card</div>
+    `);
+    if (idx === 2) return mobilePreview('Card Saved', `
+      <div style="font-size:var(--font-size-xs);color:var(--color-accent);font-weight:600;margin-bottom:var(--space-2);">New card added!</div>
+      <div style="display:flex;gap:var(--space-2);overflow-x:auto;padding-bottom:var(--space-1);">${tileNewSelected}${tile1}${tile2}</div>
+    `);
+    if (idx === 3) return mobilePreview('Selected Card', `
+      <div style="display:flex;gap:var(--space-2);overflow-x:auto;padding-bottom:var(--space-2);">${tileNewSelected}${tile1}${tile2}</div>
+      <div style="border-top:1px solid var(--color-border);padding-top:var(--space-2);font-size:var(--font-size-xs);color:var(--color-text-secondary);">Viewing: <strong style="color:var(--color-text);">Chase Checking •••• 4821</strong></div>
+    `);
     if (idx === 4) return mobilePreview('Link Expense', `
-      <div class="demo-mp-row"><span class="demo-mp-row__label">${esc(expName)}</span><span class="demo-mp-row__value">${formatMoney(expAmt)}</span></div>
-      <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);text-align:center;padding:var(--space-2) 0;">Assign to <strong style="color:var(--color-text);">Chase Checking •••• 4821</strong></div>
+      <div style="font-size:var(--font-size-sm);font-weight:600;margin-bottom:var(--space-2);">Link to Chase Checking •••• 4821</div>
+      <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3);">
+        <div>
+          <div style="font-size:var(--font-size-sm);font-weight:600;">${esc(expName)}</div>
+          <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);">Monthly · recurring</div>
+        </div>
+        <div style="font-size:var(--font-size-sm);font-weight:700;">${formatMoney(expAmt)}</div>
+      </div>
+      <div style="background:var(--color-accent);color:#fff;text-align:center;padding:var(--space-2);border-radius:var(--radius-sm);font-size:var(--font-size-sm);font-weight:600;">Link Expense</div>
     `);
     if (idx === 5) return mobilePreview('Card Detail', `
-      <div style="font-weight:600;font-size:var(--font-size-sm);margin-bottom:var(--space-2);">Chase Checking •••• 4821</div>
-      <div class="demo-mp-row"><span class="demo-mp-row__label">${esc(expName)}</span><span class="demo-mp-row__value">${formatMoney(expAmt)}</span></div>
-      <div class="demo-mp-row"><span class="demo-mp-row__label">Total on card</span><span class="demo-mp-row__value demo-mp-row__value--accent">${formatMoney(expAmt)}</span></div>
+      <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-3);">${tileNewSelected}</div>
+      <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:var(--space-2);">Linked Expenses</div>
+      <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-2);">
+        <div>
+          <div style="font-size:var(--font-size-sm);font-weight:600;">${esc(expName)}</div>
+          <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);">Monthly · recurring</div>
+        </div>
+        <div style="font-size:var(--font-size-sm);font-weight:700;">${formatMoney(expAmt)}</div>
+      </div>
+      <div class="demo-mp-row" style="border-top:1px solid var(--color-border);padding-top:var(--space-2);">
+        <span class="demo-mp-row__label">Total on card</span>
+        <span class="demo-mp-row__value demo-mp-row__value--accent">${formatMoney(expAmt)}</span>
+      </div>
     `);
     return '';
   }
@@ -1605,39 +1767,72 @@ function renderStep7_Scenarios(container) {
 
   function mobileScenarioPreview(idx) {
     const cadLabel = state.cadence === 'biweekly' ? 'Bi-weekly' : 'Monthly';
+    const mainRem = mainMonthlyInc - mainExp;
+    const altRem = altMonthlyInc - mainExp;
+    const mainRemCls = mainRem < 0 ? 'color:var(--color-danger)' : 'color:var(--color-accent)';
+    const altRemCls = altRem < 0 ? 'color:var(--color-danger)' : 'color:var(--color-accent)';
+
     if (idx === 0 || idx === 3) {
       return mobilePreview('Menu', mobileMenuPreview(idx === 0 ? 'Scenarios' : 'Compare'));
     }
     if (idx === 1) {
-      return mobilePreview('Scenarios', `
-        <div style="border:1px solid var(--color-accent);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);margin-bottom:var(--space-2);">
-          <div style="font-weight:600;font-size:var(--font-size-sm);">Main</div>
-          <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);">${cadLabel} · ${formatMoney(state.income)}/check</div>
+      // Scenario list — compact cards with badges
+      return mobilePreview('Scenario List', `
+        <div style="border:1px solid var(--color-accent);border-radius:var(--radius-sm);padding:var(--space-3);margin-bottom:var(--space-2);background:var(--color-surface);">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-weight:600;font-size:var(--font-size-sm);">Main</div>
+            <div style="display:flex;gap:4px;">
+              <span style="font-size:10px;font-weight:600;color:var(--color-accent);background:var(--color-accent-light);padding:2px 6px;border-radius:var(--radius-pill);">Primary</span>
+              <span style="font-size:10px;font-weight:600;color:var(--color-text-secondary);background:var(--color-surface-alt);padding:2px 6px;border-radius:var(--radius-pill);">Active</span>
+            </div>
+          </div>
+          <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-top:4px;">${cadLabel} · ${formatMoney(state.income)}/check</div>
         </div>
-        <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);">
+        <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-3);background:var(--color-surface);">
           <div style="font-weight:600;font-size:var(--font-size-sm);">Side Hustle</div>
-          <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);">${cadLabel} · ${formatMoney(altIncome)}/check</div>
+          <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-top:4px;">${cadLabel} · ${formatMoney(altIncome)}/check</div>
         </div>
       `);
     }
     if (idx === 2) {
-      return mobilePreview('Expanded Snapshot', `
-        <div style="font-weight:600;font-size:var(--font-size-sm);margin-bottom:var(--space-1);">Main — ${formatMoney(state.income)}/check</div>
-        ${mobileSnapshotRows(state.income, state.cadence, mainExp)}
+      // Expanded snapshot — visually distinct detail card with breakdown
+      return mobilePreview('Scenario Detail', `
+        <div style="border:1px solid var(--color-accent);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:var(--space-2);">
+          <div style="padding:var(--space-2) var(--space-3);background:var(--color-accent-light);border-bottom:1px solid var(--color-accent);">
+            <div style="font-weight:600;font-size:var(--font-size-sm);color:var(--color-accent);">Main</div>
+            <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);">${cadLabel} · ${formatMoney(state.income)}/check</div>
+          </div>
+          <div style="padding:var(--space-2) var(--space-3);">
+            <div class="demo-mp-row"><span class="demo-mp-row__label">Monthly income</span><span class="demo-mp-row__value">${formatMoney(mainMonthlyInc)}</span></div>
+            <div class="demo-mp-row"><span class="demo-mp-row__label">Expenses</span><span class="demo-mp-row__value">${formatMoney(mainExp)}</span></div>
+            <div class="demo-mp-row"><span class="demo-mp-row__label">Remaining</span><span class="demo-mp-row__value" style="${mainRemCls};font-weight:700;">${formatMoney(mainRem)}</span></div>
+          </div>
+        </div>
+        <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);text-align:center;">Tap any scenario to expand its snapshot</div>
       `);
     }
     if (idx === 4) {
-      return mobilePreview('Compare', `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
-          <div>
-            <div style="font-weight:600;font-size:var(--font-size-sm);margin-bottom:var(--space-1);">Main</div>
-            <div class="demo-mp-row"><span class="demo-mp-row__label">Income</span><span class="demo-mp-row__value">${formatMoney(mainMonthlyInc)}</span></div>
-            <div class="demo-mp-row"><span class="demo-mp-row__label">Left</span><span class="demo-mp-row__value demo-mp-row__value--accent">${formatMoney(mainMonthlyInc - mainExp)}</span></div>
+      // Compare — stacked cards side by side, visually distinct from list
+      return mobilePreview('Compare Scenarios', `
+        <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:var(--space-2);">Side-by-Side Comparison</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);">
+          <div style="border:1px solid var(--color-accent);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);background:var(--color-surface);">
+            <div style="font-weight:700;font-size:var(--font-size-sm);margin-bottom:var(--space-2);color:var(--color-accent);">Main</div>
+            <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:2px;">Income</div>
+            <div style="font-size:var(--font-size-sm);font-weight:600;margin-bottom:var(--space-1);">${formatMoney(mainMonthlyInc)}</div>
+            <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:2px;">Bills</div>
+            <div style="font-size:var(--font-size-sm);font-weight:600;margin-bottom:var(--space-1);">${formatMoney(mainExp)}</div>
+            <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:2px;">Left</div>
+            <div style="font-size:var(--font-size-md);font-weight:700;${mainRemCls}">${formatMoney(mainRem)}</div>
           </div>
-          <div>
-            <div style="font-weight:600;font-size:var(--font-size-sm);margin-bottom:var(--space-1);">Side Hustle</div>
-            <div class="demo-mp-row"><span class="demo-mp-row__label">Income</span><span class="demo-mp-row__value">${formatMoney(altMonthlyInc)}</span></div>
-            <div class="demo-mp-row"><span class="demo-mp-row__label">Left</span><span class="demo-mp-row__value demo-mp-row__value--accent">${formatMoney(altMonthlyInc - mainExp)}</span></div>
+          <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);background:var(--color-surface);">
+            <div style="font-weight:700;font-size:var(--font-size-sm);margin-bottom:var(--space-2);">Side Hustle</div>
+            <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:2px;">Income</div>
+            <div style="font-size:var(--font-size-sm);font-weight:600;margin-bottom:var(--space-1);">${formatMoney(altMonthlyInc)}</div>
+            <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:2px;">Bills</div>
+            <div style="font-size:var(--font-size-sm);font-weight:600;margin-bottom:var(--space-1);">${formatMoney(mainExp)}</div>
+            <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-bottom:2px;">Left</div>
+            <div style="font-size:var(--font-size-md);font-weight:700;${altRemCls}">${formatMoney(altRem)}</div>
           </div>
         </div>
       `);

@@ -369,11 +369,61 @@
       overflow: hidden;
       box-shadow: var(--shadow-lg), 0 0 60px rgba(74,124,89,0.08);
       background: #1a1a2e;
+      cursor: pointer;
     }
     .hero-demo video {
       width: 100%;
       display: block;
     }
+
+    /* ── Video Modal ── */
+    .video-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-5);
+    }
+    .video-modal.is-open { display: flex; }
+    .video-modal__backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      cursor: pointer;
+    }
+    .video-modal__content {
+      position: relative;
+      width: 100%;
+      max-width: 960px;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+    }
+    .video-modal__content video {
+      width: 100%;
+      display: block;
+    }
+    .video-modal__close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0,0,0,0.5);
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+      z-index: 1;
+    }
+    .video-modal__close:hover { background: rgba(0,0,0,0.7); }
 
     /* ── Cross-sell featured card ── */
     .crosssell-card {
@@ -706,7 +756,38 @@
         }
       });
     });
+
+    // Video modal
+    const modal = document.getElementById('video-modal');
+    const modalVideo = document.getElementById('modal-video');
+    const heroVideo = document.querySelector('.hero-demo video');
+
+    function openModal() {
+      modal.classList.add('is-open');
+      modalVideo.currentTime = heroVideo.currentTime;
+      modalVideo.play();
+    }
+    function closeModal() {
+      modal.classList.remove('is-open');
+      modalVideo.pause();
+    }
+
+    document.querySelector('.hero-demo').addEventListener('click', openModal);
+    modal.querySelector('.video-modal__backdrop').addEventListener('click', closeModal);
+    modal.querySelector('.video-modal__close').addEventListener('click', closeModal);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
+    });
   </script>
+
+  <!-- Video Modal -->
+  <div class="video-modal" id="video-modal">
+    <div class="video-modal__backdrop"></div>
+    <div class="video-modal__content">
+      <button class="video-modal__close" aria-label="Close">&times;</button>
+      <video id="modal-video" loop playsinline controls src="/hero-vid.mp4"></video>
+    </div>
+  </div>
 
 </body>
 </html>

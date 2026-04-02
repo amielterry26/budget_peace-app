@@ -185,19 +185,19 @@
     .screens {
       padding-bottom: var(--space-7);
     }
-    .screens__scroll {
-      display: flex;
+    .screens__grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: var(--space-5);
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
-      padding: var(--space-2) 0 var(--space-4);
-      scrollbar-width: none;
+      margin-top: var(--space-5);
     }
-    .screens__scroll::-webkit-scrollbar { display: none; }
+    @media (max-width: 600px) {
+      .screens__grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+      }
+    }
     .screen-card {
-      flex: 0 0 260px;
-      scroll-snap-align: start;
       background: var(--color-surface);
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow-md);
@@ -205,37 +205,27 @@
     }
     .screen-card__img {
       width: 100%;
-      aspect-ratio: 9 / 16;
       background: var(--color-surface-alt);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--color-text-secondary);
-      font-size: 14px;
-      font-weight: 500;
       overflow: hidden;
     }
     .screen-card__img img {
       width: 100%;
-      height: 100%;
-      object-fit: cover;
+      height: auto;
       display: block;
     }
-    .screen-card__caption {
-      padding: var(--space-3) var(--space-4);
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--color-text-secondary);
-      text-align: center;
+    .screen-card__body {
+      padding: var(--space-4) var(--space-5);
     }
-
-    @media (min-width: 768px) {
-      .screens__scroll {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        overflow: visible;
-      }
-      .screen-card { flex: none; }
+    .screen-card__title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: 2px;
+    }
+    .screen-card__desc {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      line-height: 1.4;
     }
 
     /* ── Not Section ── */
@@ -377,127 +367,68 @@
       margin: var(--space-7) auto 0;
       border-radius: var(--radius-lg);
       overflow: hidden;
-      box-shadow: var(--shadow-lg);
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      aspect-ratio: 16 / 9;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
+      box-shadow: var(--shadow-lg), 0 0 60px rgba(74,124,89,0.08);
+      background: #1a1a2e;
     }
-    .hero-demo video,
-    .hero-demo img {
+    .hero-demo video {
       width: 100%;
-      height: 100%;
-      object-fit: cover;
       display: block;
-      position: absolute;
-      inset: 0;
     }
-    .hero-demo__placeholder {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      color: rgba(255,255,255,0.35);
-    }
-    .hero-demo__placeholder svg {
-      width: 48px;
-      height: 48px;
-      opacity: 0.4;
-    }
-    .hero-demo__placeholder span {
-      font-size: 14px;
-      font-weight: 500;
-      letter-spacing: 0.02em;
-    }
-
-    /* ── Screen card mockup internals ── */
-    .sc-mock { padding: 0; height: 100%; display: flex; flex-direction: column; background: var(--color-surface); }
-    .sc-mock__topbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--color-border); }
-    .sc-mock__topbar-title { font-size: 11px; font-weight: 700; color: var(--color-text-primary); }
-    .sc-mock__topbar-sub { font-size: 9px; color: var(--color-text-secondary); font-weight: 500; }
-    .sc-mock__body { padding: 10px 12px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
-    .sc-mock__metric-row { display: flex; gap: 5px; }
-    .sc-mock__metric { flex: 1; background: var(--color-bg); border-radius: 8px; padding: 8px 9px; }
-    .sc-mock__metric-label { font-size: 8px; color: var(--color-text-secondary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 2px; }
-    .sc-mock__metric-val { font-size: 13px; font-weight: 700; color: var(--color-text-primary); letter-spacing: -0.02em; }
-    .sc-mock__metric-val--green { color: var(--color-accent); }
-    .sc-mock__metric-val--red { color: #D64545; }
-    .sc-mock__section-label { font-size: 8px; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 0 2px; }
-    .sc-mock__row { display: flex; justify-content: space-between; align-items: center; background: var(--color-bg); border-radius: 7px; padding: 7px 9px; }
-    .sc-mock__row-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-right: 7px; }
-    .sc-mock__row-left { display: flex; align-items: center; }
-    .sc-mock__row-label { font-size: 10px; color: var(--color-text-secondary); font-weight: 500; }
-    .sc-mock__row-val { font-size: 10px; color: var(--color-text-primary); font-weight: 600; }
-    .sc-mock__row-val--green { color: var(--color-accent); }
-    .sc-mock__row-val--red { color: #D64545; }
-    .sc-mock__pill { display: inline-block; font-size: 8px; font-weight: 600; padding: 2px 6px; border-radius: 99px; margin-right: 4px; }
-    .sc-mock__pill--green { color: var(--color-accent); background: var(--color-accent-light); }
-    .sc-mock__pill--blue { color: #3B82F6; background: #EFF6FF; }
-    .sc-mock__bar { height: 5px; border-radius: 3px; background: var(--color-surface-alt); overflow: hidden; margin-top: 3px; }
-    .sc-mock__bar-fill { height: 100%; border-radius: 3px; }
-    .sc-mock__tabs { display: flex; gap: 0; border-bottom: 1px solid var(--color-border); }
-    .sc-mock__tab { flex: 1; text-align: center; font-size: 9px; font-weight: 600; padding: 7px 0; color: var(--color-text-secondary); }
-    .sc-mock__tab--active { color: var(--color-accent); border-bottom: 2px solid var(--color-accent); }
-    .sc-mock__search { background: var(--color-bg); border-radius: 6px; padding: 6px 9px; font-size: 9px; color: var(--color-text-secondary); margin-bottom: 2px; }
-    .sc-mock__bottomnav { display: flex; justify-content: space-around; padding: 8px 0 6px; border-top: 1px solid var(--color-border); margin-top: auto; }
-    .sc-mock__bottomnav-item { font-size: 8px; color: var(--color-text-secondary); font-weight: 500; opacity: 0.5; }
-    .sc-mock__bottomnav-item--active { color: var(--color-accent); opacity: 1; }
-    .sc-mock__col-header { font-size: 9px; font-weight: 700; margin-bottom: 4px; }
-    .sc-mock__col-row { display: flex; justify-content: space-between; font-size: 9px; padding: 3px 0; }
-    .sc-mock__col-row-label { color: var(--color-text-secondary); }
-    .sc-mock__col-row-val { font-weight: 600; color: var(--color-text-primary); }
-    .sc-mock__scenario-card { background: var(--color-bg); border-radius: 8px; padding: 8px 10px; border-left: 3px solid transparent; }
-    .sc-mock__scenario-card--active { border-left-color: var(--color-accent); }
-    .sc-mock__scenario-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
-    .sc-mock__scenario-name { font-size: 10px; font-weight: 600; color: var(--color-text-primary); }
-    .sc-mock__scenario-detail { font-size: 9px; color: var(--color-text-secondary); }
 
     /* ── Cross-sell featured card ── */
     .crosssell-card {
       max-width: 600px;
       margin: 0 auto;
-      background: linear-gradient(135deg, #F0F7F2 0%, var(--color-surface) 100%);
+      background: linear-gradient(160deg, #F4FAF6 0%, #EEF5F0 40%, var(--color-surface) 100%);
       border: 1px solid var(--color-accent-light);
       border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-md);
-      padding: var(--space-6) var(--space-6);
+      box-shadow: var(--shadow-lg);
+      padding: var(--space-7) var(--space-6);
       text-align: center;
       position: relative;
       overflow: hidden;
     }
-    .crosssell-card .section-label { margin-bottom: var(--space-2); }
+    .crosssell-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--color-accent), var(--color-accent-light));
+    }
+    .crosssell-card .section-label {
+      margin-bottom: var(--space-2);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--color-accent-dark);
+    }
     .crosssell-card .section-title { margin-bottom: var(--space-3); }
     .crosssell-card .section-sub { margin: 0 auto var(--space-5); }
-    .crosssell-card .btn { gap: 6px; }
 
     /* ── Use case tiles ── */
     .use-case-pill {
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-md);
-      padding: var(--space-4) var(--space-5);
+      padding: var(--space-5);
       flex: 1 1 200px;
       text-align: left;
-      box-shadow: var(--shadow-sm);
     }
     .use-case-pill__title {
       font-size: 15px;
       font-weight: 600;
       color: var(--color-text-primary);
-      margin-bottom: 2px;
+      margin-bottom: 4px;
     }
     .use-case-pill__desc {
       font-size: 13px;
       color: var(--color-text-secondary);
-      line-height: 1.4;
+      line-height: 1.45;
     }
     @media (min-width: 600px) {
       .use-cases__grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: var(--space-3);
+        gap: var(--space-4);
       }
     }
 
@@ -535,14 +466,8 @@
         <a href="/demo" class="btn btn--ghost">Try the demo</a>
         <a href="#pricing" class="btn btn--solid">Unlock full version</a>
       </div>
-      <!-- Video-ready container: replace placeholder with <video autoplay muted loop playsinline src="..."> -->
       <div class="hero-demo">
-        <div class="hero-demo__placeholder">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="5 3 19 12 5 21 5 3"/>
-          </svg>
-          <span>App preview coming soon</span>
-        </div>
+        <video autoplay muted loop playsinline src="/hero-vid.mp4"></video>
       </div>
     </div>
   </section>
@@ -554,207 +479,42 @@
       <div class="section-title">Everything in one place</div>
       <p class="section-sub">Track expenses, compare scenarios, and see your money across pay periods.</p>
 
-      <div class="screens__scroll">
-        <!-- Pay Period -->
+      <div class="screens__grid">
         <div class="screen-card">
           <div class="screen-card__img">
-            <div class="sc-mock">
-              <div class="sc-mock__topbar">
-                <div class="sc-mock__topbar-title">Pay Period</div>
-                <div class="sc-mock__topbar-sub">Apr 1 – Apr 15</div>
-              </div>
-              <div class="sc-mock__body">
-                <div class="sc-mock__metric-row">
-                  <div class="sc-mock__metric">
-                    <div class="sc-mock__metric-label">Income</div>
-                    <div class="sc-mock__metric-val">$2,847</div>
-                  </div>
-                  <div class="sc-mock__metric">
-                    <div class="sc-mock__metric-label">Bills</div>
-                    <div class="sc-mock__metric-val sc-mock__metric-val--red">$1,624</div>
-                  </div>
-                  <div class="sc-mock__metric">
-                    <div class="sc-mock__metric-label">Left</div>
-                    <div class="sc-mock__metric-val sc-mock__metric-val--green">$1,224</div>
-                  </div>
-                </div>
-                <div class="sc-mock__bar"><div class="sc-mock__bar-fill" style="width:57%;background:var(--color-accent);"></div></div>
-                <div class="sc-mock__section-label">This period</div>
-                <div class="sc-mock__row">
-                  <div class="sc-mock__row-left"><div class="sc-mock__row-dot" style="background:#E74C3C;"></div><span class="sc-mock__row-label">Rent</span></div>
-                  <span class="sc-mock__row-val">$1,100</span>
-                </div>
-                <div class="sc-mock__row">
-                  <div class="sc-mock__row-left"><div class="sc-mock__row-dot" style="background:#3498DB;"></div><span class="sc-mock__row-label">Car Insurance</span></div>
-                  <span class="sc-mock__row-val">$187</span>
-                </div>
-                <div class="sc-mock__row">
-                  <div class="sc-mock__row-left"><div class="sc-mock__row-dot" style="background:#F39C12;"></div><span class="sc-mock__row-label">Electric</span></div>
-                  <span class="sc-mock__row-val">$142</span>
-                </div>
-                <div class="sc-mock__row">
-                  <div class="sc-mock__row-left"><div class="sc-mock__row-dot" style="background:#9B59B6;"></div><span class="sc-mock__row-label">Internet</span></div>
-                  <span class="sc-mock__row-val">$65</span>
-                </div>
-                <div class="sc-mock__row">
-                  <div class="sc-mock__row-left"><div class="sc-mock__row-dot" style="background:#1ABC9C;"></div><span class="sc-mock__row-label">Spotify</span></div>
-                  <span class="sc-mock__row-val">$11</span>
-                </div>
-              </div>
-              <div class="sc-mock__bottomnav">
-                <span class="sc-mock__bottomnav-item">Home</span>
-                <span class="sc-mock__bottomnav-item sc-mock__bottomnav-item--active">Period</span>
-                <span class="sc-mock__bottomnav-item">Budgets</span>
-                <span class="sc-mock__bottomnav-item">Expenses</span>
-                <span class="sc-mock__bottomnav-item">Cards</span>
-              </div>
-            </div>
+            <img src="/screenshots/IMG_7156.PNG" alt="Pay Period view" />
           </div>
-          <div class="screen-card__caption">See what's left each pay period</div>
+          <div class="screen-card__body">
+            <div class="screen-card__title">Pay Period</div>
+            <div class="screen-card__desc">See what's left each pay period after all your bills.</div>
+          </div>
         </div>
-        <!-- Expenses -->
         <div class="screen-card">
           <div class="screen-card__img">
-            <div class="sc-mock">
-              <div class="sc-mock__topbar">
-                <div class="sc-mock__topbar-title">Expenses</div>
-                <div class="sc-mock__topbar-sub">6 total</div>
-              </div>
-              <div class="sc-mock__tabs">
-                <div class="sc-mock__tab sc-mock__tab--active">All</div>
-                <div class="sc-mock__tab">Recurring</div>
-                <div class="sc-mock__tab">One-time</div>
-              </div>
-              <div class="sc-mock__body">
-                <div class="sc-mock__search">Search expenses...</div>
-                <div class="sc-mock__row">
-                  <div class="sc-mock__row-left"><div class="sc-mock__row-dot" style="background:#E74C3C;"></div><span class="sc-mock__row-label">Rent</span></div>
-                  <span><span class="sc-mock__pill sc-mock__pill--green">recurring</span><span class="sc-mock__row-val">$1,100</span></span>
-                </div>
-                <div class="sc-mock__row">
-                  <div class="sc-mock__row-left"><div class="sc-mock__row-dot" style="background:#3498DB;"></div><span class="sc-mock__row-label">Car Insurance</span></div>
-                  <span><span class="sc-mock__pill sc-mock__pill--green">recurring</span><span class="sc-mock__row-val">$187</span></span>
-                </div>
-                <div class="sc-mock__row">
-                  <div class="sc-mock__row-left"><div class="sc-mock__row-dot" style="background:#F39C12;"></div><span class="sc-mock__row-label">Electric Bill</span></div>
-                  <span><span class="sc-mock__pill sc-mock__pill--green">recurring</span><span class="sc-mock__row-val">$142</span></span>
-                </div>
-                <div class="sc-mock__row">
-                  <div class="sc-mock__row-left"><div class="sc-mock__row-dot" style="background:#9B59B6;"></div><span class="sc-mock__row-label">Spotify</span></div>
-                  <span><span class="sc-mock__pill sc-mock__pill--green">recurring</span><span class="sc-mock__row-val">$11</span></span>
-                </div>
-                <div class="sc-mock__row">
-                  <div class="sc-mock__row-left"><div class="sc-mock__row-dot" style="background:#E67E22;"></div><span class="sc-mock__row-label">New Jacket</span></div>
-                  <span><span class="sc-mock__pill sc-mock__pill--blue">one-time</span><span class="sc-mock__row-val">$85</span></span>
-                </div>
-                <div class="sc-mock__row">
-                  <div class="sc-mock__row-left"><div class="sc-mock__row-dot" style="background:#2ECC71;"></div><span class="sc-mock__row-label">Groceries</span></div>
-                  <span><span class="sc-mock__pill sc-mock__pill--blue">one-time</span><span class="sc-mock__row-val">$98</span></span>
-                </div>
-              </div>
-              <div class="sc-mock__bottomnav">
-                <span class="sc-mock__bottomnav-item">Home</span>
-                <span class="sc-mock__bottomnav-item">Period</span>
-                <span class="sc-mock__bottomnav-item">Budgets</span>
-                <span class="sc-mock__bottomnav-item sc-mock__bottomnav-item--active">Expenses</span>
-                <span class="sc-mock__bottomnav-item">Cards</span>
-              </div>
-            </div>
+            <img src="/screenshots/IMG_7155.PNG" alt="Budgets view" />
           </div>
-          <div class="screen-card__caption">All your expenses in one list</div>
+          <div class="screen-card__body">
+            <div class="screen-card__title">Budgets</div>
+            <div class="screen-card__desc">Every pay period mapped out with income, expenses, and remaining.</div>
+          </div>
         </div>
-        <!-- Compare -->
         <div class="screen-card">
           <div class="screen-card__img">
-            <div class="sc-mock">
-              <div class="sc-mock__topbar">
-                <div class="sc-mock__topbar-title">Compare</div>
-                <div class="sc-mock__topbar-sub">2 scenarios</div>
-              </div>
-              <div class="sc-mock__body">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-                  <div style="background:var(--color-accent-light);border-radius:8px;padding:8px 9px;">
-                    <div class="sc-mock__col-header" style="color:var(--color-accent);">Current</div>
-                    <div class="sc-mock__col-row"><span class="sc-mock__col-row-label">Income</span><span class="sc-mock__col-row-val">$2,847</span></div>
-                    <div class="sc-mock__col-row"><span class="sc-mock__col-row-label">Bills</span><span class="sc-mock__col-row-val" style="color:#D64545;">−$1,624</span></div>
-                    <div style="height:1px;background:var(--color-border);margin:3px 0;"></div>
-                    <div class="sc-mock__col-row"><span class="sc-mock__col-row-label">Left</span><span class="sc-mock__col-row-val" style="color:var(--color-accent);font-weight:700;">$1,224</span></div>
-                    <div class="sc-mock__bar" style="margin-top:5px;"><div class="sc-mock__bar-fill" style="width:43%;background:var(--color-accent);"></div></div>
-                  </div>
-                  <div style="background:var(--color-bg);border-radius:8px;padding:8px 9px;">
-                    <div class="sc-mock__col-header" style="color:var(--color-text-secondary);">New Job</div>
-                    <div class="sc-mock__col-row"><span class="sc-mock__col-row-label">Income</span><span class="sc-mock__col-row-val">$3,400</span></div>
-                    <div class="sc-mock__col-row"><span class="sc-mock__col-row-label">Bills</span><span class="sc-mock__col-row-val" style="color:#D64545;">−$1,624</span></div>
-                    <div style="height:1px;background:var(--color-border);margin:3px 0;"></div>
-                    <div class="sc-mock__col-row"><span class="sc-mock__col-row-label">Left</span><span class="sc-mock__col-row-val" style="color:var(--color-accent);font-weight:700;">$1,776</span></div>
-                    <div class="sc-mock__bar" style="margin-top:5px;"><div class="sc-mock__bar-fill" style="width:52%;background:var(--color-accent);"></div></div>
-                  </div>
-                </div>
-                <div style="background:var(--color-bg);border-radius:8px;padding:7px 9px;margin-top:4px;">
-                  <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <span style="font-size:9px;color:var(--color-text-secondary);font-weight:500;">Difference</span>
-                    <span style="font-size:10px;font-weight:700;color:var(--color-accent);">+$553/check</span>
-                  </div>
-                </div>
-              </div>
-              <div class="sc-mock__bottomnav">
-                <span class="sc-mock__bottomnav-item">Home</span>
-                <span class="sc-mock__bottomnav-item">Period</span>
-                <span class="sc-mock__bottomnav-item">Budgets</span>
-                <span class="sc-mock__bottomnav-item">Expenses</span>
-                <span class="sc-mock__bottomnav-item">Cards</span>
-              </div>
-            </div>
+            <img src="/screenshots/IMG_7160.PNG" alt="Compare scenarios" />
           </div>
-          <div class="screen-card__caption">Compare scenarios side by side</div>
+          <div class="screen-card__body">
+            <div class="screen-card__title">Compare</div>
+            <div class="screen-card__desc">Put two scenarios side by side and see the real difference.</div>
+          </div>
         </div>
-        <!-- Scenarios -->
         <div class="screen-card">
           <div class="screen-card__img">
-            <div class="sc-mock">
-              <div class="sc-mock__topbar">
-                <div class="sc-mock__topbar-title">Scenarios</div>
-                <div class="sc-mock__topbar-sub">3 saved</div>
-              </div>
-              <div class="sc-mock__body">
-                <div class="sc-mock__scenario-card sc-mock__scenario-card--active">
-                  <div class="sc-mock__scenario-header">
-                    <span class="sc-mock__scenario-name">Current Budget</span>
-                    <span class="sc-mock__pill sc-mock__pill--green">active</span>
-                  </div>
-                  <div class="sc-mock__scenario-detail">$2,847/check &middot; $1,224 remaining</div>
-                  <div class="sc-mock__bar" style="margin-top:4px;"><div class="sc-mock__bar-fill" style="width:43%;background:var(--color-accent);"></div></div>
-                </div>
-                <div class="sc-mock__scenario-card">
-                  <div class="sc-mock__scenario-header">
-                    <span class="sc-mock__scenario-name">New Job Offer</span>
-                    <span class="sc-mock__pill sc-mock__pill--blue">draft</span>
-                  </div>
-                  <div class="sc-mock__scenario-detail">$3,400/check &middot; $1,776 remaining</div>
-                  <div class="sc-mock__bar" style="margin-top:4px;"><div class="sc-mock__bar-fill" style="width:52%;background:#3B82F6;"></div></div>
-                </div>
-                <div class="sc-mock__scenario-card">
-                  <div class="sc-mock__scenario-header">
-                    <span class="sc-mock__scenario-name">Move to Austin</span>
-                    <span class="sc-mock__pill sc-mock__pill--blue">draft</span>
-                  </div>
-                  <div class="sc-mock__scenario-detail">$3,400/check &middot; $2,100 remaining</div>
-                  <div class="sc-mock__bar" style="margin-top:4px;"><div class="sc-mock__bar-fill" style="width:62%;background:#3B82F6;"></div></div>
-                </div>
-                <div style="background:var(--color-accent-light);border-radius:7px;padding:7px;text-align:center;margin-top:2px;">
-                  <span style="font-size:9px;font-weight:600;color:var(--color-accent);">+ New Scenario</span>
-                </div>
-              </div>
-              <div class="sc-mock__bottomnav">
-                <span class="sc-mock__bottomnav-item">Home</span>
-                <span class="sc-mock__bottomnav-item">Period</span>
-                <span class="sc-mock__bottomnav-item">Budgets</span>
-                <span class="sc-mock__bottomnav-item">Expenses</span>
-                <span class="sc-mock__bottomnav-item">Cards</span>
-              </div>
-            </div>
+            <img src="/screenshots/IMG_7154.PNG" alt="Cards view" />
           </div>
-          <div class="screen-card__caption">Plan for different outcomes</div>
+          <div class="screen-card__body">
+            <div class="screen-card__title">Cards</div>
+            <div class="screen-card__desc">Link expenses to cards and see totals per card at a glance.</div>
+          </div>
         </div>
       </div>
     </div>

@@ -383,6 +383,32 @@
       color: var(--color-text-secondary);
     }
 
+    /* ── Hero Demo Visual ── */
+    .hero-demo {
+      max-width: 900px;
+      margin: var(--space-7) auto 0;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      background: var(--color-surface-alt);
+      aspect-ratio: 16 / 9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .hero-demo img,
+    .hero-demo video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .hero-demo__placeholder {
+      color: var(--color-text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
     /* ── Divider ── */
     .divider {
       border: none;
@@ -417,6 +443,11 @@
         <a href="/demo" class="btn btn--ghost">Try the demo</a>
         <a href="#pricing" class="btn btn--solid">Unlock full version</a>
       </div>
+      <div class="hero-demo">
+        <img src="/assets/demo/home-snapshot.png" alt="Budget Peace app — home screen showing pay period overview"
+          onerror="this.style.display='none';this.nextElementSibling.style.display='block';" />
+        <span class="hero-demo__placeholder" style="display:none;">App preview coming soon</span>
+      </div>
     </div>
   </section>
 
@@ -430,25 +461,25 @@
       <div class="screens__scroll">
         <div class="screen-card">
           <div class="screen-card__img">
-            <img src="/screenshots/pay-period.png" alt="Pay Period view showing income and expenses by period" onerror="this.parentElement.textContent='Pay Period View'" />
+            <img src="/assets/demo/pay-period.png" alt="Pay Period view showing income and expenses by period" onerror="this.parentElement.textContent='Pay Period View'" />
           </div>
           <div class="screen-card__caption">See what's left each pay period</div>
         </div>
         <div class="screen-card">
           <div class="screen-card__img">
-            <img src="/screenshots/expenses.png" alt="Expenses list showing all tracked expenses" onerror="this.parentElement.textContent='Expenses'" />
+            <img src="/assets/demo/expenses.png" alt="Expenses list showing all tracked expenses" onerror="this.parentElement.textContent='Expenses'" />
           </div>
           <div class="screen-card__caption">All your expenses in one list</div>
         </div>
         <div class="screen-card">
           <div class="screen-card__img">
-            <img src="/screenshots/compare.png" alt="Compare view showing scenarios side by side" onerror="this.parentElement.textContent='Compare View'" />
+            <img src="/assets/demo/compare.png" alt="Compare view showing scenarios side by side" onerror="this.parentElement.textContent='Compare View'" />
           </div>
           <div class="screen-card__caption">Compare scenarios side by side</div>
         </div>
         <div class="screen-card">
           <div class="screen-card__img">
-            <img src="/screenshots/scenarios.png" alt="Scenarios page for managing multiple financial profiles" onerror="this.parentElement.textContent='Scenarios'" />
+            <img src="/assets/demo/scenarios.png" alt="Scenarios page for managing multiple financial profiles" onerror="this.parentElement.textContent='Scenarios'" />
           </div>
           <div class="screen-card__caption">Plan for different outcomes</div>
         </div>

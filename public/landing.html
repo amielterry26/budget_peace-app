@@ -89,13 +89,13 @@
     }
     .lp-nav__links a {
       font-size: 14px;
-      font-weight: 500;
-      color: var(--color-text-secondary);
+      font-weight: 600;
+      color: var(--color-text-primary);
       text-decoration: none;
       transition: color 0.15s;
     }
     .lp-nav__links a:hover {
-      color: var(--color-text-primary);
+      color: var(--color-accent);
     }
 
     /* ── Hero ── */
@@ -181,51 +181,165 @@
       line-height: 1.5;
     }
 
-    /* ── Screenshots ── */
-    .screens {
-      padding-bottom: var(--space-7);
+    /* ── Hero Demo Visual ── */
+    .hero-demo {
+      max-width: 900px;
+      margin: var(--space-7) auto 0;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg), 0 0 60px rgba(74,124,89,0.08);
+      background: #1a1a2e;
+      cursor: pointer;
+      position: relative;
     }
-    .screens__grid {
+    .hero-demo video {
+      width: 100%;
+      display: block;
+      /* Crop iOS status bar from top of recording */
+      margin-top: -3.5%;
+      margin-bottom: -1%;
+    }
+    /* Transparent overlay to capture clicks above the <video> element */
+    .hero-demo::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      cursor: pointer;
+    }
+    .hero-demo__play-hint {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.25);
+      opacity: 1;
+      transition: opacity 0.2s;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .hero-demo:hover .hero-demo__play-hint { opacity: 1; }
+    .hero-demo__play-hint svg {
+      width: 56px;
+      height: 56px;
+      fill: rgba(255,255,255,0.9);
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
+    }
+
+    /* ── Video Modal ── */
+    .video-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-5);
+    }
+    .video-modal.is-open { display: flex; }
+    .video-modal__backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      cursor: pointer;
+    }
+    .video-modal__content {
+      position: relative;
+      width: 100%;
+      max-width: 960px;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    }
+    .video-modal__content video {
+      width: 100%;
+      display: block;
+    }
+    .video-modal__close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+      z-index: 1;
+      line-height: 1;
+    }
+    .video-modal__close:hover { background: rgba(0,0,0,0.8); }
+
+    /* ── Intro Philosophy ── */
+    .intro-philosophy {
+      text-align: center;
+      padding: var(--space-7) 0;
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .intro-philosophy__title {
+      font-size: clamp(20px, 3vw, 28px);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+      margin-bottom: var(--space-4);
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .intro-philosophy__body {
+      font-size: clamp(14px, 2vw, 16px);
+      color: var(--color-text-secondary);
+      max-width: 540px;
+      margin: 0 auto;
+      line-height: 1.65;
+    }
+
+    /* ── Feature Sections (alternating) ── */
+    .feature-section {
+      padding: var(--space-8) 0;
+    }
+    .feature-section:nth-child(even) {
+      background: var(--color-surface);
+    }
+    .feature-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: var(--space-5);
-      margin-top: var(--space-5);
+      gap: var(--space-7);
+      align-items: center;
     }
-    @media (max-width: 600px) {
-      .screens__grid {
-        grid-template-columns: 1fr;
-        gap: var(--space-4);
-      }
-    }
-    .screen-card {
-      background: var(--color-surface);
+    .feature-row--reverse .feature-row__img { order: 2; }
+    .feature-row--reverse .feature-row__text { order: 1; }
+    .feature-row__img {
       border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-md);
       overflow: hidden;
-    }
-    .screen-card__img {
-      width: 100%;
+      box-shadow: var(--shadow-lg);
       background: var(--color-surface-alt);
-      overflow: hidden;
     }
-    .screen-card__img img {
+    .feature-row__img img {
       width: 100%;
       height: auto;
       display: block;
     }
-    .screen-card__body {
-      padding: var(--space-4) var(--space-5);
-    }
-    .screen-card__title {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--color-text-primary);
-      margin-bottom: 2px;
-    }
-    .screen-card__desc {
-      font-size: 13px;
-      color: var(--color-text-secondary);
-      line-height: 1.4;
+    .feature-row__text .section-label { margin-bottom: var(--space-2); }
+    .feature-row__text .section-title { margin-bottom: var(--space-3); }
+    .feature-row__text .section-sub { max-width: none; }
+    @media (max-width: 700px) {
+      .feature-row {
+        grid-template-columns: 1fr;
+        gap: var(--space-5);
+      }
+      .feature-row--reverse .feature-row__img { order: 0; }
+      .feature-row--reverse .feature-row__text { order: 0; }
+      .feature-row__img { max-width: 320px; margin: 0 auto; }
     }
 
     /* ── Not Section ── */
@@ -256,6 +370,32 @@
       flex-wrap: wrap;
       gap: var(--space-3);
       margin-top: var(--space-5);
+    }
+    .use-case-pill {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-5);
+      flex: 1 1 200px;
+      text-align: left;
+    }
+    .use-case-pill__title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: 4px;
+    }
+    .use-case-pill__desc {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      line-height: 1.45;
+    }
+    @media (min-width: 600px) {
+      .use-cases__grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-4);
+      }
     }
 
     /* ── Pricing ── */
@@ -338,7 +478,7 @@
       margin-right: var(--space-2);
     }
 
-    /* ── Philosophy ── */
+    /* ── Philosophy (bottom) ── */
     .philosophy {
       text-align: center;
       padding: var(--space-7) 0 var(--space-6);
@@ -351,79 +491,6 @@
       font-style: italic;
       line-height: 1.6;
     }
-
-    /* ── Footer ── */
-    .lp-footer {
-      text-align: center;
-      padding: var(--space-6) 0;
-      border-top: 1px solid var(--color-border);
-      font-size: 13px;
-      color: var(--color-text-secondary);
-    }
-
-    /* ── Hero Demo Visual ── */
-    .hero-demo {
-      max-width: 900px;
-      margin: var(--space-7) auto 0;
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      box-shadow: var(--shadow-lg), 0 0 60px rgba(74,124,89,0.08);
-      background: #1a1a2e;
-      cursor: pointer;
-    }
-    .hero-demo video {
-      width: 100%;
-      display: block;
-    }
-
-    /* ── Video Modal ── */
-    .video-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
-      padding: var(--space-5);
-    }
-    .video-modal.is-open { display: flex; }
-    .video-modal__backdrop {
-      position: absolute;
-      inset: 0;
-      background: rgba(0,0,0,0.8);
-      cursor: pointer;
-    }
-    .video-modal__content {
-      position: relative;
-      width: 100%;
-      max-width: 960px;
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      box-shadow: 0 24px 64px rgba(0,0,0,0.4);
-    }
-    .video-modal__content video {
-      width: 100%;
-      display: block;
-    }
-    .video-modal__close {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      border: none;
-      background: rgba(0,0,0,0.5);
-      color: #fff;
-      font-size: 18px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.15s;
-      z-index: 1;
-    }
-    .video-modal__close:hover { background: rgba(0,0,0,0.7); }
 
     /* ── Cross-sell featured card ── */
     .crosssell-card {
@@ -454,32 +521,58 @@
     .crosssell-card .section-title { margin-bottom: var(--space-3); }
     .crosssell-card .section-sub { margin: 0 auto var(--space-5); }
 
-    /* ── Use case tiles ── */
-    .use-case-pill {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
-      padding: var(--space-5);
-      flex: 1 1 200px;
-      text-align: left;
+    /* ── FAQ ── */
+    .faq { padding: var(--space-8) 0; }
+    .faq__list {
+      max-width: 640px;
+      margin: var(--space-5) auto 0;
     }
-    .use-case-pill__title {
+    .faq__item {
+      border-bottom: 1px solid var(--color-border);
+    }
+    .faq__question {
+      width: 100%;
+      background: none;
+      border: none;
+      font-family: var(--font-family);
       font-size: 15px;
       font-weight: 600;
       color: var(--color-text-primary);
-      margin-bottom: 4px;
+      text-align: left;
+      padding: var(--space-5) 0;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-4);
     }
-    .use-case-pill__desc {
+    .faq__question:hover { color: var(--color-accent); }
+    .faq__icon {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      transition: transform 0.2s;
+    }
+    .faq__item.is-open .faq__icon { transform: rotate(45deg); }
+    .faq__answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+    }
+    .faq__answer-inner {
+      padding: 0 0 var(--space-5);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+    }
+
+    /* ── Footer ── */
+    .lp-footer {
+      text-align: center;
+      padding: var(--space-6) 0;
+      border-top: 1px solid var(--color-border);
       font-size: 13px;
       color: var(--color-text-secondary);
-      line-height: 1.45;
-    }
-    @media (min-width: 600px) {
-      .use-cases__grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: var(--space-4);
-      }
     }
 
     /* ── Divider ── */
@@ -497,7 +590,7 @@
     <div class="container">
       <a href="/landing" class="lp-nav__brand">Budget Peace</a>
       <div class="lp-nav__links">
-        <a href="#screens">Product</a>
+        <a href="#features">Product</a>
         <a href="#pricing">Pricing</a>
         <a href="/" class="btn btn--solid" style="padding:8px 20px;font-size:13px;">Open App</a>
       </div>
@@ -516,59 +609,73 @@
         <a href="/demo" class="btn btn--ghost">Try the demo</a>
         <a href="#pricing" class="btn btn--solid">Unlock full version</a>
       </div>
-      <div class="hero-demo">
+      <div class="hero-demo" id="hero-demo">
         <video autoplay muted loop playsinline src="/hero-vid.mp4"></video>
+        <div class="hero-demo__play-hint">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- Product Screens -->
-  <section class="screens" id="screens">
+  <!-- Intro Philosophy -->
+  <section class="intro-philosophy">
     <div class="container">
-      <div class="section-label">The App</div>
-      <div class="section-title">Everything in one place</div>
-      <p class="section-sub">Track expenses, compare scenarios, and see your money across pay periods.</p>
+      <h2 class="intro-philosophy__title">Built for clarity, not complexity</h2>
+      <p class="intro-philosophy__body">
+        Most budgeting tools overwhelm you with categories, charts, and noise.
+        Budget Peace focuses on one thing: showing you what's actually left — clearly, across your pay periods.
+      </p>
+    </div>
+  </section>
 
-      <div class="screens__grid">
-        <div class="screen-card">
-          <div class="screen-card__img">
+  <!-- Feature Sections -->
+  <div id="features">
+    <section class="feature-section">
+      <div class="container">
+        <div class="feature-row">
+          <div class="feature-row__img">
             <img src="/screenshots/IMG_7156.PNG" alt="Pay Period view" />
           </div>
-          <div class="screen-card__body">
-            <div class="screen-card__title">Pay Period</div>
-            <div class="screen-card__desc">See what's left each pay period after all your bills.</div>
-          </div>
-        </div>
-        <div class="screen-card">
-          <div class="screen-card__img">
-            <img src="/screenshots/IMG_7155.PNG" alt="Budgets view" />
-          </div>
-          <div class="screen-card__body">
-            <div class="screen-card__title">Budgets</div>
-            <div class="screen-card__desc">Every pay period mapped out with income, expenses, and remaining.</div>
-          </div>
-        </div>
-        <div class="screen-card">
-          <div class="screen-card__img">
-            <img src="/screenshots/IMG_7160.PNG" alt="Compare scenarios" />
-          </div>
-          <div class="screen-card__body">
-            <div class="screen-card__title">Compare</div>
-            <div class="screen-card__desc">Put two scenarios side by side and see the real difference.</div>
-          </div>
-        </div>
-        <div class="screen-card">
-          <div class="screen-card__img">
-            <img src="/screenshots/IMG_7154.PNG" alt="Cards view" />
-          </div>
-          <div class="screen-card__body">
-            <div class="screen-card__title">Cards</div>
-            <div class="screen-card__desc">Link expenses to cards and see totals per card at a glance.</div>
+          <div class="feature-row__text">
+            <div class="section-label">Pay Period</div>
+            <div class="section-title">See exactly what's left</div>
+            <p class="section-sub">Every pay period, instantly know what remains after your real expenses — no guessing.</p>
           </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
+
+    <section class="feature-section">
+      <div class="container">
+        <div class="feature-row feature-row--reverse">
+          <div class="feature-row__img">
+            <img src="/screenshots/IMG_7160.PNG" alt="Compare scenarios" />
+          </div>
+          <div class="feature-row__text">
+            <div class="section-label">Compare</div>
+            <div class="section-title">Make better financial decisions</div>
+            <p class="section-sub">Compare scenarios side by side and see how different choices impact your money over time.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="feature-section">
+      <div class="container">
+        <div class="feature-row">
+          <div class="feature-row__img">
+            <img src="/screenshots/IMG_7155.PNG" alt="Budgets view" />
+          </div>
+          <div class="feature-row__text">
+            <div class="section-label">Budgets</div>
+            <div class="section-title">Plan across time, not guesses</div>
+            <p class="section-sub">Map every pay period with income, expenses, and remaining so nothing surprises you.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
 
   <hr class="divider" />
 
@@ -696,12 +803,61 @@
     </div>
   </section>
 
+  <hr class="divider" />
+
+  <!-- FAQ -->
+  <section class="faq">
+    <div class="container">
+      <div class="section-label">Questions</div>
+      <div class="section-title">Frequently asked</div>
+      <div class="faq__list">
+        <div class="faq__item">
+          <button class="faq__question">
+            Do I need to connect my bank?
+            <svg class="faq__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <div class="faq__answer"><div class="faq__answer-inner">No. Everything is manual and intentional. You enter your own numbers, so there's nothing to connect and nothing to sync.</div></div>
+        </div>
+        <div class="faq__item">
+          <button class="faq__question">
+            Is this better than spreadsheets?
+            <svg class="faq__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <div class="faq__answer"><div class="faq__answer-inner">Yes. It's structured around pay periods and real-world timing — not rows and columns. You get clarity without building formulas.</div></div>
+        </div>
+        <div class="faq__item">
+          <button class="faq__question">
+            Can I compare different life scenarios?
+            <svg class="faq__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <div class="faq__answer"><div class="faq__answer-inner">Yes. You can model multiple situations — a new job, a different city, cutting expenses — and see exactly how they play out across your pay periods.</div></div>
+        </div>
+        <div class="faq__item">
+          <button class="faq__question">
+            What happens if I skip a day or period?
+            <svg class="faq__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <div class="faq__answer"><div class="faq__answer-inner">Nothing breaks. The app adapts to your pace. Come back whenever you need clarity — your data is always there.</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Footer -->
   <footer class="lp-footer">
     <div class="container">
       Budget Peace &middot; <script>document.write(new Date().getFullYear())</script>
     </div>
   </footer>
+
+  <!-- Video Modal -->
+  <div class="video-modal" id="video-modal">
+    <div class="video-modal__backdrop"></div>
+    <div class="video-modal__content">
+      <button class="video-modal__close" aria-label="Close">&times;</button>
+      <video id="modal-video" loop playsinline controls src="/hero-vid.mp4"></video>
+    </div>
+  </div>
 
   <script>
     // Billing toggle (Monthly / Lifetime)
@@ -711,7 +867,6 @@
       btn.addEventListener('click', () => {
         currentBilling = btn.dataset.billing;
 
-        // Update toggle pill styles
         document.querySelectorAll('.billing-toggle__btn').forEach(b => {
           const isActive = b.dataset.billing === currentBilling;
           b.classList.toggle('is-active', isActive);
@@ -719,7 +874,6 @@
           b.style.color = isActive ? '#fff' : 'var(--lp-muted, #94a3b8)';
         });
 
-        // Update prices, notes, and CTA plan keys
         document.querySelectorAll('.pricing-card__price[data-' + currentBilling + ']').forEach(el => {
           el.innerHTML = el.dataset[currentBilling];
         });
@@ -764,30 +918,44 @@
 
     function openModal() {
       modal.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
       modalVideo.currentTime = heroVideo.currentTime;
       modalVideo.play();
     }
     function closeModal() {
       modal.classList.remove('is-open');
+      document.body.style.overflow = '';
       modalVideo.pause();
     }
 
-    document.querySelector('.hero-demo').addEventListener('click', openModal);
+    document.getElementById('hero-demo').addEventListener('click', openModal);
     modal.querySelector('.video-modal__backdrop').addEventListener('click', closeModal);
     modal.querySelector('.video-modal__close').addEventListener('click', closeModal);
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
     });
-  </script>
 
-  <!-- Video Modal -->
-  <div class="video-modal" id="video-modal">
-    <div class="video-modal__backdrop"></div>
-    <div class="video-modal__content">
-      <button class="video-modal__close" aria-label="Close">&times;</button>
-      <video id="modal-video" loop playsinline controls src="/hero-vid.mp4"></video>
-    </div>
-  </div>
+    // FAQ accordion
+    document.querySelectorAll('.faq__question').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = btn.parentElement;
+        const answer = item.querySelector('.faq__answer');
+        const isOpen = item.classList.contains('is-open');
+
+        // Close all
+        document.querySelectorAll('.faq__item').forEach(i => {
+          i.classList.remove('is-open');
+          i.querySelector('.faq__answer').style.maxHeight = null;
+        });
+
+        // Open clicked (if it was closed)
+        if (!isOpen) {
+          item.classList.add('is-open');
+          answer.style.maxHeight = answer.scrollHeight + 'px';
+        }
+      });
+    });
+  </script>
 
 </body>
 </html>

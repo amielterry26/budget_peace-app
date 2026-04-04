@@ -41,6 +41,18 @@ const tables = [
     BillingMode: 'PAY_PER_REQUEST',
   },
   {
+    TableName: 'bp_banks',
+    KeySchema: [
+      { AttributeName: 'userId', KeyType: 'HASH'  },
+      { AttributeName: 'bankId', KeyType: 'RANGE' },
+    ],
+    AttributeDefinitions: [
+      { AttributeName: 'userId', AttributeType: 'S' },
+      { AttributeName: 'bankId', AttributeType: 'S' },
+    ],
+    BillingMode: 'PAY_PER_REQUEST',
+  },
+  {
     TableName: 'bp_expenses',
     KeySchema: [
       { AttributeName: 'userId',    KeyType: 'HASH'  },

@@ -17,6 +17,16 @@ const CARD_PALETTES = [
   'linear-gradient(135deg, #1B4B82 0%, #0A2647 100%)',
 ];
 
+const BANK_COLORS = [
+  { label: 'Blue',   value: '#3B82F6' },
+  { label: 'Green',  value: '#22C55E' },
+  { label: 'Purple', value: '#8B5CF6' },
+  { label: 'Orange', value: '#F97316' },
+  { label: 'Red',    value: '#EF4444' },
+  { label: 'Gray',   value: '#6B7280' },
+];
+const BANK_COLOR_DEFAULT = '#6B7280';
+
 Router.register('cards', async () => {
   document.getElementById('page-title').textContent = 'Cards';
   setActivePage('cards');
@@ -355,6 +365,7 @@ function openBankSheet() {
   const bankListHtml = _banks.length
     ? _banks.map(b => `
         <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--color-border);">
+          <span style="width:10px;height:10px;border-radius:50%;background:${b.color || BANK_COLOR_DEFAULT};flex-shrink:0;display:inline-block;"></span>
           <div style="flex:1;">
             <div style="font-size:var(--font-size-sm);font-weight:var(--font-weight-semi);">${esc(b.name)}</div>
             ${b.note ? `<div class="text-muted text-xs">${esc(b.note)}</div>` : ''}
@@ -362,6 +373,15 @@ function openBankSheet() {
           <button class="btn btn--danger bs-del-btn" data-bankid="${b.bankId}" style="font-size:12px;padding:4px 10px;">Delete</button>
         </div>`).join('')
     : `<div class="text-muted text-sm" style="padding:var(--space-2) 0;">No banks yet.</div>`;
+
+  const colorSwatchesHtml = BANK_COLORS.map((c, i) => `
+    <div class="bs-color-swatch ${i === 0 ? 'is-selected' : ''}"
+      data-color="${c.value}"
+      style="width:26px;height:26px;border-radius:50%;background:${c.value};cursor:pointer;
+             border:2px solid ${i === 0 ? '#fff' : 'transparent'};
+             box-shadow:${i === 0 ? '0 0 0 2px var(--color-accent)' : 'none'};
+             transition:all 150ms ease;">
+    </div>`).join('');
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="bank-sheet-overlay" class="sheet-overlay"></div>
@@ -378,6 +398,10 @@ function openBankSheet() {
           <div class="form-group">
             <label class="form-label" for="bs-note">Note (optional)</label>
             <input class="form-input" id="bs-note" type="text" placeholder="e.g. checking + savings" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Color</label>
+            <div style="display:flex;gap:8px;align-items:center;">${colorSwatchesHtml}</div>
           </div>
           <button class="btn btn--primary btn--full" id="bs-add">Add Bank</button>
         </div>
@@ -402,6 +426,20 @@ function openBankSheet() {
 
   document.getElementById('bank-sheet-overlay').addEventListener('click', closeSheet);
   document.getElementById('bs-cancel').addEventListener('click', closeSheet);
+
+  // Color swatch selection
+  let selectedBankColor = BANK_COLORS[0].value;
+  document.querySelectorAll('#bank-sheet .bs-color-swatch').forEach(sw => {
+    sw.addEventListener('click', () => {
+      document.querySelectorAll('#bank-sheet .bs-color-swatch').forEach(x => {
+        x.style.border = '2px solid transparent';
+        x.style.boxShadow = 'none';
+      });
+      sw.style.border = '2px solid #fff';
+      sw.style.boxShadow = '0 0 0 2px var(--color-accent)';
+      selectedBankColor = sw.dataset.color;
+    });
+  });
 
   document.querySelectorAll('#bank-sheet .bs-del-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -436,7 +474,7 @@ function openBankSheet() {
     try {
       const res = await authFetch('/api/banks', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: userId(), name, note }),
+        body: JSON.stringify({ userId: userId(), name, note, color: selectedBankColor }),
       });
       if (!res.ok) throw new Error('Add failed');
       Store.invalidate('banks');

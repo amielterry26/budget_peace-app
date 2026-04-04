@@ -2,10 +2,12 @@
 // Expenses page
 // ============================================================
 
-let _expenses = [];
-let _periods  = [];
+let _expenses    = [];
+let _periods     = [];
 let _expScenario = null;
-let _expFilter = 'current'; // 'current' or 'upcoming'
+let _expFilter   = 'current'; // 'current' or 'upcoming'
+let _expCards    = [];
+let _expBanks    = [];
 
 Router.register('expenses', async () => {
   document.getElementById('page-title').textContent = 'Expenses';
@@ -19,14 +21,18 @@ Router.register('expenses', async () => {
     </div>`;
 
   try {
-    const [expenses, periods, scenario] = await Promise.all([
+    const [expenses, periods, scenario, expCards, expBanks] = await Promise.all([
       Store.get('expenses'),
       Store.get('periods'),
       Store.get('scenario'),
+      Store.get('cards').catch(() => []),
+      Store.get('banks').catch(() => []),
     ]);
-    _expenses = expenses;
-    _periods = periods;
+    _expenses    = expenses;
+    _periods     = periods;
     _expScenario = scenario;
+    _expCards    = expCards;
+    _expBanks    = expBanks;
     renderExpensesList();
     bindExpensesFab();
   } catch (err) {
@@ -178,9 +184,13 @@ function buildPill(e) {
             ? fmtRange(_periods.find(p => p.startDate === e.periodStart)) : e.periodStart)
         : 'Unassigned');
 
-  const cardLabel = e.cardId
-    ? (typeof _cards !== 'undefined' ? (_cards.find(c => c.cardId === e.cardId)?.name ?? '—') : '—')
-    : '—';
+  const linkedCard = e.cardId ? _expCards.find(c => c.cardId === e.cardId) : null;
+  const linkedBank = linkedCard?.bankId ? _expBanks.find(b => b.bankId === linkedCard.bankId) : null;
+  const bankColor  = linkedBank?.color || '#6B7280';
+  const bankTag    = linkedBank
+    ? `<span class="exp-bank-tag"><span class="exp-bank-dot" style="background:${bankColor}"></span>${esc(linkedBank.name)}</span>`
+    : '';
+  const cardLabel  = linkedCard ? `${esc(linkedCard.name)} •••• ${esc(linkedCard.lastFour)}` : '—';
 
   let dueMeta = '';
   if (isRecurring && e.dueDay) {
@@ -208,7 +218,7 @@ function buildPill(e) {
   return `
     <div class="expense-pill" id="pill-${e.expenseId}">
       <div class="expense-pill__header">
-        <span class="expense-pill__name">${esc(e.name)}</span>
+        <div class="expense-pill__name">${esc(e.name)}${bankTag}</div>
         <span class="expense-pill__amount">${money(e.amount)}</span>
         <span class="expense-pill__chevron">▼</span>
       </div>
@@ -222,9 +232,16 @@ function buildPill(e) {
             <div class="expense-pill__meta-label">Period</div>
             <div class="expense-pill__meta-value">${periodLabel}</div>
           </div>
+          ${linkedBank ? `
+          <div class="expense-pill__meta-item">
+            <div class="expense-pill__meta-label">Bank</div>
+            <div class="expense-pill__meta-value" style="display:flex;align-items:center;gap:5px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:${bankColor};display:inline-block;flex-shrink:0;"></span>${esc(linkedBank.name)}
+            </div>
+          </div>` : ''}
           <div class="expense-pill__meta-item">
             <div class="expense-pill__meta-label">Card</div>
-            <div class="expense-pill__meta-value">${esc(cardLabel)}</div>
+            <div class="expense-pill__meta-value">${cardLabel}</div>
           </div>
           ${startMeta}
           ${dueMeta}

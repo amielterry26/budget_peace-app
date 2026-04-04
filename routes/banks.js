@@ -27,12 +27,13 @@ router.get('/:userId', verifyOwner, async (req, res) => {
 // POST /api/banks
 router.post('/', async (req, res) => {
   try {
-    const { userId, name, note } = req.body;
+    const { userId, name, note, color } = req.body;
     if (userId && userId !== req.userId) return res.status(403).json({ error: 'Forbidden' });
     if (!userId || !name) return res.status(400).json({ error: 'Missing required fields' });
     const item = {
       userId, bankId: randomUUID(),
       name, note: note || '',
+      color: color || '',
       createdAt: new Date().toISOString(),
     };
     await db.send(new PutCommand({ TableName: TABLE, Item: item }));

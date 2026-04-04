@@ -29,7 +29,7 @@ router.get('/:userId', verifyOwner, async (req, res) => {
 // POST /api/cards
 router.post('/', async (req, res) => {
   try {
-    const { userId, name, type, lastFour, colorIndex } = req.body;
+    const { userId, name, type, lastFour, colorIndex, bankId } = req.body;
     // Verify body userId matches authenticated user
     if (userId && userId !== req.userId) {
       return res.status(403).json({ error: 'Forbidden' });
@@ -46,6 +46,7 @@ router.post('/', async (req, res) => {
       colorIndex: colorIndex ?? 0,
       createdAt:  new Date().toISOString(),
     };
+    if (bankId) item.bankId = bankId;
     await db.send(new PutCommand({ TableName: TABLE, Item: item }));
     res.json(item);
   } catch (err) {
@@ -57,7 +58,7 @@ router.post('/', async (req, res) => {
 // PUT /api/cards/:userId/:cardId
 router.put('/:userId/:cardId', verifyOwner, async (req, res) => {
   try {
-    const { name, type, lastFour, colorIndex } = req.body;
+    const { name, type, lastFour, colorIndex, bankId } = req.body;
 
     if (!name || !type || !lastFour) {
       return res.status(400).json({ error: 'Missing required fields (name, type, lastFour)' });
@@ -82,6 +83,11 @@ router.put('/:userId/:cardId', verifyOwner, async (req, res) => {
       colorIndex: colorIndex ?? existing.Item.colorIndex ?? 0,
       updatedAt: new Date().toISOString(),
     };
+    if (bankId) {
+      item.bankId = bankId;
+    } else {
+      delete item.bankId;
+    }
     await db.send(new PutCommand({ TableName: TABLE, Item: item }));
     res.json(item);
   } catch (err) {

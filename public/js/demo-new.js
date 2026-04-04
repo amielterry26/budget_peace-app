@@ -880,11 +880,10 @@ function renderStep1_Snapshot(container) {
     </div>
 
     <div class="demo-teach">
-      This is your financial structure: money in, money out, what remains.
-      ${isMobileDemo() ? 'The app shows this on the Home screen.' : 'The app shows this on the Home screen — look at the highlighted section.'}
+      ${isMobileDemo() ? 'Money in, money out, what remains.' : 'This is your financial structure: money in, money out, what remains. The app shows this on the Home screen — look at the highlighted section.'}
     </div>
 
-    ${isMobileDemo() ? mobilePreview('Home Screen', mobileSnapshotRows(income, state.cadence, 0)) : ''}
+    ${isMobileDemo() ? mobilePreview('Home', mobileSnapshotRows(income, state.cadence, 0)) : ''}
 
     <button class="demo-btn demo-btn--primary" id="demo-continue" style="margin-top:var(--space-6);">
       Continue
@@ -907,10 +906,10 @@ function renderStep2_AddExpense(container) {
   const state = DemoEngine.getState();
 
   container.innerHTML = `
-    <h1 class="demo-title">Let's add your first expense</h1>
+    <h1 class="demo-title">${isMobileDemo() ? 'Add an expense' : 'Let\'s add your first expense'}</h1>
     <p class="demo-subtitle">
       ${isMobileDemo()
-        ? 'In the app, you tap the <strong>+</strong> button to add an expense.'
+        ? 'Name it, set the amount, and it\'s tracked.'
         : 'In the app, you tap the <strong>+</strong> button to add an expense. Watch the app pane — the sheet slides up.'}
     </p>
 
@@ -927,16 +926,15 @@ function renderStep2_AddExpense(container) {
       </div>
     </div>
 
-    <div class="demo-teach">
+    ${isMobileDemo() ? '' : `<div class="demo-teach">
       Every bill you track gets accounted for automatically.
-    </div>
+    </div>`}
 
-    ${isMobileDemo() ? mobilePreview('Expense Sheet', `
-      <div style="font-size:var(--font-size-sm);font-weight:600;margin-bottom:var(--space-2);">New Expense</div>
-      <div class="demo-sheet-preview__field">Expense name</div>
-      <div class="demo-sheet-preview__field">$0.00</div>
-      <div class="demo-sheet-preview__field">Monthly</div>
-      <div class="demo-sheet-preview__btn"></div>
+    ${isMobileDemo() ? mobilePreview('New Expense', `
+      <div class="demo-mp-form-field" style="margin-bottom:8px;">Expense name</div>
+      <div class="demo-mp-form-field" style="margin-bottom:8px;">$0.00</div>
+      <div class="demo-mp-form-field" style="margin-bottom:10px;">Monthly</div>
+      <div class="demo-mp-btn">Add Expense</div>
     `) : ''}
 
     <button class="demo-btn demo-btn--primary" id="demo-add" style="margin-top:var(--space-6);">
@@ -977,13 +975,14 @@ function renderStep3_SeeImpact(container) {
   const leftover = income - bills;
   const leftoverClass = leftover >= 0 ? 'demo-metric__value--accent' : 'demo-metric__value--danger';
 
+  const mob = isMobileDemo();
   const stages = [
     { label: 'Bills', selector: '.home-section-bills', cls: 'demo-highlight',
-      desc: 'Your new expense appears in <strong>Recurring Bills</strong>.' },
+      desc: mob ? `<strong>${esc(expense ? expense.name : 'Expense')}</strong> is now a recurring bill.` : 'Your new expense appears in <strong>Recurring Bills</strong>.' },
     { label: 'Structure', selector: '.home-section-structure', cls: 'demo-highlight-strong',
-      desc: 'The <strong>Financial Structure</strong> now reflects the deduction.' },
+      desc: mob ? 'Your monthly structure updated instantly.' : 'The <strong>Financial Structure</strong> now reflects the deduction.' },
     { label: 'Pay Period', selector: '.home-section-period', cls: 'demo-highlight',
-      desc: 'Your <strong>Current Pay Period</strong> shows the expense mapped to this paycheck.' },
+      desc: mob ? 'Mapped to this paycheck automatically.' : 'Your <strong>Current Pay Period</strong> shows the expense mapped to this paycheck.' },
   ];
   let stageIdx = 0;
 
@@ -1121,13 +1120,14 @@ function renderStep3_SeeImpact(container) {
 function renderStep4_FinancialHealth(container) {
   const state = DemoEngine.getState();
 
+  const mobH = isMobileDemo();
   const horizons = [
     { months: 3, label: '3 months',
-      desc: 'Start with a <strong>3-month view</strong>. See how your income and expenses trend over the next quarter.' },
+      desc: mobH ? 'Your next <strong>3 months</strong>, projected.' : 'Start with a <strong>3-month view</strong>. See how your income and expenses trend over the next quarter.' },
     { months: 6, label: '6 months',
-      desc: 'Now expand to <strong>6 months</strong>. Patterns emerge — you can spot seasonal shortfalls or surpluses.' },
+      desc: mobH ? '<strong>6 months</strong> out. Patterns start to show.' : 'Now expand to <strong>6 months</strong>. Patterns emerge — you can spot seasonal shortfalls or surpluses.' },
     { months: 12, label: '12 months',
-      desc: 'The full <strong>12-month projection</strong>. See your financial trajectory for the entire year ahead.' },
+      desc: mobH ? 'The full <strong>year ahead</strong>.' : 'The full <strong>12-month projection</strong>. See your financial trajectory for the entire year ahead.' },
   ];
   let horizonIdx = 0;
 
@@ -1140,18 +1140,23 @@ function renderStep4_FinancialHealth(container) {
 
     container.innerHTML = `
       <h1 class="demo-title">See around corners</h1>
-      <p class="demo-subtitle">Budget Peace projects your finances forward — not just this paycheck, but months ahead.</p>
+      <p class="demo-subtitle">${mobH ? 'Your finances projected forward.' : 'Budget Peace projects your finances forward — not just this paycheck, but months ahead.'}</p>
 
       <div class="demo-teach">
         ${h.desc} ${dots}
       </div>
 
-      ${isMobileDemo() ? mobilePreview(h.label + ' projection', `
-        <div class="demo-mp-row"><span class="demo-mp-row__label">Horizon</span><span class="demo-mp-row__value">${h.months} months</span></div>
-        <div class="demo-mp-row"><span class="demo-mp-row__label">Projected income</span><span class="demo-mp-row__value">${formatMoney((state.cadence === 'biweekly' ? state.income * 2 : state.income) * h.months)}</span></div>
-        <div class="demo-mp-row"><span class="demo-mp-row__label">Projected expenses</span><span class="demo-mp-row__value">${formatMoney((state.userExpense ? state.userExpense.amount : 0) * h.months)}</span></div>
-        <div class="demo-mp-row"><span class="demo-mp-row__label">Net savings</span><span class="demo-mp-row__value demo-mp-row__value--accent">${formatMoney(((state.cadence === 'biweekly' ? state.income * 2 : state.income) - (state.userExpense ? state.userExpense.amount : 0)) * h.months)}</span></div>
-      `) : ''}
+      ${isMobileDemo() ? (() => {
+        const mInc = (state.cadence === 'biweekly' ? state.income * 2 : state.income);
+        const mExp = state.userExpense ? state.userExpense.amount : 0;
+        const net = (mInc - mExp) * h.months;
+        const netCls = net < 0 ? 'demo-mp-row__value--danger' : 'demo-mp-row__value--accent';
+        return mobilePreview(h.label, `
+          <div class="demo-mp-row"><span class="demo-mp-row__label">Income</span><span class="demo-mp-row__value">${formatMoney(mInc * h.months)}</span></div>
+          <div class="demo-mp-row"><span class="demo-mp-row__label">Expenses</span><span class="demo-mp-row__value">${formatMoney(mExp * h.months)}</span></div>
+          <div class="demo-mp-row"><span class="demo-mp-row__label">Net</span><span class="demo-mp-row__value ${netCls}" style="font-size:15px;font-weight:700;">${formatMoney(net)}</span></div>
+        `);
+      })() : ''}
 
       <div style="display:flex;gap:var(--space-3);margin-top:var(--space-6);">
         ${horizonIdx > 0 ? '<button class="demo-btn demo-btn--ghost" id="health-prev" style="flex:1;">&larr; Back</button>' : ''}
@@ -1214,26 +1219,27 @@ function renderStep5_NavTour(container) {
   const subSteps = ['home', 'pay-period', 'budgets', 'expenses', 'cards'];
   const subIndex = subSteps.indexOf(sub);
 
+  const mobNav = isMobileDemo();
   const descriptions = {
     home: {
-      title: 'Home — your command center',
-      body: 'Everything starts here. Your financial structure, current pay period, health projections, and recurring bills — all on one screen.',
+      title: mobNav ? 'Home' : 'Home — your command center',
+      body: mobNav ? 'Your full financial picture in one place.' : 'Everything starts here. Your financial structure, current pay period, health projections, and recurring bills — all on one screen.',
     },
     'pay-period': {
-      title: 'Pay Period — paycheck-level clarity',
-      body: 'Each paycheck has its own budget. You can see exactly which bills come out of which check — this is where your expense shows up mapped to a specific paycheck.',
+      title: mobNav ? 'Pay Period' : 'Pay Period — paycheck-level clarity',
+      body: mobNav ? 'Each paycheck gets its own budget.' : 'Each paycheck has its own budget. You can see exactly which bills come out of which check — this is where your expense shows up mapped to a specific paycheck.',
     },
     budgets: {
-      title: 'Budgets — every paycheck planned',
-      body: 'Each pay period gets its own budget. See income, expenses, and what\'s remaining for every paycheck at a glance.',
+      title: mobNav ? 'Budgets' : 'Budgets — every paycheck planned',
+      body: mobNav ? 'Income, expenses, and what\'s left — per paycheck.' : 'Each pay period gets its own budget. See income, expenses, and what\'s remaining for every paycheck at a glance.',
     },
     expenses: {
-      title: 'Expenses — every bill tracked',
-      body: 'See all your recurring and one-time expenses at a glance. Each one feeds into your budget structure and pay periods automatically.',
+      title: mobNav ? 'Expenses' : 'Expenses — every bill tracked',
+      body: mobNav ? 'All your bills, tracked and mapped automatically.' : 'See all your recurring and one-time expenses at a glance. Each one feeds into your budget structure and pay periods automatically.',
     },
     cards: {
-      title: 'Cards — your wallet, organized',
-      body: 'Link expenses to specific cards. See at a glance what each card carries and how your spending is distributed across payment methods.',
+      title: mobNav ? 'Cards' : 'Cards — your wallet, organized',
+      body: mobNav ? 'Know what each card carries.' : 'Link expenses to specific cards. See at a glance what each card carries and how your spending is distributed across payment methods.',
     },
   };
 
@@ -1244,18 +1250,19 @@ function renderStep5_NavTour(container) {
     `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${i === subIndex ? 'var(--color-accent)' : 'var(--color-border)'};margin:0 3px;"></span>`
   ).join('');
 
+  const pageLabels = { home: 'Home', 'pay-period': 'Pay Period', budgets: 'Budgets', expenses: 'Expenses', cards: 'Cards' };
   container.innerHTML = `
-    <div style="margin-bottom:var(--space-3);font-size:var(--font-size-xs);color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">
+    ${mobNav ? '' : `<div style="margin-bottom:var(--space-3);font-size:var(--font-size-xs);color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">
       Navigation Tour ${subDots}
-    </div>
+    </div>`}
     <h1 class="demo-title">${esc(desc.title)}</h1>
     <p class="demo-subtitle">${desc.body}</p>
 
-    <div class="demo-teach">
-      ${isMobileDemo() ? 'The bottom navigation lets you switch between pages.' : 'Watch the bottom navigation bar — the highlighted tab shows where you are.'}
-    </div>
+    ${mobNav ? '' : `<div class="demo-teach">
+      Watch the bottom navigation bar — the highlighted tab shows where you are.
+    </div>`}
 
-    ${isMobileDemo() ? mobilePreview('Navigation', mobileNavBar(sub) + mobileNavPagePreview(sub, state)) : ''}
+    ${mobNav ? mobilePreview(pageLabels[sub] || sub, mobileNavBar(sub) + mobileNavPagePreview(sub, state)) : ''}
 
     <div style="display:flex;gap:var(--space-3);margin-top:var(--space-6);">
       ${subIndex > 0 ? '<button class="demo-btn demo-btn--ghost" id="demo-sub-prev" style="flex:1;">Back</button>' : ''}
@@ -1485,13 +1492,14 @@ function renderStep6_Cards(container) {
   const expName = state.userExpense ? state.userExpense.name : 'Rent';
   const expAmt  = state.userExpense ? state.userExpense.amount : 1200;
 
+  const mobC = isMobileDemo();
   const stages = [
-    { desc: 'These are your payment methods — debit and credit cards in your wallet.' },
-    { desc: 'Fill in the details — card name, last four digits, and type — then save.' },
-    { desc: 'Card saved! Your new <strong>Chase Checking</strong> card now appears in the wallet.' },
-    { desc: 'Tap a card to select it and see its details.' },
-    { desc: `Now link your <strong>${esc(expName)}</strong> expense to this card.` },
-    { desc: `Done — <strong>${esc(expName)}</strong> is now assigned to <strong>Chase Checking</strong>.` },
+    { desc: mobC ? 'Your cards at a glance.' : 'These are your payment methods — debit and credit cards in your wallet.' },
+    { desc: mobC ? 'Adding a new card.' : 'Fill in the details — card name, last four digits, and type — then save.' },
+    { desc: mobC ? '<strong>Chase Checking</strong> added.' : 'Card saved! Your new <strong>Chase Checking</strong> card now appears in the wallet.' },
+    { desc: mobC ? 'Card selected.' : 'Tap a card to select it and see its details.' },
+    { desc: mobC ? `Linking <strong>${esc(expName)}</strong>.` : `Now link your <strong>${esc(expName)}</strong> expense to this card.` },
+    { desc: mobC ? `<strong>${esc(expName)}</strong> → <strong>Chase Checking</strong>.` : `Done — <strong>${esc(expName)}</strong> is now assigned to <strong>Chase Checking</strong>.` },
   ];
   let stageIdx = 0;
 
@@ -1510,7 +1518,7 @@ function renderStep6_Cards(container) {
 
     container.innerHTML = `
       <h1 class="demo-title">Your wallet, organized</h1>
-      <p class="demo-subtitle">Link expenses to specific cards so you always know what each card carries.</p>
+      <p class="demo-subtitle">${mobC ? 'Every card, every expense, connected.' : 'Link expenses to specific cards so you always know what each card carries.'}</p>
 
       <div class="demo-teach">
         ${s.desc} ${dots}
@@ -1751,12 +1759,13 @@ function renderStep7_Scenarios(container) {
   const mainMonthlyInc = state.cadence === 'biweekly' ? state.income * 2 : state.income;
   const altMonthlyInc  = state.cadence === 'biweekly' ? altIncome * 2 : altIncome;
 
+  const mobS = isMobileDemo();
   const stages = [
-    { desc: `Scenarios aren't in the bottom nav. Open the <strong>menu</strong> to find them.` },
-    { desc: `You have two scenarios: <strong>Main</strong> at ${formatMoney(state.income)}/check and <strong>Side Hustle</strong> at ${formatMoney(altIncome)}/check.` },
-    { desc: `Expand a scenario to see its snapshot — income, expenses, and what's remaining each month.` },
-    { desc: `To compare scenarios, open the <strong>menu</strong> again and tap <strong>Compare</strong>.` },
-    { desc: `Compare scenarios side by side to see which plan works best for you.` },
+    { desc: mobS ? 'Scenarios live in the menu.' : `Scenarios aren't in the bottom nav. Open the <strong>menu</strong> to find them.` },
+    { desc: mobS ? `<strong>Main</strong> and <strong>Side Hustle</strong> — two income realities.` : `You have two scenarios: <strong>Main</strong> at ${formatMoney(state.income)}/check and <strong>Side Hustle</strong> at ${formatMoney(altIncome)}/check.` },
+    { desc: mobS ? 'Full monthly breakdown at a glance.' : `Expand a scenario to see its snapshot — income, expenses, and what's remaining each month.` },
+    { desc: mobS ? 'Compare lives in the menu too.' : `To compare scenarios, open the <strong>menu</strong> again and tap <strong>Compare</strong>.` },
+    { desc: mobS ? 'Same bills, different income — see the difference.' : `Compare scenarios side by side to see which plan works best for you.` },
   ];
   let stageIdx = 0;
 
@@ -1769,7 +1778,7 @@ function renderStep7_Scenarios(container) {
 
     container.innerHTML = `
       <h1 class="demo-title">What if your income changed?</h1>
-      <p class="demo-subtitle">Scenarios let you model different financial realities without affecting your main budget.</p>
+      <p class="demo-subtitle">${mobS ? 'Model it. Compare it. Decide.' : 'Scenarios let you model different financial realities without affecting your main budget.'}</p>
 
       <div class="demo-teach">
         ${s.desc} ${dots}

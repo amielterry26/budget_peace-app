@@ -5,6 +5,8 @@
 let _cards         = [];
 let _cardExpenses  = [];
 let _selectedCard  = null;
+let _banks         = [];
+let _selectedBank  = null; // null = All Banks
 
 const CARD_PALETTES = [
   'linear-gradient(135deg, #1C1C2E 0%, #2D3561 100%)',
@@ -43,9 +45,10 @@ Router.register('cards', async () => {
 // ---- Data --------------------------------------------------
 
 async function loadCards() {
-  [_cards, _cardExpenses] = await Promise.all([
+  [_cards, _cardExpenses, _banks] = await Promise.all([
     Store.get('cards'),
     Store.get('expenses'),
+    Store.get('banks'),
   ]);
   if (_cards.length && !_selectedCard) _selectedCard = _cards[0].cardId;
 }
@@ -55,7 +58,29 @@ async function loadCards() {
 function renderCardsPage() {
   const content = document.getElementById('main-content');
 
-  const walletItems = _cards.map((c, i) => `
+  // Filter by selected bank
+  const visibleCards = _selectedBank
+    ? _cards.filter(c => c.bankId === _selectedBank)
+    : _cards;
+
+  // Keep selected card in sync with visible set
+  if (!_selectedCard && visibleCards.length) {
+    _selectedCard = visibleCards[0].cardId;
+  } else if (_selectedCard && !visibleCards.find(c => c.cardId === _selectedCard)) {
+    _selectedCard = visibleCards.length ? visibleCards[0].cardId : null;
+  }
+
+  // Bank filter chips
+  const bankChipsHtml = `
+    <div class="bank-tabs">
+      <div class="bank-tabs__chips">
+        <button class="cmp-chip ${!_selectedBank ? 'is-selected' : ''}" data-bankid="">All Banks</button>
+        ${_banks.map(b => `<button class="cmp-chip ${_selectedBank === b.bankId ? 'is-selected' : ''}" data-bankid="${esc(b.bankId)}">${esc(b.name)}</button>`).join('')}
+      </div>
+      <button class="btn btn--ghost" id="manage-banks-btn" style="font-size:12px;padding:5px 12px;flex-shrink:0;white-space:nowrap;">+ Add Bank</button>
+    </div>`;
+
+  const walletItems = visibleCards.map((c) => `
     <div class="wallet-card ${_selectedCard === c.cardId ? 'is-selected' : ''}"
       id="wcard-${c.cardId}"
       style="background:${CARD_PALETTES[c.colorIndex % CARD_PALETTES.length]}">
@@ -74,12 +99,24 @@ function renderCardsPage() {
 
   content.innerHTML = `
     <div class="page">
+      ${bankChipsHtml}
       <div class="wallet-row">${walletItems}${emptySlot}</div>
       <div id="card-detail-area"></div>
     </div>`;
 
-  _cards.forEach(c => {
-    document.getElementById(`wcard-${c.cardId}`).addEventListener('click', () => {
+  // Wire bank chips
+  document.querySelectorAll('.bank-tabs__chips .cmp-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      _selectedBank = chip.dataset.bankid || null;
+      renderCardsPage();
+      document.getElementById('fab').onclick = () => openCardSheet(null);
+    });
+  });
+
+  document.getElementById('manage-banks-btn').addEventListener('click', () => openBankSheet());
+
+  visibleCards.forEach(c => {
+    document.getElementById(`wcard-${c.cardId}`)?.addEventListener('click', () => {
       _selectedCard = c.cardId;
       renderCardsPage();
     });
@@ -126,10 +163,14 @@ function renderCardDetail(cardId) {
   document.getElementById('del-card-btn').addEventListener('click', () => confirmDeleteCard(card));
 }
 
-// ---- Sheet (Add / Edit) ------------------------------------
+// ---- Sheet (Add / Edit Card) --------------------------------
 
 function openCardSheet(card) {
   const editing = !!card;
+
+  const bankOptions = `
+    <option value="">— No bank —</option>
+    ${_banks.map(b => `<option value="${b.bankId}" ${editing && card.bankId === b.bankId ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}`;
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="card-sheet-overlay" class="sheet-overlay"></div>
@@ -172,6 +213,10 @@ function openCardSheet(card) {
               </div>`).join('')}
           </div>
         </div>
+        <div class="form-group">
+          <label class="form-label" for="cs-bank">Bank (optional)</label>
+          <select class="form-input" id="cs-bank">${bankOptions}</select>
+        </div>
         ${editing ? `
         <div class="form-group">
           <label class="form-label">Attach Expenses</label>
@@ -203,7 +248,6 @@ function openCardSheet(card) {
   if (editing) {
     document.querySelectorAll('#card-sheet .cs-exp-row').forEach(row => {
       row.addEventListener('click', (e) => {
-        // If they clicked the checkbox itself, it already toggled — just update highlight
         const cb = row.querySelector('input[type="checkbox"]');
         if (e.target !== cb) cb.checked = !cb.checked;
         row.style.background = cb.checked ? 'var(--color-accent-light)' : '';
@@ -254,11 +298,12 @@ function openCardSheet(card) {
     if (!name)                           { alert('Enter a card name.'); return; }
     if (!/^\d{4}$/.test(lastFour))       { alert('Enter exactly 4 digits.'); return; }
 
-    const btn = document.getElementById('cs-save');
+    const btn    = document.getElementById('cs-save');
+    const bankId = document.getElementById('cs-bank').value || null;
     btn.textContent = 'Saving…';
     btn.disabled = true;
 
-    const payload = { userId: userId(), name, type: selectedType, lastFour, colorIndex: selectedColorIndex };
+    const payload = { userId: userId(), name, type: selectedType, lastFour, colorIndex: selectedColorIndex, bankId };
 
     try {
       if (editing) {
@@ -304,7 +349,110 @@ function openCardSheet(card) {
   });
 }
 
-// ---- Delete ------------------------------------------------
+// ---- Sheet (Bank Management) --------------------------------
+
+function openBankSheet() {
+  const bankListHtml = _banks.length
+    ? _banks.map(b => `
+        <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--color-border);">
+          <div style="flex:1;">
+            <div style="font-size:var(--font-size-sm);font-weight:var(--font-weight-semi);">${esc(b.name)}</div>
+            ${b.note ? `<div class="text-muted text-xs">${esc(b.note)}</div>` : ''}
+          </div>
+          <button class="btn btn--danger bs-del-btn" data-bankid="${b.bankId}" style="font-size:12px;padding:4px 10px;">Delete</button>
+        </div>`).join('')
+    : `<div class="text-muted text-sm" style="padding:var(--space-2) 0;">No banks yet.</div>`;
+
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="bank-sheet-overlay" class="sheet-overlay"></div>
+    <div id="bank-sheet" class="sheet">
+      <div class="sheet__handle"></div>
+      <div class="sheet__title">Banks</div>
+      <div class="stack--4">
+        <div id="bs-bank-list">${bankListHtml}</div>
+        <div style="border-top:1px solid var(--color-border);padding-top:var(--space-3);">
+          <div class="form-group">
+            <label class="form-label" for="bs-name">Bank name</label>
+            <input class="form-input" id="bs-name" type="text" placeholder="e.g. SoFi" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="bs-note">Note (optional)</label>
+            <input class="form-input" id="bs-note" type="text" placeholder="e.g. checking + savings" />
+          </div>
+          <button class="btn btn--primary btn--full" id="bs-add">Add Bank</button>
+        </div>
+        <button class="btn btn--ghost btn--full" id="bs-cancel">Close</button>
+      </div>
+    </div>`);
+
+  requestAnimationFrame(() => {
+    document.getElementById('bank-sheet-overlay').classList.add('is-open');
+    document.getElementById('bank-sheet').classList.add('is-open');
+  });
+
+  const closeSheet = () => {
+    document.getElementById('bank-sheet-overlay').classList.remove('is-open');
+    const s = document.getElementById('bank-sheet');
+    s.classList.remove('is-open');
+    s.addEventListener('transitionend', () => {
+      document.getElementById('bank-sheet-overlay')?.remove();
+      document.getElementById('bank-sheet')?.remove();
+    }, { once: true });
+  };
+
+  document.getElementById('bank-sheet-overlay').addEventListener('click', closeSheet);
+  document.getElementById('bs-cancel').addEventListener('click', closeSheet);
+
+  document.querySelectorAll('#bank-sheet .bs-del-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const bankId = btn.dataset.bankid;
+      if (!confirm('Delete this bank? Cards assigned to it will become unassigned.')) return;
+      try {
+        const res = await authFetch(`/api/banks/${userId()}/${bankId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Delete failed');
+        Store.invalidate('banks');
+        Store.invalidate('cards');
+        [_banks, _cards] = await Promise.all([Store.get('banks'), Store.get('cards')]);
+        if (_selectedBank === bankId) _selectedBank = null;
+        closeSheet();
+        renderCardsPage();
+        document.getElementById('fab').onclick = () => openCardSheet(null);
+      } catch (err) {
+        console.error(err);
+        alert('Delete failed. Try again.');
+      }
+    });
+  });
+
+  document.getElementById('bs-add').addEventListener('click', async () => {
+    const name = document.getElementById('bs-name').value.trim();
+    const note = document.getElementById('bs-note').value.trim();
+    if (!name) { alert('Enter a bank name.'); return; }
+
+    const btn = document.getElementById('bs-add');
+    btn.textContent = 'Adding…';
+    btn.disabled = true;
+
+    try {
+      const res = await authFetch('/api/banks', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: userId(), name, note }),
+      });
+      if (!res.ok) throw new Error('Add failed');
+      Store.invalidate('banks');
+      _banks = await Store.get('banks');
+      closeSheet();
+      renderCardsPage();
+      document.getElementById('fab').onclick = () => openCardSheet(null);
+    } catch (err) {
+      console.error(err);
+      btn.textContent = 'Try Again';
+      btn.disabled = false;
+    }
+  });
+}
+
+// ---- Delete Card -------------------------------------------
 
 async function confirmDeleteCard(card) {
   if (!confirm(`Delete "${card.name}"? Expenses assigned to it won't be deleted.`)) return;

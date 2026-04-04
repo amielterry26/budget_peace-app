@@ -89,13 +89,13 @@
     }
     .lp-nav__links a {
       font-size: 14px;
-      font-weight: 500;
-      color: var(--color-text-secondary);
+      font-weight: 600;
+      color: var(--color-text-primary);
       text-decoration: none;
       transition: color 0.15s;
     }
     .lp-nav__links a:hover {
-      color: var(--color-text-primary);
+      color: var(--color-accent);
     }
 
     /* ── Hero ── */
@@ -181,61 +181,165 @@
       line-height: 1.5;
     }
 
-    /* ── Screenshots ── */
-    .screens {
-      padding-bottom: var(--space-7);
-    }
-    .screens__scroll {
-      display: flex;
-      gap: var(--space-5);
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
-      padding: var(--space-2) 0 var(--space-4);
-      scrollbar-width: none;
-    }
-    .screens__scroll::-webkit-scrollbar { display: none; }
-    .screen-card {
-      flex: 0 0 260px;
-      scroll-snap-align: start;
-      background: var(--color-surface);
+    /* ── Hero Demo Visual ── */
+    .hero-demo {
+      max-width: 900px;
+      margin: var(--space-7) auto 0;
       border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-md);
       overflow: hidden;
+      box-shadow: var(--shadow-lg), 0 0 60px rgba(74,124,89,0.08);
+      background: #1a1a2e;
+      cursor: pointer;
+      position: relative;
     }
-    .screen-card__img {
+    .hero-demo video {
       width: 100%;
-      aspect-ratio: 9 / 16;
-      background: var(--color-surface-alt);
+      display: block;
+      /* Crop iOS status bar from top of recording */
+      margin-top: -3.5%;
+      margin-bottom: -1%;
+    }
+    /* Transparent overlay to capture clicks above the <video> element */
+    .hero-demo::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      cursor: pointer;
+    }
+    .hero-demo__play-hint {
+      position: absolute;
+      inset: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-secondary);
-      font-size: 14px;
-      font-weight: 500;
-      overflow: hidden;
+      background: rgba(0,0,0,0.25);
+      opacity: 1;
+      transition: opacity 0.2s;
+      pointer-events: none;
+      z-index: 1;
     }
-    .screen-card__img img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-    .screen-card__caption {
-      padding: var(--space-3) var(--space-4);
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--color-text-secondary);
-      text-align: center;
+    .hero-demo:hover .hero-demo__play-hint { opacity: 1; }
+    .hero-demo__play-hint svg {
+      width: 56px;
+      height: 56px;
+      fill: rgba(255,255,255,0.9);
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
     }
 
-    @media (min-width: 768px) {
-      .screens__scroll {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        overflow: visible;
+    /* ── Video Modal ── */
+    .video-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-5);
+    }
+    .video-modal.is-open { display: flex; }
+    .video-modal__backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      cursor: pointer;
+    }
+    .video-modal__content {
+      position: relative;
+      width: 100%;
+      max-width: 960px;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    }
+    .video-modal__content video {
+      width: 100%;
+      display: block;
+    }
+    .video-modal__close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+      z-index: 1;
+      line-height: 1;
+    }
+    .video-modal__close:hover { background: rgba(0,0,0,0.8); }
+
+    /* ── Intro Philosophy ── */
+    .intro-philosophy {
+      text-align: center;
+      padding: var(--space-7) 0;
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .intro-philosophy__title {
+      font-size: clamp(20px, 3vw, 28px);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+      margin-bottom: var(--space-4);
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .intro-philosophy__body {
+      font-size: clamp(14px, 2vw, 16px);
+      color: var(--color-text-secondary);
+      max-width: 540px;
+      margin: 0 auto;
+      line-height: 1.65;
+    }
+
+    /* ── Feature Sections (alternating) ── */
+    .feature-section {
+      padding: var(--space-8) 0;
+    }
+    .feature-section:nth-child(even) {
+      background: var(--color-surface);
+    }
+    .feature-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-7);
+      align-items: center;
+    }
+    .feature-row--reverse .feature-row__img { order: 2; }
+    .feature-row--reverse .feature-row__text { order: 1; }
+    .feature-row__img {
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      background: var(--color-surface-alt);
+    }
+    .feature-row__img img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .feature-row__text .section-label { margin-bottom: var(--space-2); }
+    .feature-row__text .section-title { margin-bottom: var(--space-3); }
+    .feature-row__text .section-sub { max-width: none; }
+    @media (max-width: 700px) {
+      .feature-row {
+        grid-template-columns: 1fr;
+        gap: var(--space-5);
       }
-      .screen-card { flex: none; }
+      .feature-row--reverse .feature-row__img { order: 0; }
+      .feature-row--reverse .feature-row__text { order: 0; }
+      .feature-row__img { max-width: 320px; margin: 0 auto; }
     }
 
     /* ── Not Section ── */
@@ -271,13 +375,27 @@
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-md);
-      padding: var(--space-4) var(--space-5);
+      padding: var(--space-5);
+      flex: 1 1 200px;
+      text-align: left;
+    }
+    .use-case-pill__title {
       font-size: 15px;
-      font-weight: 500;
+      font-weight: 600;
       color: var(--color-text-primary);
-      flex: 1 1 180px;
-      text-align: center;
-      box-shadow: var(--shadow-sm);
+      margin-bottom: 4px;
+    }
+    .use-case-pill__desc {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      line-height: 1.45;
+    }
+    @media (min-width: 600px) {
+      .use-cases__grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-4);
+      }
     }
 
     /* ── Pricing ── */
@@ -360,7 +478,7 @@
       margin-right: var(--space-2);
     }
 
-    /* ── Philosophy ── */
+    /* ── Philosophy (bottom) ── */
     .philosophy {
       text-align: center;
       padding: var(--space-7) 0 var(--space-6);
@@ -371,6 +489,80 @@
       max-width: 560px;
       margin: 0 auto;
       font-style: italic;
+      line-height: 1.6;
+    }
+
+    /* ── Cross-sell featured card ── */
+    .crosssell-card {
+      max-width: 600px;
+      margin: 0 auto;
+      background: linear-gradient(160deg, #F4FAF6 0%, #EEF5F0 40%, var(--color-surface) 100%);
+      border: 1px solid var(--color-accent-light);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: var(--space-7) var(--space-6);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .crosssell-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--color-accent), var(--color-accent-light));
+    }
+    .crosssell-card .section-label {
+      margin-bottom: var(--space-2);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--color-accent-dark);
+    }
+    .crosssell-card .section-title { margin-bottom: var(--space-3); }
+    .crosssell-card .section-sub { margin: 0 auto var(--space-5); }
+
+    /* ── FAQ ── */
+    .faq { padding: var(--space-8) 0; }
+    .faq__list {
+      max-width: 640px;
+      margin: var(--space-5) auto 0;
+    }
+    .faq__item {
+      border-bottom: 1px solid var(--color-border);
+    }
+    .faq__question {
+      width: 100%;
+      background: none;
+      border: none;
+      font-family: var(--font-family);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      text-align: left;
+      padding: var(--space-5) 0;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-4);
+    }
+    .faq__question:hover { color: var(--color-accent); }
+    .faq__icon {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      transition: transform 0.2s;
+    }
+    .faq__item.is-open .faq__icon { transform: rotate(45deg); }
+    .faq__answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+    }
+    .faq__answer-inner {
+      padding: 0 0 var(--space-5);
+      font-size: 14px;
+      color: var(--color-text-secondary);
       line-height: 1.6;
     }
 
@@ -398,7 +590,7 @@
     <div class="container">
       <a href="/landing" class="lp-nav__brand">Budget Peace</a>
       <div class="lp-nav__links">
-        <a href="#screens">Product</a>
+        <a href="#features">Product</a>
         <a href="#pricing">Pricing</a>
         <a href="/" class="btn btn--solid" style="padding:8px 20px;font-size:13px;">Open App</a>
       </div>
@@ -417,44 +609,73 @@
         <a href="/demo" class="btn btn--ghost">Try the demo</a>
         <a href="#pricing" class="btn btn--solid">Unlock full version</a>
       </div>
-    </div>
-  </section>
-
-  <!-- Product Screens -->
-  <section class="screens" id="screens">
-    <div class="container">
-      <div class="section-label">The App</div>
-      <div class="section-title">Everything in one place</div>
-      <p class="section-sub">Track expenses, compare scenarios, and see your money across pay periods.</p>
-
-      <div class="screens__scroll">
-        <div class="screen-card">
-          <div class="screen-card__img">
-            <img src="/screenshots/pay-period.png" alt="Pay Period view showing income and expenses by period" onerror="this.parentElement.textContent='Pay Period View'" />
-          </div>
-          <div class="screen-card__caption">See what's left each pay period</div>
-        </div>
-        <div class="screen-card">
-          <div class="screen-card__img">
-            <img src="/screenshots/expenses.png" alt="Expenses list showing all tracked expenses" onerror="this.parentElement.textContent='Expenses'" />
-          </div>
-          <div class="screen-card__caption">All your expenses in one list</div>
-        </div>
-        <div class="screen-card">
-          <div class="screen-card__img">
-            <img src="/screenshots/compare.png" alt="Compare view showing scenarios side by side" onerror="this.parentElement.textContent='Compare View'" />
-          </div>
-          <div class="screen-card__caption">Compare scenarios side by side</div>
-        </div>
-        <div class="screen-card">
-          <div class="screen-card__img">
-            <img src="/screenshots/scenarios.png" alt="Scenarios page for managing multiple financial profiles" onerror="this.parentElement.textContent='Scenarios'" />
-          </div>
-          <div class="screen-card__caption">Plan for different outcomes</div>
+      <div class="hero-demo" id="hero-demo">
+        <video autoplay muted loop playsinline src="/hero-vid.mp4"></video>
+        <div class="hero-demo__play-hint">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </div>
       </div>
     </div>
   </section>
+
+  <!-- Intro Philosophy -->
+  <section class="intro-philosophy">
+    <div class="container">
+      <h2 class="intro-philosophy__title">Built for clarity, not complexity</h2>
+      <p class="intro-philosophy__body">
+        Most budgeting tools overwhelm you with categories, charts, and noise.
+        Budget Peace focuses on one thing: showing you what's actually left — clearly, across your pay periods.
+      </p>
+    </div>
+  </section>
+
+  <!-- Feature Sections -->
+  <div id="features">
+    <section class="feature-section">
+      <div class="container">
+        <div class="feature-row">
+          <div class="feature-row__img">
+            <img src="/screenshots/IMG_7156.PNG" alt="Pay Period view" />
+          </div>
+          <div class="feature-row__text">
+            <div class="section-label">Pay Period</div>
+            <div class="section-title">See exactly what's left</div>
+            <p class="section-sub">Every pay period, instantly know what remains after your real expenses — no guessing.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="feature-section">
+      <div class="container">
+        <div class="feature-row feature-row--reverse">
+          <div class="feature-row__img">
+            <img src="/screenshots/IMG_7160.PNG" alt="Compare scenarios" />
+          </div>
+          <div class="feature-row__text">
+            <div class="section-label">Compare</div>
+            <div class="section-title">Make better financial decisions</div>
+            <p class="section-sub">Compare scenarios side by side and see how different choices impact your money over time.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="feature-section">
+      <div class="container">
+        <div class="feature-row">
+          <div class="feature-row__img">
+            <img src="/screenshots/IMG_7155.PNG" alt="Budgets view" />
+          </div>
+          <div class="feature-row__text">
+            <div class="section-label">Budgets</div>
+            <div class="section-title">Plan across time, not guesses</div>
+            <p class="section-sub">Map every pay period with income, expenses, and remaining so nothing surprises you.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
 
   <hr class="divider" />
 
@@ -482,11 +703,26 @@
       <div class="section-label">Built for real situations</div>
       <div class="section-title">When you need clarity most</div>
       <div class="use-cases__grid">
-        <div class="use-case-pill">Moving to a new city</div>
-        <div class="use-case-pill">Planning a trip</div>
-        <div class="use-case-pill">Managing subscriptions</div>
-        <div class="use-case-pill">Surviving paycheck to paycheck</div>
-        <div class="use-case-pill">Working toward a savings goal</div>
+        <div class="use-case-pill">
+          <div class="use-case-pill__title">Moving to a new city</div>
+          <div class="use-case-pill__desc">Estimate new rent, adjust recurring costs, and see what actually remains.</div>
+        </div>
+        <div class="use-case-pill">
+          <div class="use-case-pill__title">Planning a trip</div>
+          <div class="use-case-pill__desc">Add the one-time cost, see the impact on your next few paychecks.</div>
+        </div>
+        <div class="use-case-pill">
+          <div class="use-case-pill__title">Managing subscriptions</div>
+          <div class="use-case-pill__desc">Track every recurring charge in one place so nothing slips through.</div>
+        </div>
+        <div class="use-case-pill">
+          <div class="use-case-pill__title">Surviving paycheck to paycheck</div>
+          <div class="use-case-pill__desc">Know exactly what's left after bills, every pay period.</div>
+        </div>
+        <div class="use-case-pill">
+          <div class="use-case-pill__title">Working toward a savings goal</div>
+          <div class="use-case-pill__desc">Model different scenarios to find where the money comes from.</div>
+        </div>
       </div>
     </div>
   </section>
@@ -507,20 +743,6 @@
       </div>
 
       <div class="pricing__grid">
-        <!-- Basic -->
-        <div class="pricing-card">
-          <div class="pricing-card__name">Basic</div>
-          <div class="pricing-card__price" data-monthly="$4.99<span>/mo</span>" data-lifetime="$59.99<span> one-time</span>">$4.99<span>/mo</span></div>
-          <div class="pricing-card__note" data-monthly="or $59.99 lifetime" data-lifetime="or $4.99/mo">or $59.99 lifetime</div>
-          <ul class="pricing-card__features">
-            <li>1 scenario</li>
-            <li>Up to 8 expenses</li>
-            <li>3-month projections</li>
-            <li>Pay period tracking</li>
-          </ul>
-          <button class="btn btn--ghost checkout-cta" data-plan="budget-monthly" data-plan-monthly="budget-monthly" data-plan-lifetime="budget-lifetime" style="width:100%;">Get started</button>
-        </div>
-
         <!-- Pro -->
         <div class="pricing-card pricing-card--featured">
           <div class="pricing-card__badge">Recommended</div>
@@ -534,6 +756,20 @@
             <li>Financial health &amp; notes</li>
           </ul>
           <button class="btn btn--solid checkout-cta" data-plan="pro-monthly" data-plan-monthly="pro-monthly" data-plan-lifetime="pro-lifetime" style="width:100%;">Go Pro</button>
+        </div>
+
+        <!-- Basic -->
+        <div class="pricing-card">
+          <div class="pricing-card__name">Basic</div>
+          <div class="pricing-card__price" data-monthly="$4.99<span>/mo</span>" data-lifetime="$59.99<span> one-time</span>">$4.99<span>/mo</span></div>
+          <div class="pricing-card__note" data-monthly="or $59.99 lifetime" data-lifetime="or $4.99/mo">or $59.99 lifetime</div>
+          <ul class="pricing-card__features">
+            <li>1 scenario</li>
+            <li>Up to 8 expenses</li>
+            <li>3-month projections</li>
+            <li>Pay period tracking</li>
+          </ul>
+          <button class="btn btn--ghost checkout-cta" data-plan="budget-monthly" data-plan-monthly="budget-monthly" data-plan-lifetime="budget-lifetime" style="width:100%;">Get started</button>
         </div>
       </div>
     </div>
@@ -551,17 +787,59 @@
   <hr class="divider" />
 
   <!-- Cross-sell: How Much Do I Need? -->
-  <section style="padding:var(--space-7) 0;text-align:center;">
+  <section style="padding:var(--space-7) 0;">
     <div class="container">
-      <div class="section-label">Related</div>
-      <div class="section-title" style="margin-bottom:var(--space-3);">How Much Do I Need?</div>
-      <p class="section-sub" style="margin:0 auto var(--space-5);">
-        Trying to figure out what income you need to support your lifestyle?
-        This free calculator works backward from your expenses.
-      </p>
-      <a href="https://howmuchdoineed.us" target="_blank" rel="noopener" class="btn btn--ghost">
-        Try it free
-      </a>
+      <div class="crosssell-card">
+        <div class="section-label">From Our Toolkit</div>
+        <div class="section-title" style="margin-bottom:var(--space-3);">How Much Do I Need?</div>
+        <p class="section-sub" style="margin:0 auto var(--space-5);">
+          Plan your income before you even start budgeting.
+          This free calculator works backward from your expenses to find the number you actually need to earn.
+        </p>
+        <a href="https://howmuchdoineed.us" target="_blank" rel="noopener" class="btn btn--solid">
+          Open Calculator &rarr;
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- FAQ -->
+  <section class="faq">
+    <div class="container">
+      <div class="section-label">Questions</div>
+      <div class="section-title">Frequently asked</div>
+      <div class="faq__list">
+        <div class="faq__item">
+          <button class="faq__question">
+            Do I need to connect my bank?
+            <svg class="faq__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <div class="faq__answer"><div class="faq__answer-inner">No. Everything is manual and intentional. You enter your own numbers, so there's nothing to connect and nothing to sync.</div></div>
+        </div>
+        <div class="faq__item">
+          <button class="faq__question">
+            Is this better than spreadsheets?
+            <svg class="faq__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <div class="faq__answer"><div class="faq__answer-inner">Yes. It's structured around pay periods and real-world timing — not rows and columns. You get clarity without building formulas.</div></div>
+        </div>
+        <div class="faq__item">
+          <button class="faq__question">
+            Can I compare different life scenarios?
+            <svg class="faq__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <div class="faq__answer"><div class="faq__answer-inner">Yes. You can model multiple situations — a new job, a different city, cutting expenses — and see exactly how they play out across your pay periods.</div></div>
+        </div>
+        <div class="faq__item">
+          <button class="faq__question">
+            What happens if I skip a day or period?
+            <svg class="faq__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <div class="faq__answer"><div class="faq__answer-inner">Nothing breaks. The app adapts to your pace. Come back whenever you need clarity — your data is always there.</div></div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -572,6 +850,15 @@
     </div>
   </footer>
 
+  <!-- Video Modal -->
+  <div class="video-modal" id="video-modal">
+    <div class="video-modal__backdrop"></div>
+    <div class="video-modal__content">
+      <button class="video-modal__close" aria-label="Close">&times;</button>
+      <video id="modal-video" loop playsinline controls src="/hero-vid.mp4"></video>
+    </div>
+  </div>
+
   <script>
     // Billing toggle (Monthly / Lifetime)
     let currentBilling = 'monthly';
@@ -580,7 +867,6 @@
       btn.addEventListener('click', () => {
         currentBilling = btn.dataset.billing;
 
-        // Update toggle pill styles
         document.querySelectorAll('.billing-toggle__btn').forEach(b => {
           const isActive = b.dataset.billing === currentBilling;
           b.classList.toggle('is-active', isActive);
@@ -588,7 +874,6 @@
           b.style.color = isActive ? '#fff' : 'var(--lp-muted, #94a3b8)';
         });
 
-        // Update prices, notes, and CTA plan keys
         document.querySelectorAll('.pricing-card__price[data-' + currentBilling + ']').forEach(el => {
           el.innerHTML = el.dataset[currentBilling];
         });
@@ -622,6 +907,51 @@
           btn.disabled = false;
           btn.textContent = originalText;
           alert('Unable to start checkout. Please try again.');
+        }
+      });
+    });
+
+    // Video modal
+    const modal = document.getElementById('video-modal');
+    const modalVideo = document.getElementById('modal-video');
+    const heroVideo = document.querySelector('.hero-demo video');
+
+    function openModal() {
+      modal.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+      modalVideo.currentTime = heroVideo.currentTime;
+      modalVideo.play();
+    }
+    function closeModal() {
+      modal.classList.remove('is-open');
+      document.body.style.overflow = '';
+      modalVideo.pause();
+    }
+
+    document.getElementById('hero-demo').addEventListener('click', openModal);
+    modal.querySelector('.video-modal__backdrop').addEventListener('click', closeModal);
+    modal.querySelector('.video-modal__close').addEventListener('click', closeModal);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
+    });
+
+    // FAQ accordion
+    document.querySelectorAll('.faq__question').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = btn.parentElement;
+        const answer = item.querySelector('.faq__answer');
+        const isOpen = item.classList.contains('is-open');
+
+        // Close all
+        document.querySelectorAll('.faq__item').forEach(i => {
+          i.classList.remove('is-open');
+          i.querySelector('.faq__answer').style.maxHeight = null;
+        });
+
+        // Open clicked (if it was closed)
+        if (!isOpen) {
+          item.classList.add('is-open');
+          answer.style.maxHeight = answer.scrollHeight + 'px';
         }
       });
     });

@@ -137,6 +137,7 @@ const Store = (() => {
     periods:   () => `/api/budgets/${userId()}?scenario=${_activeScenario}`,
     expenses:  () => `/api/expenses/${userId()}?scenario=${_activeScenario}`,
     cards:     () => `/api/cards/${userId()}`,
+    banks:     () => `/api/banks/${userId()}`,
     goals:     () => `/api/goals/${userId()}`,
     scenarios: () => `/api/scenarios/${userId()}`,
     scenario:  () => `/api/scenarios/${userId()}/${_activeScenario}`,

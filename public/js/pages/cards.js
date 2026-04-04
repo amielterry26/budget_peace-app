@@ -411,7 +411,8 @@ function openBankSheet() {
         const res = await authFetch(`/api/banks/${userId()}/${bankId}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Delete failed');
         Store.invalidate('banks');
-        _banks = await Store.get('banks');
+        Store.invalidate('cards');
+        [_banks, _cards] = await Promise.all([Store.get('banks'), Store.get('cards')]);
         if (_selectedBank === bankId) _selectedBank = null;
         closeSheet();
         renderCardsPage();

@@ -8,6 +8,7 @@ let _expScenario = null;
 let _expFilter   = 'current'; // 'current' or 'upcoming'
 let _expCards    = [];
 let _expBanks    = [];
+let _expSort     = 'amount-desc'; // persists across filter toggles
 
 Router.register('expenses', async () => {
   document.getElementById('page-title').textContent = 'Expenses';
@@ -86,8 +87,15 @@ function renderExpensesList() {
     ? `${_expenses.length} of ${maxExp} expenses used · ${money(filteredTotal)}/mo`
     : `${filtered.length} expense${filtered.length !== 1 ? 's' : ''} · ${money(filteredTotal)}/mo`;
   const summaryHtml = `
-    <div class="text-muted text-sm" style="text-align:center;padding:var(--space-2) 0;">
-      ${expUsage}${isExpLimited && _expenses.length >= maxExp ? ' · <a href="javascript:void(0)" class="exp-usage-upgrade" style="color:var(--color-accent);font-weight:600;">Upgrade for more</a>' : ''}
+    <div class="exp-sort-bar">
+      <span class="text-muted text-sm">${expUsage}${isExpLimited && _expenses.length >= maxExp ? ' · <a href="javascript:void(0)" class="exp-usage-upgrade" style="color:var(--color-accent);font-weight:600;">Upgrade for more</a>' : ''}</span>
+      <select class="exp-sort-select" id="exp-sort">
+        <option value="amount-desc" ${_expSort === 'amount-desc' ? 'selected' : ''}>Highest</option>
+        <option value="amount-asc"  ${_expSort === 'amount-asc'  ? 'selected' : ''}>Lowest</option>
+        <option value="name-asc"    ${_expSort === 'name-asc'    ? 'selected' : ''}>A–Z</option>
+        <option value="newest"      ${_expSort === 'newest'      ? 'selected' : ''}>Newest</option>
+        <option value="oldest"      ${_expSort === 'oldest'      ? 'selected' : ''}>Oldest</option>
+      </select>
     </div>`;
 
   const notesHtml = _expScenario ? notesCardHtml('exp') : '';
@@ -114,11 +122,18 @@ function renderExpensesList() {
       ${notesHtml}
       ${toggleHtml}
       ${summaryHtml}
-      <div class="stack--3">${filtered.map(buildPill).join('')}</div>
+      <div class="stack--3">${sortExpenses(filtered).map(buildPill).join('')}</div>
     </div>`;
 
   if (_expScenario) mountNotesWidget('exp', _expScenario.scenarioId, _expScenario.notes);
   bindFilterToggle();
+
+  // Wire sort select
+  document.getElementById('exp-sort')?.addEventListener('change', ev => {
+    _expSort = ev.target.value;
+    renderExpensesList();
+    bindExpensesFab();
+  });
 
   // Wire usage upgrade link
   document.querySelectorAll('.exp-usage-upgrade').forEach(el => {
@@ -550,6 +565,18 @@ async function confirmDelete(expense) {
 
 // ---- Helpers -----------------------------------------------
 // localToday(), esc(), fmtRange(), userId(), dueDayInPeriod(), Store, expMultiplier() provided by shared.js
+
+function sortExpenses(arr) {
+  const s = arr.slice();
+  switch (_expSort) {
+    case 'amount-desc': return s.sort((a, b) => b.amount - a.amount);
+    case 'amount-asc':  return s.sort((a, b) => a.amount - b.amount);
+    case 'name-asc':    return s.sort((a, b) => a.name.localeCompare(b.name));
+    case 'newest':      return s.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+    case 'oldest':      return s.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+    default:            return s;
+  }
+}
 
 function expMonthlyTotal(expenses) {
   let total = 0;

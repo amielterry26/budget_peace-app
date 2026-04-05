@@ -1092,8 +1092,10 @@ img  { display: block; max-width: 100%; }
   padding:     var(--space-3) var(--space-4);
 }
 
-.expense-pill__name   { flex: 1; font-weight: var(--font-weight-medium); }
-.expense-pill__amount { font-weight: var(--font-weight-semi); }
+.expense-pill__name        { flex: 1; font-weight: var(--font-weight-medium); }
+.expense-pill__amount-wrap { text-align: right; flex-shrink: 0; }
+.expense-pill__amount      { font-weight: var(--font-weight-semi); }
+.expense-pill__mo-hint     { font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-top: 1px; }
 .expense-pill__chevron {
   color:      var(--color-text-secondary);
   font-size:  12px;

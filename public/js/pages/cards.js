@@ -15,6 +15,8 @@ const CARD_PALETTES = [
   'linear-gradient(135deg, #6B3FA0 0%, #3D1B6E 100%)',
   'linear-gradient(135deg, #B5451B 0%, #7A1A0E 100%)',
   'linear-gradient(135deg, #1B4B82 0%, #0A2647 100%)',
+  'linear-gradient(135deg, #111111 0%, #2C2C2C 100%)',  // Black
+  'linear-gradient(135deg, #C0C0C0 0%, #8A9BA8 100%)',  // Silver
 ];
 
 const BANK_COLORS = [

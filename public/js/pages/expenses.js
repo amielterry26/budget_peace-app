@@ -207,6 +207,13 @@ function buildPill(e) {
     : '';
   const cardLabel  = linkedCard ? `${esc(linkedCard.name)} •••• ${esc(linkedCard.lastFour)}` : '—';
 
+  let moHint = '';
+  if (isRecurring) {
+    const freq = e.recurrenceFrequency;
+    if (freq === 'weekly')    moHint = `<div class="expense-pill__mo-hint">×4 · ${money(e.amount * 4)}/mo</div>`;
+    else if (freq === 'biweekly') moHint = `<div class="expense-pill__mo-hint">×2 · ${money(e.amount * 2)}/mo</div>`;
+  }
+
   let dueMeta = '';
   if (isRecurring && e.dueDay) {
     dueMeta = `<div class="expense-pill__meta-item">
@@ -234,7 +241,10 @@ function buildPill(e) {
     <div class="expense-pill" id="pill-${e.expenseId}">
       <div class="expense-pill__header">
         <div class="expense-pill__name">${esc(e.name)}${bankTag}</div>
-        <span class="expense-pill__amount">${money(e.amount)}</span>
+        <div class="expense-pill__amount-wrap">
+          <span class="expense-pill__amount">${money(e.amount)}</span>
+          ${moHint}
+        </div>
         <span class="expense-pill__chevron">▼</span>
       </div>
       <div class="expense-pill__details">

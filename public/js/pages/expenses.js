@@ -207,12 +207,28 @@ function buildPill(e) {
     : '';
   const cardLabel  = linkedCard ? `${esc(linkedCard.name)} •••• ${esc(linkedCard.lastFour)}` : '—';
 
-  let moHint = '';
+  // Collapsed: cadence badge (label only, no math)
+  const cadenceMap = { weekly: 'weekly', biweekly: 'bi-weekly', monthly: 'monthly' };
+  const cadenceBadge = isRecurring
+    ? `<span class="expense-pill__cadence">${cadenceMap[e.recurrenceFrequency] || 'recurring'}</span>`
+    : `<span class="expense-pill__cadence">one-time</span>`;
+
+  // Expanded: monthly total (only when it differs from the entered amount)
+  let moMeta = '';
   if (isRecurring) {
     const freq = e.recurrenceFrequency;
-    if (freq === 'weekly')         moHint = `<span class="expense-pill__mo-hint">· ×4/mo</span>`;
-    else if (freq === 'biweekly')  moHint = `<span class="expense-pill__mo-hint">· ×2/mo</span>`;
-    else if (e.splitBiweekly)     moHint = `<span class="expense-pill__mo-hint">· ÷2/period</span>`;
+    let moAmt = null;
+    if (freq === 'weekly')        moAmt = e.amount * 4;
+    else if (freq === 'biweekly') moAmt = e.amount * 2;
+    else if (e.splitBiweekly)     moAmt = e.amount; // entered IS monthly; show per-period instead
+    if (moAmt !== null) {
+      const moLabel = e.splitBiweekly ? 'Per period' : 'Monthly total';
+      const moVal   = e.splitBiweekly ? money(e.amount / 2) : money(moAmt);
+      moMeta = `<div class="expense-pill__meta-item">
+        <div class="expense-pill__meta-label">${moLabel}</div>
+        <div class="expense-pill__meta-value">${moVal}</div>
+      </div>`;
+    }
   }
 
   let dueMeta = '';
@@ -243,8 +259,8 @@ function buildPill(e) {
       <div class="expense-pill__header">
         <div class="expense-pill__name">${esc(e.name)}${bankTag}</div>
         <div class="expense-pill__amount-wrap">
+          ${cadenceBadge}
           <span class="expense-pill__amount">${money(e.amount)}</span>
-          ${moHint}
         </div>
         <span class="expense-pill__chevron">▼</span>
       </div>
@@ -254,6 +270,7 @@ function buildPill(e) {
             <div class="expense-pill__meta-label">Recurrence</div>
             <div class="expense-pill__meta-value">${recurrenceLabel}</div>
           </div>
+          ${moMeta}
           <div class="expense-pill__meta-item">
             <div class="expense-pill__meta-label">Period</div>
             <div class="expense-pill__meta-value">${periodLabel}</div>

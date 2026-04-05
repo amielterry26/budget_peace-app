@@ -101,11 +101,11 @@ function renderHealth(months) {
             <div class="period-detail__bar-label">${spendPct}% of income spent</div>
             ${periodItems.length ? `
             <div class="period-bills-preview">
-              <div class="period-bills-preview__header">Bills this period <span class="period-bills-preview__unit">· pay period</span></div>
+              <div class="period-bills-preview__header">Bills this period</div>
               ${periodItems.map((it, i) => `
               <div class="period-bill-card" data-bill-idx="${i}">
                 <span class="period-bill-card__name">${esc(it.name)}</span>
-                <span class="period-bill-card__amount">${money(it.periodAmount)}${it.splitBiweekly ? '<span class="period-bill-card__split">÷2</span>' : ''}</span>
+                <span class="period-bill-card__amount">${money(it.periodAmount)}</span>
               </div>`).join('')}
             </div>` : ''}
           </div>
@@ -260,18 +260,11 @@ function buildMonthlyBills(recurring) {
 
   recurring = recurring.slice().sort((a, b) => calcMonthlyAmt(b) - calcMonthlyAmt(a));
 
-  const uniqueFreqs = [...new Set(recurring.map(e => e.recurrenceFrequency || 'monthly'))];
-  const showFreq = uniqueFreqs.length > 1;
-
-  const freqLabel = { weekly: 'weekly', biweekly: 'bi-weekly', monthly: 'monthly' };
-
   const buildRow = e => {
-    const freq = e.recurrenceFrequency || 'monthly';
-    const amt  = calcMonthlyAmt(e);
+    const amt = calcMonthlyAmt(e);
     return `
       <div class="overview-row">
         <span class="overview-row__name">${esc(e.name)}</span>
-        ${showFreq ? `<span class="overview-row__freq">${freqLabel[freq] || freq}</span>` : ''}
         <span class="overview-row__amount">${money(amt)}<span style="font-size:10px;color:var(--color-text-secondary);">/mo</span></span>
       </div>`;
   };

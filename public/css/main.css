@@ -13,7 +13,7 @@
   --color-border:       #E3E8EE;
 
   --color-text-primary:   #0F172A;
-  --color-text-secondary: #64748B;
+  --color-text-secondary: #475569;
   --color-text-inverse:   #FFFFFF;
 
   --color-accent:       #4A7C59;   /* sage green */
@@ -27,8 +27,8 @@
 
   /* Typography */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-size-xs:  11px;
-  --font-size-sm:  13px;
+  --font-size-xs:  12px;
+  --font-size-sm:  14px;
   --font-size-md:  15px;
   --font-size-lg:  18px;
   --font-size-xl:  24px;
@@ -1094,7 +1094,7 @@ img  { display: block; max-width: 100%; }
 
 .expense-pill__name        { flex: 1; font-weight: var(--font-weight-medium); }
 .expense-pill__amount-wrap { flex-shrink: 0; display: flex; align-items: baseline; gap: 5px; justify-content: flex-end; }
-.expense-pill__amount      { font-weight: var(--font-weight-semi); }
+.expense-pill__amount      { font-size: 16px; font-weight: var(--font-weight-bold); }
 .expense-pill__cadence     { display: inline-block; font-size: 10px; font-weight: var(--font-weight-normal); color: var(--color-text-secondary); background: transparent; border: 1px solid var(--color-border); border-radius: 999px; padding: 1px 6px; white-space: nowrap; line-height: 1.4; }
 .expense-pill__chevron {
   color:      var(--color-text-secondary);

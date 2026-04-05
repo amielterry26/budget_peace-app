@@ -228,7 +228,7 @@ img  { display: block; max-width: 100%; }
   display:     flex;
   align-items: center;
   gap:         var(--space-3);
-  padding:     var(--space-3) var(--space-6);
+  padding:     14px var(--space-6);
   font-size:   var(--font-size-md);
   font-weight: var(--font-weight-medium);
   color:       var(--color-text-secondary);
@@ -236,19 +236,23 @@ img  { display: block; max-width: 100%; }
   text-align:  left;
   transition:  background var(--transition-fast), color var(--transition-fast);
 }
-.side-nav__link:hover,
-.side-nav__link.is-active {
+.side-nav__link:hover {
   background: var(--color-accent-light);
   color:      var(--color-accent-dark);
 }
-.side-nav__link .nav-icon { width: 22px; text-align: center; }
+.side-nav__link.is-active {
+  background:  var(--color-accent-light);
+  color:       var(--color-accent-dark);
+  font-weight: var(--font-weight-semi);
+}
+.side-nav__link .nav-icon { width: 22px; text-align: center; font-size: 18px; }
 .side-nav__footer {
   padding:    var(--space-3) 0;
   border-top: 1px solid var(--color-border);
 }
 .side-nav__footer .side-nav__link {
   padding:   10px var(--space-6);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
 }
 
 /* --- Bottom Pill Nav --------------------------------------- */

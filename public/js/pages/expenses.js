@@ -216,7 +216,7 @@ function buildPill(e) {
   }
 
   let dueMeta = '';
-  if (isRecurring && e.dueDay) {
+  if (isRecurring && e.dueDay && !e.splitBiweekly) {
     dueMeta = `<div class="expense-pill__meta-item">
       <div class="expense-pill__meta-label">Due</div>
       <div class="expense-pill__meta-value">Day ${e.dueDay}</div>

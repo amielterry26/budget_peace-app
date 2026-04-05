@@ -218,9 +218,15 @@ function calcPdExpenses(expenses, period) {
 
       const freq = e.recurrenceFrequency || 'monthly';
       let mult;
-      // Monthly expense in biweekly period: only count if dueDay falls in this period
+      let isSplit = false;
+      // Monthly expense in biweekly period: split evenly or place by dueDay
       if (freq === 'monthly' && cadence === 'biweekly') {
-        mult = dueDayInPeriod(e.dueDay || 1, period) ? 1 : 0;
+        if (e.splitBiweekly) {
+          isSplit = true;
+          mult = 0.5;
+        } else {
+          mult = dueDayInPeriod(e.dueDay || 1, period) ? 1 : 0;
+        }
       } else {
         mult = expMultiplier(freq, cadence);
       }
@@ -228,7 +234,9 @@ function calcPdExpenses(expenses, period) {
       total += dispAmt;
 
       let note = null;
-      if (freq === 'monthly' && cadence === 'biweekly' && mult === 0) {
+      if (isSplit) {
+        note = `÷2 · ${pdMoney(e.amount)}/mo`;
+      } else if (freq === 'monthly' && cadence === 'biweekly' && mult === 0) {
         note = 'Due in other period';
       } else if (mult !== 1) {
         const short = freq === 'weekly' ? 'wk' : freq === 'biweekly' ? '2wk' : 'mo';

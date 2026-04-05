@@ -322,9 +322,13 @@ function calcPeriodExp(expenses, period, cadence) {
       const startDate = e.recurrenceStartDate || '1970-01-01';
       if (startDate > period.endDate) continue;
       const freq = e.recurrenceFrequency || 'monthly';
-      // Monthly expense in biweekly period: only count if dueDay falls in this period
+      // Monthly expense in biweekly period: split evenly or place by dueDay
       if (freq === 'monthly' && cadence === 'biweekly') {
-        if (dueDayInPeriod(e.dueDay || 1, period)) total += e.amount;
+        if (e.splitBiweekly) {
+          total += e.amount / 2;
+        } else if (dueDayInPeriod(e.dueDay || 1, period)) {
+          total += e.amount;
+        }
       } else {
         total += e.amount * expMultiplier(freq, cadence);
       }
@@ -346,7 +350,9 @@ function getPeriodItems(expenses, period, cadence) {
       if (startDate > period.endDate) continue;
       const freq = e.recurrenceFrequency || 'monthly';
       if (freq === 'monthly' && cadence === 'biweekly') {
-        if (dueDayInPeriod(e.dueDay || 1, period)) {
+        if (e.splitBiweekly) {
+          items.push({ ...e, periodAmount: Math.round(e.amount / 2 * 100) / 100 });
+        } else if (dueDayInPeriod(e.dueDay || 1, period)) {
           items.push({ ...e, periodAmount: e.amount });
         }
       } else {

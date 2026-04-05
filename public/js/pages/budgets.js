@@ -49,8 +49,9 @@ Router.register('budgets', async () => {
           const startDate = e.recurrenceStartDate || '1970-01-01';
           if (startDate > p.endDate) return sum;
           const freq = e.recurrenceFrequency || 'monthly';
-          // Monthly expense in biweekly period: only count if dueDay falls in this period
+          // Monthly expense in biweekly period: split evenly or place by dueDay
           if (freq === 'monthly' && cadence === 'biweekly') {
+            if (e.splitBiweekly) return sum + e.amount / 2;
             return dueDayInPeriod(e.dueDay || 1, p) ? sum + e.amount : sum;
           }
           return sum + e.amount * expMultiplier(freq, cadence);

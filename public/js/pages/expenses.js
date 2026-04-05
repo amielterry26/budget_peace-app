@@ -210,8 +210,9 @@ function buildPill(e) {
   let moHint = '';
   if (isRecurring) {
     const freq = e.recurrenceFrequency;
-    if (freq === 'weekly')    moHint = `<div class="expense-pill__mo-hint">×4 · ${money(e.amount * 4)}/mo</div>`;
-    else if (freq === 'biweekly') moHint = `<div class="expense-pill__mo-hint">×2 · ${money(e.amount * 2)}/mo</div>`;
+    if (freq === 'weekly')         moHint = `<div class="expense-pill__mo-hint">×4 · ${money(e.amount * 4)}/mo</div>`;
+    else if (freq === 'biweekly')  moHint = `<div class="expense-pill__mo-hint">×2 · ${money(e.amount * 2)}/mo</div>`;
+    else if (e.splitBiweekly)     moHint = `<div class="expense-pill__mo-hint">÷2 · ${money(e.amount / 2)}/period</div>`;
   }
 
   let dueMeta = '';
@@ -332,9 +333,13 @@ async function openSheet(expense, onSave) {
   const initStart   = editing ? (expense.recurrenceStartDate || today) : today;
   const initDueDay  = editing ? (expense.dueDay || (expense.recurrenceFrequency === 'monthly' ? new Date().getDate() : '')) : '';
   const initDueDate = editing ? (expense.dueDate || '') : '';
+  const initSplit   = editing ? !!expense.splitBiweekly : false;
+
+  // Determine if user is on biweekly pay cadence (split option only relevant then)
+  const isBiweekly = _periods.length > 0 && inferCadence(_periods[0]) === 'biweekly';
 
   // Due day label depends on frequency
-  const dueDayRequired = initFreq === 'monthly';
+  const dueDayRequired = initFreq === 'monthly' && !initSplit;
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="sheet-overlay" class="sheet-overlay"></div>
@@ -392,10 +397,17 @@ async function openSheet(expense, onSave) {
             <label class="form-label" for="sh-start-date">Start date</label>
             <input class="form-input" id="sh-start-date" type="date" value="${initStart}" />
           </div>
-          <div class="form-group">
+          <div class="form-group" id="sh-due-day-group" style="display:${initSplit ? 'none' : 'block'}">
             <label class="form-label" for="sh-due-day" id="sh-due-day-label">Due date ${dueDayRequired ? '' : '<span class="text-muted">(optional, 1–31)</span>'}</label>
             <input class="form-input" id="sh-due-day" type="number" min="1" max="31"
               placeholder="e.g. 15" value="${initDueDay}" />
+          </div>
+          <div class="form-group" id="sh-split-row" style="display:${isBiweekly && initFreq === 'monthly' ? 'flex' : 'none'};align-items:center;gap:var(--space-3);">
+            <input type="checkbox" id="sh-split" style="width:18px;height:18px;cursor:pointer;flex-shrink:0;" ${initSplit ? 'checked' : ''} />
+            <label for="sh-split" style="cursor:pointer;margin:0;">
+              <span class="form-label" style="margin:0;">Split across both pay periods</span>
+              <div class="text-muted text-xs" style="margin-top:2px;">Show ½ amount each biweekly period</div>
+            </label>
           </div>
         </div>
 
@@ -432,10 +444,24 @@ async function openSheet(expense, onSave) {
   let selectedRecurrence = isRecurring ? 'recurring' : 'once';
   let selectedFreq       = initFreq;
 
-  function updateDueDayLabel() {
-    const label = document.getElementById('sh-due-day-label');
+  function updateDueDayVisibility() {
+    const label    = document.getElementById('sh-due-day-label');
+    const splitRow = document.getElementById('sh-split-row');
+    const dueDayGrp = document.getElementById('sh-due-day-group');
+    const splitChk = document.getElementById('sh-split');
     if (!label) return;
-    if (selectedFreq === 'monthly') {
+
+    const isMonthly = selectedFreq === 'monthly';
+    const isSplitNow = splitChk?.checked || false;
+
+    // Show split toggle only for monthly on biweekly schedule
+    if (splitRow) splitRow.style.display = (isBiweekly && isMonthly) ? 'flex' : 'none';
+
+    // Show dueDay group when not split
+    if (dueDayGrp) dueDayGrp.style.display = isSplitNow ? 'none' : 'block';
+
+    // Update dueDay label
+    if (isMonthly && !isSplitNow) {
       label.innerHTML = 'Due date';
     } else {
       label.innerHTML = 'Due date <span class="text-muted">(optional, 1–31)</span>';
@@ -459,9 +485,12 @@ async function openSheet(expense, onSave) {
       document.querySelectorAll('#expense-sheet .freq-card').forEach(c => c.classList.remove('is-selected'));
       card.classList.add('is-selected');
       selectedFreq = card.dataset.freq;
-      updateDueDayLabel();
+      updateDueDayVisibility();
     });
   });
+
+  // Split checkbox toggle
+  document.getElementById('sh-split')?.addEventListener('change', updateDueDayVisibility);
 
   const closeSheet = () => {
     document.getElementById('sheet-overlay').classList.remove('is-open');
@@ -496,9 +525,14 @@ async function openSheet(expense, onSave) {
       const startDate = document.getElementById('sh-start-date').value;
       if (!startDate) { alert('Enter a start date.'); return; }
       payload.recurrenceStartDate = startDate;
-      const dueDay = document.getElementById('sh-due-day').value;
-      if (selectedFreq === 'monthly' && !dueDay) { alert('Monthly expenses require a due date (1–31).'); return; }
-      if (dueDay) payload.dueDay = Number(dueDay);
+      const splitChecked = document.getElementById('sh-split')?.checked || false;
+      if (splitChecked && selectedFreq === 'monthly') {
+        payload.splitBiweekly = true;
+      } else {
+        const dueDay = document.getElementById('sh-due-day').value;
+        if (selectedFreq === 'monthly' && !dueDay) { alert('Monthly expenses require a due date (1–31).'); return; }
+        if (dueDay) payload.dueDay = Number(dueDay);
+      }
     } else {
       const dueDate = document.getElementById('sh-due-date').value;
       if (dueDate) payload.dueDate = dueDate;

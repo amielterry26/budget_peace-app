@@ -2054,6 +2054,23 @@ img  { display: block; max-width: 100%; }
 .notes-page-item__actions { display: flex; gap: var(--space-1); flex-shrink: 0; }
 .notes-page-item__textarea { width: 100%; font-size: var(--font-size-sm); line-height: 1.5; resize: vertical; }
 
+/* ---- One-Time Purchases (notes page) --------------------- */
+.purchases-list         { display: flex; flex-direction: column; gap: var(--space-2); }
+.purchase-row           { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); overflow: hidden; }
+.purchase-row__collapsed { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: 12px var(--space-3); cursor: pointer; user-select: none; }
+.purchase-row__collapsed:hover { background: rgba(74,124,89,0.04); }
+.purchase-row__left     { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.purchase-row__name     { font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); line-height: 1.3; }
+.purchase-row__date     { line-height: 1.3; }
+.purchase-row__right    { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
+.purchase-row__price    { font-size: var(--font-size-sm); font-weight: var(--font-weight-semi); color: var(--color-text); }
+.purchase-row__chevron  { color: var(--color-text-secondary); font-size: 12px; }
+.purchase-row__expanded { padding: 0 var(--space-3) var(--space-3); border-top: 1px solid var(--color-border); }
+.purchase-row__note     { color: var(--color-text-secondary); line-height: 1.5; margin: var(--space-2) 0 var(--space-1); }
+.purchase-row__link     { display: inline-block; color: var(--color-accent); text-decoration: none; margin-bottom: var(--space-2); }
+.purchase-row__link:hover { text-decoration: underline; }
+.purchase-row__actions  { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-2); flex-wrap: wrap; }
+
 /* --- Mobile density overrides ----------------------------- */
 @media (max-width: 767px) {
   .sheet .option-card {

@@ -125,7 +125,7 @@ function fmtRange(p) {
 
 // ============================================================
 // Store — lightweight shared data cache
-// Keys: user, periods, expenses, cards, goals, scenarios, scenario
+// Keys: user, periods, expenses, cards, banks, goals, purchases, scenarios, scenario
 // ============================================================
 
 const Store = (() => {
@@ -138,6 +138,7 @@ const Store = (() => {
     expenses:  () => `/api/expenses/${userId()}?scenario=${_activeScenario}`,
     cards:     () => `/api/cards/${userId()}`,
     banks:     () => `/api/banks/${userId()}`,
+    purchases: () => `/api/purchases/${userId()}`,
     goals:     () => `/api/goals/${userId()}`,
     scenarios: () => `/api/scenarios/${userId()}`,
     scenario:  () => `/api/scenarios/${userId()}/${_activeScenario}`,

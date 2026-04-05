@@ -101,11 +101,11 @@ function renderHealth(months) {
             <div class="period-detail__bar-label">${spendPct}% of income spent</div>
             ${periodItems.length ? `
             <div class="period-bills-preview">
-              <div class="period-bills-preview__header">Bills this period</div>
+              <div class="period-bills-preview__header">Bills this period <span class="period-bills-preview__unit">· pay period</span></div>
               ${periodItems.map((it, i) => `
               <div class="period-bill-card" data-bill-idx="${i}">
                 <span class="period-bill-card__name">${esc(it.name)}</span>
-                <span class="period-bill-card__amount">${money(it.periodAmount)}</span>
+                <span class="period-bill-card__amount">${money(it.periodAmount)}${it.splitBiweekly ? '<span class="period-bill-card__split">÷2</span>' : ''}</span>
               </div>`).join('')}
             </div>` : ''}
           </div>

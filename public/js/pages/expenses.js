@@ -210,9 +210,9 @@ function buildPill(e) {
   let moHint = '';
   if (isRecurring) {
     const freq = e.recurrenceFrequency;
-    if (freq === 'weekly')         moHint = `<div class="expense-pill__mo-hint">×4 · ${money(e.amount * 4)}/mo</div>`;
-    else if (freq === 'biweekly')  moHint = `<div class="expense-pill__mo-hint">×2 · ${money(e.amount * 2)}/mo</div>`;
-    else if (e.splitBiweekly)     moHint = `<div class="expense-pill__mo-hint">÷2 · ${money(e.amount / 2)}/period</div>`;
+    if (freq === 'weekly')         moHint = `<span class="expense-pill__mo-hint">· ×4/mo</span>`;
+    else if (freq === 'biweekly')  moHint = `<span class="expense-pill__mo-hint">· ×2/mo</span>`;
+    else if (e.splitBiweekly)     moHint = `<span class="expense-pill__mo-hint">· ÷2/period</span>`;
   }
 
   let dueMeta = '';

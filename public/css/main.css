@@ -1093,9 +1093,9 @@ img  { display: block; max-width: 100%; }
 }
 
 .expense-pill__name        { flex: 1; font-weight: var(--font-weight-medium); }
-.expense-pill__amount-wrap { text-align: right; flex-shrink: 0; }
+.expense-pill__amount-wrap { flex-shrink: 0; display: flex; align-items: baseline; gap: 4px; justify-content: flex-end; }
 .expense-pill__amount      { font-weight: var(--font-weight-semi); }
-.expense-pill__mo-hint     { font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-top: 1px; }
+.expense-pill__mo-hint     { font-size: var(--font-size-xs); color: var(--color-text-secondary); white-space: nowrap; }
 .expense-pill__chevron {
   color:      var(--color-text-secondary);
   font-size:  12px;
@@ -1622,6 +1622,18 @@ img  { display: block; max-width: 100%; }
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-bottom: var(--space-2);
+  }
+  .period-bills-preview__unit {
+    font-weight: var(--font-weight-normal);
+    text-transform: none;
+    letter-spacing: 0;
+    opacity: 0.7;
+  }
+  .period-bill-card__split {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    margin-left: 3px;
+    opacity: 0.8;
   }
   .period-bills-preview__row {
     display: flex;

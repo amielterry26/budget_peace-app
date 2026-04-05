@@ -69,6 +69,10 @@ async function setScenario(scenarioId) {
   Store.invalidate('periods');
   Store.invalidate('expenses');
   Store.invalidate('scenario');
+  Store.invalidate('cards');
+  Store.invalidate('banks');
+  Store.invalidate('purchases');
+  Store.invalidate('goals');
   // Re-render current page
   const { page, params } = Router.parseHash(location.hash);
   Router.render(page, params);
@@ -136,10 +140,10 @@ const Store = (() => {
     user:      () => `/api/users/${userId()}`,
     periods:   () => `/api/budgets/${userId()}?scenario=${_activeScenario}`,
     expenses:  () => `/api/expenses/${userId()}?scenario=${_activeScenario}`,
-    cards:     () => `/api/cards/${userId()}`,
-    banks:     () => `/api/banks/${userId()}`,
-    purchases: () => `/api/purchases/${userId()}`,
-    goals:     () => `/api/goals/${userId()}`,
+    cards:     () => `/api/cards/${userId()}?scenario=${_activeScenario}`,
+    banks:     () => `/api/banks/${userId()}?scenario=${_activeScenario}`,
+    purchases: () => `/api/purchases/${userId()}?scenario=${_activeScenario}`,
+    goals:     () => `/api/goals/${userId()}?scenario=${_activeScenario}`,
     scenarios: () => `/api/scenarios/${userId()}`,
     scenario:  () => `/api/scenarios/${userId()}/${_activeScenario}`,
   };

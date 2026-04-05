@@ -315,7 +315,7 @@ function openCardSheet(card) {
     btn.textContent = 'Saving…';
     btn.disabled = true;
 
-    const payload = { userId: userId(), name, type: selectedType, lastFour, colorIndex: selectedColorIndex, bankId };
+    const payload = { userId: userId(), scenarioId: activeScenario(), name, type: selectedType, lastFour, colorIndex: selectedColorIndex, bankId };
 
     try {
       if (editing) {
@@ -476,7 +476,7 @@ function openBankSheet() {
     try {
       const res = await authFetch('/api/banks', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: userId(), name, note, color: selectedBankColor }),
+        body: JSON.stringify({ userId: userId(), scenarioId: activeScenario(), name, note, color: selectedBankColor }),
       });
       if (!res.ok) throw new Error('Add failed');
       Store.invalidate('banks');

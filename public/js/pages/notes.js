@@ -356,7 +356,7 @@ function openPurchaseSheet(purchase) {
         const res = await authFetch('/api/purchases', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: userId(), ...payload }),
+          body: JSON.stringify({ userId: userId(), scenarioId: activeScenario(), ...payload }),
         });
         if (!res.ok) throw new Error('Create failed');
         const created = await res.json();

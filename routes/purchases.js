@@ -9,15 +9,17 @@ const { verifyOwner } = require('../middleware/auth');
 
 const TABLE = 'bp_purchases';
 
-// GET /api/purchases/:userId
-// Returns all non-archived purchases for the user.
+// GET /api/purchases/:userId?scenario=main
+// Returns all non-archived purchases for the active scenario.
+// Legacy records with no scenarioId are treated as belonging to 'main'.
 router.get('/:userId', verifyOwner, async (req, res) => {
   try {
+    const scenario = req.query.scenario || 'main';
     const result = await db.send(new QueryCommand({
       TableName:                 TABLE,
       KeyConditionExpression:    'userId = :uid',
-      FilterExpression:          'attribute_not_exists(archivedAt)',
-      ExpressionAttributeValues: { ':uid': req.params.userId },
+      FilterExpression:          'attribute_not_exists(archivedAt) AND (scenarioId = :sid OR (attribute_not_exists(scenarioId) AND :sid = :main))',
+      ExpressionAttributeValues: { ':uid': req.params.userId, ':sid': scenario, ':main': 'main' },
     }));
     res.json(result.Items || []);
   } catch (err) {
@@ -30,13 +32,14 @@ router.get('/:userId', verifyOwner, async (req, res) => {
 // Creates a new purchase.
 router.post('/', async (req, res) => {
   try {
-    const { userId, name, price, note, link, targetDate } = req.body;
+    const { userId, scenarioId, name, price, note, link, targetDate } = req.body;
     if (userId && userId !== req.userId) return res.status(403).json({ error: 'Forbidden' });
     if (!userId || !name) return res.status(400).json({ error: 'Missing required fields' });
     const now = new Date().toISOString();
     const item = {
       userId,
       purchaseId: randomUUID(),
+      scenarioId: scenarioId || 'main',
       name,
       price:      price      != null ? Number(price) : null,
       note:       note       || '',

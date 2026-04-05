@@ -9,13 +9,17 @@ const { verifyOwner } = require('../middleware/auth');
 
 const TABLE = 'bp_goals';
 
-// GET /api/goals/:userId
+// GET /api/goals/:userId?scenario=main
+// Returns goals for the active scenario.
+// Legacy records with no scenarioId are treated as belonging to 'main'.
 router.get('/:userId', verifyOwner, async (req, res) => {
   try {
+    const scenario = req.query.scenario || 'main';
     const result = await db.send(new QueryCommand({
       TableName:                 TABLE,
       KeyConditionExpression:    'userId = :uid',
-      ExpressionAttributeValues: { ':uid': req.params.userId },
+      FilterExpression:          'scenarioId = :sid OR (attribute_not_exists(scenarioId) AND :sid = :main)',
+      ExpressionAttributeValues: { ':uid': req.params.userId, ':sid': scenario, ':main': 'main' },
     }));
     res.json(result.Items || []);
   } catch (err) {
@@ -27,7 +31,7 @@ router.get('/:userId', verifyOwner, async (req, res) => {
 // POST /api/goals
 router.post('/', async (req, res) => {
   try {
-    const { userId, name, targetAmount, targetDate, plannedContribution } = req.body;
+    const { userId, scenarioId, name, targetAmount, targetDate, plannedContribution } = req.body;
     // Verify body userId matches authenticated user
     if (userId && userId !== req.userId) {
       return res.status(403).json({ error: 'Forbidden' });
@@ -46,7 +50,9 @@ router.post('/', async (req, res) => {
 
     const goalId = randomUUID();
     const item = {
-      userId, goalId, name,
+      userId, goalId,
+      scenarioId: scenarioId || 'main',
+      name,
       targetAmount:  parsedAmount,
       targetDate,
       currentSaved:  0,

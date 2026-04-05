@@ -11,13 +11,17 @@ const TABLE = 'bp_cards';
 
 router.get('/health', (req, res) => res.json({ ok: true }));
 
-// GET /api/cards/:userId
+// GET /api/cards/:userId?scenario=main
+// Returns cards for the active scenario.
+// Legacy records with no scenarioId are treated as belonging to 'main'.
 router.get('/:userId', verifyOwner, async (req, res) => {
   try {
+    const scenario = req.query.scenario || 'main';
     const result = await db.send(new QueryCommand({
       TableName:                 TABLE,
       KeyConditionExpression:    'userId = :uid',
-      ExpressionAttributeValues: { ':uid': req.params.userId },
+      FilterExpression:          'scenarioId = :sid OR (attribute_not_exists(scenarioId) AND :sid = :main)',
+      ExpressionAttributeValues: { ':uid': req.params.userId, ':sid': scenario, ':main': 'main' },
     }));
     res.json(result.Items || []);
   } catch (err) {
@@ -29,7 +33,7 @@ router.get('/:userId', verifyOwner, async (req, res) => {
 // POST /api/cards
 router.post('/', async (req, res) => {
   try {
-    const { userId, name, type, lastFour, colorIndex, bankId } = req.body;
+    const { userId, scenarioId, name, type, lastFour, colorIndex, bankId } = req.body;
     // Verify body userId matches authenticated user
     if (userId && userId !== req.userId) {
       return res.status(403).json({ error: 'Forbidden' });
@@ -42,6 +46,7 @@ router.post('/', async (req, res) => {
     }
     const item = {
       userId, cardId: randomUUID(),
+      scenarioId: scenarioId || 'main',
       name, type, lastFour: String(lastFour),
       colorIndex: colorIndex ?? 0,
       createdAt:  new Date().toISOString(),

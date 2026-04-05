@@ -182,7 +182,7 @@ function openGoalSheet(goal) {
     btn.disabled = true;
 
     const payload = {
-      userId: userId(), name,
+      userId: userId(), scenarioId: activeScenario(), name,
       targetAmount: Number(targetAmount),
       targetDate,
       ...(planned && { plannedContribution: Number(planned) }),

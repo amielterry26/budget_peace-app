@@ -116,8 +116,9 @@ function wireNotesEvents() {
   // No Enter-to-submit — Enter creates new lines in the textarea
   document.querySelectorAll('.notes-page-item').forEach(item => {
     const noteId = item.dataset.noteId;
-    item.querySelector('.notes-item__edit').addEventListener('click', () => npOpenEditModal(noteId));
-    item.querySelector('.notes-item__del').addEventListener('click', () => npDeleteNote(noteId));
+    item.addEventListener('click', () => npOpenEditModal(noteId));
+    item.querySelector('.notes-item__edit').addEventListener('click', (e) => { e.stopPropagation(); npOpenEditModal(noteId); });
+    item.querySelector('.notes-item__del').addEventListener('click', (e) => { e.stopPropagation(); npDeleteNote(noteId); });
   });
 }
 

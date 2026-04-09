@@ -2048,7 +2048,7 @@ img  { display: block; max-width: 100%; }
 .notes-page-list    { display: flex; flex-direction: column; }
 .notes-page-item    { display: flex; align-items: start; gap: var(--space-3); padding: var(--space-3) var(--space-2);
                       border-bottom: 1px solid var(--color-border); border-left: 2px solid var(--color-accent);
-                      border-radius: 2px 0 0 2px; transition: background var(--transition-fast); }
+                      border-radius: 2px 0 0 2px; transition: background var(--transition-fast); cursor: pointer; }
 .notes-page-item:hover { background: rgba(74,124,89,0.04); }
 .notes-page-item.is-pinned { border-left-width: 3px; }
 .notes-page-item__text { flex: 1; min-width: 0; font-size: var(--font-size-sm); line-height: 1.5; word-break: break-word;

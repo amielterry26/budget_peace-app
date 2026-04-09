@@ -478,7 +478,8 @@ img  { display: block; max-width: 100%; }
   .auth-input,
   .note-detail__textarea,
   .notes-page-item__textarea,
-  .notes-item__input {
+  .notes-item__input,
+  .note-modal__textarea {
     font-size: 16px !important;
   }
 }
@@ -2041,8 +2042,7 @@ img  { display: block; max-width: 100%; }
 .notes-item__edit:hover { color: var(--color-accent); }
 .notes-item__del    { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 2px 4px; font-size: 14px; flex-shrink: 0; }
 .notes-item__del:hover { color: var(--danger); }
-.notes-add          { display: flex; gap: var(--space-2); margin-top: var(--space-2); }
-.notes-add input    { flex: 1; }
+.notes-add          { display: flex; flex-direction: column; gap: 0; margin-top: var(--space-2); }
 
 /* --- Notes Page ------------------------------------------- */
 .notes-page-list    { display: flex; flex-direction: column; }
@@ -2050,9 +2050,13 @@ img  { display: block; max-width: 100%; }
                       border-bottom: 1px solid var(--color-border); border-left: 2px solid var(--color-accent);
                       border-radius: 2px 0 0 2px; transition: background var(--transition-fast); }
 .notes-page-item:hover { background: rgba(74,124,89,0.04); }
-.notes-page-item__text { flex: 1; min-width: 0; font-size: var(--font-size-sm); line-height: 1.5; word-break: break-word; }
-.notes-page-item__actions { display: flex; gap: var(--space-1); flex-shrink: 0; }
-.notes-page-item__textarea { width: 100%; font-size: var(--font-size-sm); line-height: 1.5; resize: vertical; }
+.notes-page-item.is-pinned { border-left-width: 3px; }
+.notes-page-item__text { flex: 1; min-width: 0; font-size: var(--font-size-sm); line-height: 1.5; word-break: break-word;
+                         white-space: pre-line; overflow: hidden; display: -webkit-box;
+                         -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.notes-page-item__actions { display: flex; align-items: center; gap: var(--space-1); flex-shrink: 0; }
+.notes-pin-badge    { font-size: 10px; color: var(--color-text-secondary); opacity: 0.75; white-space: nowrap; }
+.note-modal__textarea { resize: vertical; line-height: 1.65; }
 
 /* ---- One-Time Purchases (notes page) --------------------- */
 .purchases-list         { display: flex; flex-direction: column; gap: var(--space-2); }

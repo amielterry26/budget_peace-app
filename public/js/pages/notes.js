@@ -59,6 +59,13 @@ function renderPage() {
 
 // ---- Notes section -----------------------------------------
 
+function sortedNotes(list) {
+  return [...list].sort((a, b) => {
+    if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+    return new Date(a.createdAt) - new Date(b.createdAt);
+  });
+}
+
 function renderNotesSection() {
   if (!Plans.canUse('scenarioNotes')) {
     return `
@@ -76,10 +83,11 @@ function renderNotesSection() {
   const atLimit = count >= 10;
 
   const listHtml = count
-    ? _notesList.map(n => `
-        <div class="notes-page-item" data-note-id="${esc(n.id)}">
+    ? sortedNotes(_notesList).map(n => `
+        <div class="notes-page-item${n.pinned ? ' is-pinned' : ''}" data-note-id="${esc(n.id)}">
           <span class="notes-page-item__text">${esc(n.text)}</span>
           <div class="notes-page-item__actions">
+            ${n.pinned ? '<span class="notes-pin-badge">pinned</span>' : ''}
             <button class="notes-item__edit" aria-label="Edit note">&#9998;</button>
             <button class="notes-item__del" aria-label="Delete note">&#128465;</button>
           </div>
@@ -94,8 +102,10 @@ function renderNotesSection() {
       <div class="notes-page-list">${listHtml}</div>
       ${!atLimit ? `
       <div class="notes-add" style="margin-top:var(--space-3);">
-        <input class="form-input" type="text" id="np-input" placeholder="Add a note…" maxlength="200" />
-        <button class="btn btn--primary" id="np-add-btn" style="white-space:nowrap;">Add</button>
+        <textarea class="form-input" id="np-input" placeholder="Add a note…" maxlength="500" rows="3"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:var(--space-2);">
+          <button class="btn btn--primary" id="np-add-btn">Add</button>
+        </div>
       </div>` : ''}
     </div>`;
 }
@@ -103,12 +113,10 @@ function renderNotesSection() {
 function wireNotesEvents() {
   document.getElementById('notes-upgrade')?.addEventListener('click', () => Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.notes));
   document.getElementById('np-add-btn')?.addEventListener('click', npAddNote);
-  document.getElementById('np-input')?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); npAddNote(); }
-  });
+  // No Enter-to-submit — Enter creates new lines in the textarea
   document.querySelectorAll('.notes-page-item').forEach(item => {
     const noteId = item.dataset.noteId;
-    item.querySelector('.notes-item__edit').addEventListener('click', () => npStartEdit(noteId, item));
+    item.querySelector('.notes-item__edit').addEventListener('click', () => npOpenEditModal(noteId));
     item.querySelector('.notes-item__del').addEventListener('click', () => npDeleteNote(noteId));
   });
 }
@@ -386,7 +394,7 @@ async function npAddNote() {
   const input = document.getElementById('np-input');
   const text  = (input.value || '').trim();
   if (!text) return;
-  if (text.length > 200) { alert('Note must be 200 characters or less.'); return; }
+  if (text.length > 500) { alert('Note must be 500 characters or less.'); return; }
   input.value = '';
 
   try {
@@ -425,39 +433,94 @@ async function npDeleteNote(noteId) {
   }
 }
 
-function npStartEdit(noteId, item) {
+function npOpenEditModal(noteId) {
   const note = _notesList.find(n => n.id === noteId);
   if (!note) return;
-  const textEl    = item.querySelector('.notes-page-item__text');
-  const actionsEl = item.querySelector('.notes-page-item__actions');
-  const original  = note.text;
 
-  const textarea    = document.createElement('textarea');
-  textarea.className = 'form-input notes-page-item__textarea';
-  textarea.value    = original;
-  textarea.maxLength = 200;
-  textarea.rows     = 2;
-  textEl.replaceWith(textarea);
-  actionsEl.style.display = 'none';
-  textarea.focus();
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="note-modal-overlay" class="sheet-overlay"></div>
+    <div id="note-modal" class="sheet">
+      <div class="sheet__handle"></div>
+      <div class="sheet__title">Note</div>
+      <div class="form-group">
+        <textarea class="form-input note-modal__textarea" id="nm-text" rows="6" maxlength="500">${esc(note.text)}</textarea>
+      </div>
+      <button class="btn btn--ghost" id="nm-pin" style="width:100%;margin-bottom:var(--space-3);">${note.pinned ? 'Unpin' : 'Pin to top'}</button>
+      <div style="display:flex;gap:var(--space-2);">
+        <button class="btn btn--ghost" id="nm-delete" style="flex:1;color:var(--color-danger);">Delete</button>
+        <button class="btn btn--ghost" id="nm-cancel" style="flex:1;">Cancel</button>
+        <button class="btn btn--primary" id="nm-save" style="flex:2;">Save</button>
+      </div>
+    </div>`);
 
-  let saved = false;
-  const save = () => {
-    if (saved) return;
-    saved = true;
-    const newText = textarea.value.trim();
-    if (!newText || newText === original) { renderPage(); return; }
-    if (newText.length > 200) { alert('Note must be 200 characters or less.'); renderPage(); return; }
-    note.text = newText;
-    renderPage();
-    npEditNote(noteId, newText, original);
+  requestAnimationFrame(() => {
+    document.getElementById('note-modal-overlay').classList.add('is-open');
+    document.getElementById('note-modal').classList.add('is-open');
+  });
+
+  const closeModal = () => {
+    const overlay = document.getElementById('note-modal-overlay');
+    const modal   = document.getElementById('note-modal');
+    if (!overlay || !modal) return;
+    overlay.classList.remove('is-open');
+    modal.classList.remove('is-open');
+    modal.addEventListener('transitionend', () => {
+      overlay?.remove();
+      modal?.remove();
+    }, { once: true });
   };
 
-  textarea.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); }
-    if (e.key === 'Escape') { e.preventDefault(); renderPage(); }
+  document.getElementById('nm-cancel').addEventListener('click', closeModal);
+  document.getElementById('note-modal-overlay').addEventListener('click', closeModal);
+
+  document.getElementById('nm-pin').addEventListener('click', async () => {
+    await npPinNote(noteId);
+    closeModal();
+    renderPage();
   });
-  textarea.addEventListener('blur', save);
+
+  document.getElementById('nm-delete').addEventListener('click', () => {
+    closeModal();
+    npDeleteNote(noteId);
+  });
+
+  document.getElementById('nm-save').addEventListener('click', async () => {
+    const newText = document.getElementById('nm-text').value.trim();
+    if (!newText) { document.getElementById('nm-text').focus(); return; }
+    if (newText.length > 500) { alert('Note must be 500 characters or less.'); return; }
+    if (newText === note.text) { closeModal(); return; }
+
+    const btn = document.getElementById('nm-save');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    const oldText = note.text;
+    note.text = newText;
+    closeModal();
+    renderPage();
+    await npEditNote(noteId, newText, oldText);
+  });
+}
+
+async function npPinNote(noteId) {
+  const note = _notesList.find(n => n.id === noteId);
+  if (!note) return;
+  const newPinned = !note.pinned;
+  note.pinned = newPinned;
+
+  try {
+    const res = await authFetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(_notesScenario.scenarioId)}/notes/${encodeURIComponent(noteId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pinned: newPinned }),
+    });
+    if (!res.ok) throw new Error('Pin failed');
+    Store.invalidate('scenario');
+  } catch (err) {
+    note.pinned = !newPinned;
+    console.error(err);
+    alert('Failed to update pin.');
+  }
 }
 
 async function npEditNote(noteId, newText, oldText) {

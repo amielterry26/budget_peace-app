@@ -220,7 +220,7 @@ function notesCardHtml(prefix) {
       <div class="notes-body is-hidden" id="${prefix}-notes-body">
         <div class="notes-list" id="${prefix}-notes-list"></div>
         <div class="notes-add" id="${prefix}-notes-add">
-          <input class="form-input" type="text" id="${prefix}-notes-input" placeholder="Add a note…" maxlength="200" />
+          <input class="form-input" type="text" id="${prefix}-notes-input" placeholder="Add a note…" maxlength="500" />
           <button class="btn btn--primary" id="${prefix}-notes-add-btn" style="white-space:nowrap;">Add</button>
         </div>
       </div>
@@ -281,7 +281,7 @@ function mountNotesWidget(prefix, scenarioId, initialNotes) {
     const input = document.getElementById(`${prefix}-notes-input`);
     const text = (input.value || '').trim();
     if (!text) return;
-    if (text.length > 200) { alert('Note must be 200 characters or less.'); return; }
+    if (text.length > 500) { alert('Note must be 500 characters or less.'); return; }
     input.value = '';
 
     try {
@@ -332,7 +332,7 @@ function mountNotesWidget(prefix, scenarioId, initialNotes) {
     input.type = 'text';
     input.className = 'notes-item__input';
     input.value = original;
-    input.maxLength = 200;
+    input.maxLength = 500;
     textEl.replaceWith(input);
     if (editBtn) editBtn.style.display = 'none';
     if (delBtn) delBtn.style.display = 'none';
@@ -347,7 +347,7 @@ function mountNotesWidget(prefix, scenarioId, initialNotes) {
         render();
         return;
       }
-      if (newText.length > 200) { alert('Note must be 200 characters or less.'); render(); return; }
+      if (newText.length > 500) { alert('Note must be 500 characters or less.'); render(); return; }
       note.text = newText;
       render();
       editNote(noteId, newText, original);

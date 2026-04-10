@@ -387,8 +387,8 @@ async function openSheet(expense, onSave) {
   // Scheduling dropdown shown for biweekly cadence + monthly OR biweekly expense frequency
   const initShowScheduling = isBiweekly && (initFreq === 'monthly' || initFreq === 'biweekly');
 
-  // Due day shown ONLY when scheduling = 'due-date'
-  const initDueDayVisible = initShowScheduling && initAlloc === 'due-date';
+  // Due day shown when: scheduling = 'due-date' (biweekly cadence), OR monthly on non-biweekly cadence (always)
+  const initDueDayVisible = (initShowScheduling && initAlloc === 'due-date') || (!isBiweekly && initFreq === 'monthly');
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="sheet-overlay" class="sheet-overlay"></div>
@@ -455,7 +455,7 @@ async function openSheet(expense, onSave) {
               <select class="form-input form-select" id="sh-scheduling">
                 <option value="due-date"  ${initAlloc === 'due-date'  ? 'selected' : ''}>Due date</option>
                 <option value="split"     ${initAlloc === 'split'     ? 'selected' : ''}>Split across both paychecks</option>
-                ${initFreq === 'monthly' ? `
+                ${(initFreq === 'monthly' || initFreq === 'biweekly') ? `
                 <option value="paycheck1" ${initAlloc === 'paycheck1' ? 'selected' : ''}>1st paycheck only</option>
                 <option value="paycheck2" ${initAlloc === 'paycheck2' ? 'selected' : ''}>2nd paycheck only</option>` : ''}
               </select>
@@ -507,11 +507,12 @@ async function openSheet(expense, onSave) {
   let selectedAlloc      = initAlloc;
 
   function buildSchedulingOptions(freq, currentAlloc) {
-    const isMonthly = freq === 'monthly';
+    const isMonthly    = freq === 'monthly';
+    const isBiweeklyFq = freq === 'biweekly';
     const validOpts = [
       { value: 'due-date',  label: 'Due date' },
       { value: 'split',     label: 'Split across both paychecks' },
-      ...(isMonthly ? [
+      ...((isMonthly || isBiweeklyFq) ? [
         { value: 'paycheck1', label: '1st paycheck only' },
         { value: 'paycheck2', label: '2nd paycheck only' },
       ] : []),
@@ -543,9 +544,10 @@ async function openSheet(expense, onSave) {
       }
     }
 
-    // Due day only shown when scheduling = 'due-date'
-    const showDueDay = showScheduling && selectedAlloc === 'due-date';
+    // Due day shown when: biweekly cadence + scheduling = 'due-date', OR monthly on non-biweekly cadence
+    const showDueDay = (showScheduling && selectedAlloc === 'due-date') || (!isBiweekly && isMonthly);
     if (dueDayGrp) dueDayGrp.style.display = showDueDay ? 'block' : 'none';
+    if (label) label.textContent = (!isBiweekly && isMonthly) ? 'Due date' : 'Due day';
   }
 
   // Recurrence type toggle (exclude freq-card)
@@ -617,8 +619,12 @@ async function openSheet(expense, onSave) {
           if (!dueDay) { alert('Enter a due day (1–31).'); return; }
           payload.dueDay = Number(dueDay);
         }
+      } else if (selectedFreq === 'monthly') {
+        // Monthly on non-biweekly cadence: due day required
+        const dueDay = document.getElementById('sh-due-day').value;
+        if (!dueDay) { alert('Monthly expenses require a due day (1–31).'); return; }
+        payload.dueDay = Number(dueDay);
       }
-      // Weekly/biweekly/non-biweekly-monthly: no extra fields needed
     } else {
       const dueDate = document.getElementById('sh-due-date').value;
       if (dueDate) payload.dueDate = dueDate;

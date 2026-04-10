@@ -901,6 +901,13 @@ img  { display: block; max-width: 100%; }
   line-height:    1.1;
 }
 
+/* Financial Health stat tiles — consistent tonal treatment across breakpoints */
+.home-section-health .proj-tile {
+  background: var(--color-surface-alt);
+  border-color: transparent;
+  box-shadow: none;
+}
+
 /* --- Distribution Bars ------------------------------------- */
 .dist-bar-row {
   display:     flex;
@@ -1076,6 +1083,15 @@ img  { display: block; max-width: 100%; }
   font-weight:    var(--font-weight-bold);
   letter-spacing: -0.02em;
   margin-bottom:  var(--space-5);
+}
+
+/* Expense sheet — light visual hierarchy polish */
+#expense-sheet .form-label {
+  font-weight: var(--font-weight-semi);
+  color: var(--color-text-primary);
+}
+#expense-sheet .option-card {
+  padding: var(--space-4) var(--space-3);
 }
 
 /* --- Expense Pill ------------------------------------------ */
@@ -1324,6 +1340,12 @@ img  { display: block; max-width: 100%; }
   line-height: 1.45;
 }
 
+/* --- Financial Structure — subtle sage atmosphere ----------- */
+.home-section-structure .home-card--center {
+  background: rgba(74,124,89,0.025);
+  border-color: rgba(74,124,89,0.10);
+}
+
 /* --- Financial Health card — collapsible dropdown treatment --- */
 .card.health-card          { border-color: rgba(74,124,89,0.35); }
 .health-card__toggle       { display: flex; align-items: center; justify-content: space-between;
@@ -1332,9 +1354,21 @@ img  { display: block; max-width: 100%; }
 
 /* Collapsible card bodies — margin-top provides spacing when visible; display:none collapses gap */
 #structure-card-body,
-#health-card-body          { margin-top: var(--space-2); }
+#health-card-body,
+#bills-card-body           { margin-top: var(--space-2); }
 #structure-card-body.is-hidden,
-#health-card-body.is-hidden { display: none; }
+#health-card-body.is-hidden,
+#bills-card-body.is-hidden { display: none; }
+
+/* Recurring Bills toggle (mobile collapse) */
+.bills-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+.bills-chevron { font-size: 11px; color: var(--color-text-secondary); }
 
 .health-toolbar {
   display: flex;
@@ -1668,6 +1702,10 @@ img  { display: block; max-width: 100%; }
     box-shadow: 0 12px 40px rgba(15,23,42,0.10), 0 4px 12px rgba(15,23,42,0.05);
     border-color: rgba(15,23,42,0.08);
   }
+  .home-section-structure .home-card--center {
+    background: rgba(74,124,89,0.025);
+    border-color: rgba(74,124,89,0.12);
+  }
   .home-card--center .card-header {
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-bold);
@@ -1731,18 +1769,22 @@ img  { display: block; max-width: 100%; }
   .home-section-bills .home-card--side {
     padding: 16px 18px;
   }
+  /* Hide bills toggle on desktop (rail-title serves as section label) */
+  .bills-toggle { display: none; }
+  #bills-card-body { display: block !important; }
   #bills-hidden {
     display: block !important;
   }
   .home-section-bills #bills-expand {
     display: none;
   }
+  /* Flat list rows — no card-inside-card */
   .home-section-bills .overview-row {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    padding: 10px var(--space-3);
-    margin-bottom: 6px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 9px 0;
+    margin-bottom: 0;
     font-size: var(--font-size-sm);
   }
   .home-section-bills .overview-row + .overview-row {

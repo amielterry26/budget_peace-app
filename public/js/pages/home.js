@@ -175,11 +175,16 @@ function renderHealth(months) {
       <div class="dash-section home-section-bills">
         <div class="rail-title">Recurring Bills</div>
         <div class="card home-card--side">
-          <div class="card-header">Recurring Bills</div>
-          <div class="home-supporting-copy" style="margin-bottom:var(--space-3);">
-            Your baseline monthly obligations.
+          <div class="bills-toggle" id="bills-card-toggle">
+            <div class="card-header" style="margin:0;">Recurring Bills</div>
+            <span class="bills-chevron" id="bills-card-chevron">&#9662;</span>
           </div>
-          ${buildMonthlyBills(recurringActive)}
+          <div id="bills-card-body">
+            <div class="home-supporting-copy" style="margin-top:var(--space-2);margin-bottom:var(--space-3);">
+              Your baseline monthly obligations.
+            </div>
+            ${buildMonthlyBills(recurringActive)}
+          </div>
         </div>
       </div>
 
@@ -188,7 +193,7 @@ function renderHealth(months) {
         ${Plans.canUse('financialHealth') ? `
         <div class="card home-card--side health-card">
           <div class="health-card__toggle" id="health-card-toggle">
-            <div class="card-header" style="margin:0;">Financial Health</div>
+            <div class="card-header" style="margin:0;">Financial Outlook</div>
             <span class="health-card__chevron" id="health-card-chevron">&#9662;</span>
           </div>
           <div id="health-card-body">
@@ -267,6 +272,11 @@ function renderHealth(months) {
     const chev = document.getElementById('health-card-chevron');
     if (chev) chev.innerHTML = '&#9656;';
   }
+  if (window.innerWidth < 1200 && localStorage.getItem('bp_collapse_bills') === '1') {
+    document.getElementById('bills-card-body')?.classList.add('is-hidden');
+    const chev = document.getElementById('bills-card-chevron');
+    if (chev) chev.innerHTML = '&#9656;';
+  }
 
   document.getElementById('health-upgrade')?.addEventListener('click', () => Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.financialHealth));
   document.getElementById('go-pay-period')?.addEventListener('click', () => Router.navigate('pay-period'));
@@ -280,6 +290,16 @@ function renderHealth(months) {
     hidden.style.display = isOpen ? 'none' : 'block';
     const count = hidden.querySelectorAll('.overview-row').length;
     btn.innerHTML = isOpen ? `View ${count} more ▼` : 'Show less ▲';
+  });
+
+  document.getElementById('bills-card-toggle')?.addEventListener('click', () => {
+    if (window.innerWidth >= 1200) return;
+    const body = document.getElementById('bills-card-body');
+    const chev = document.getElementById('bills-card-chevron');
+    if (!body || !chev) return;
+    const isHidden = body.classList.toggle('is-hidden');
+    chev.innerHTML = isHidden ? '&#9656;' : '&#9662;';
+    localStorage.setItem('bp_collapse_bills', isHidden ? '1' : '0');
   });
 
   // Bill mini-card click handlers

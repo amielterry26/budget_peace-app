@@ -167,7 +167,7 @@ function buildPdBreakdown(pd) {
       <div class="period-bill-card pd-bill-card" data-pd-bill-idx="${idx}">
         <div>
           <span class="period-bill-card__name">${esc(e.name)}</span>
-          ${e.dueDay ? `<div class="period-bill-card__note">Due date ${e.dueDay}</div>` : ''}
+          ${e.dueDay && (!e.allocationMethod || e.allocationMethod === 'due-date') ? `<div class="period-bill-card__note">Due ${e.dueDay}</div>` : ''}
         </div>
         <span class="period-bill-card__amount">${pdMoney(e.displayAmount)}</span>
       </div>`;
@@ -240,6 +240,8 @@ function calcPdExpenses(expenses, period) {
           mult = dueDayInPeriod(1, period) ? 1 : 0;
         } else if (alloc === 'second') {
           mult = dueDayInPeriod(16, period) ? 1 : 0;
+        } else if (alloc === 'due-date') {
+          mult = dueDayInPeriod(e.dueDay || 1, period) ? 1 : 0;
         } else {
           mult = 1; // 'split' = every period (same as default biweekly behavior)
         }

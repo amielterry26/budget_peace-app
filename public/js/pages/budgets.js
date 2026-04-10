@@ -60,8 +60,9 @@ Router.register('budgets', async () => {
           // Biweekly expense with explicit paycheck allocation
           if (freq === 'biweekly' && cadence === 'biweekly' && e.allocationMethod) {
             const alloc = getEffectiveAllocation(e);
-            if (alloc === 'first')  return dueDayInPeriod(1,  p) ? sum + e.amount : sum;
-            if (alloc === 'second') return dueDayInPeriod(16, p) ? sum + e.amount : sum;
+            if (alloc === 'first')    return dueDayInPeriod(1,  p) ? sum + e.amount : sum;
+            if (alloc === 'second')   return dueDayInPeriod(16, p) ? sum + e.amount : sum;
+            if (alloc === 'due-date') return dueDayInPeriod(e.dueDay || 1, p) ? sum + e.amount : sum;
             return sum + e.amount; // 'split' = every period
           }
           return sum + e.amount * expMultiplier(freq, cadence);

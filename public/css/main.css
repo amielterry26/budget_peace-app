@@ -1718,6 +1718,10 @@ img  { display: block; max-width: 100%; }
   .home-card--side .card-header {
     display: none;
   }
+  /* Keep toggle title visible even in side cards */
+  .health-card__toggle .card-header {
+    display: block;
+  }
   .home-card--side .home-supporting-copy {
     font-size: var(--font-size-xs);
     line-height: 1.4;

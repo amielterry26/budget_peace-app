@@ -104,7 +104,10 @@ function renderHealth(months) {
               <div class="period-bills-preview__header">Bills this period</div>
               ${periodItems.map((it, i) => `
               <div class="period-bill-card" data-bill-idx="${i}">
-                <span class="period-bill-card__name">${esc(it.name)}</span>
+                <div>
+                  <span class="period-bill-card__name">${esc(it.name)}</span>
+                  ${it.dueDay && (!it.allocationMethod || it.allocationMethod === 'due-date') ? `<div class="period-bill-card__note">Due ${it.dueDay}</div>` : ''}
+                </div>
                 <span class="period-bill-card__amount">${money(it.periodAmount)}</span>
               </div>`).join('')}
             </div>` : ''}
@@ -241,6 +244,7 @@ function renderHealth(months) {
     if (!body || !chev) return;
     const isHidden = body.classList.toggle('is-hidden');
     chev.innerHTML = isHidden ? '&#9656;' : '&#9662;';
+    localStorage.setItem('bp_collapse_structure', isHidden ? '1' : '0');
   });
 
   document.getElementById('health-card-toggle')?.addEventListener('click', () => {
@@ -249,7 +253,20 @@ function renderHealth(months) {
     if (!body || !chev) return;
     const isHidden = body.classList.toggle('is-hidden');
     chev.innerHTML = isHidden ? '&#9656;' : '&#9662;';
+    localStorage.setItem('bp_collapse_health', isHidden ? '1' : '0');
   });
+
+  // Restore collapse state from localStorage
+  if (localStorage.getItem('bp_collapse_structure') === '1') {
+    document.getElementById('structure-card-body')?.classList.add('is-hidden');
+    const chev = document.getElementById('structure-card-chevron');
+    if (chev) chev.innerHTML = '&#9656;';
+  }
+  if (localStorage.getItem('bp_collapse_health') === '1') {
+    document.getElementById('health-card-body')?.classList.add('is-hidden');
+    const chev = document.getElementById('health-card-chevron');
+    if (chev) chev.innerHTML = '&#9656;';
+  }
 
   document.getElementById('health-upgrade')?.addEventListener('click', () => Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.financialHealth));
   document.getElementById('go-pay-period')?.addEventListener('click', () => Router.navigate('pay-period'));
@@ -290,7 +307,10 @@ function buildMonthlyBills(recurring) {
     const amt = calcMonthlyAmt(e);
     return `
       <div class="overview-row">
-        <span class="overview-row__name">${esc(e.name)}</span>
+        <div style="flex:1;min-width:0;">
+          <span class="overview-row__name">${esc(e.name)}</span>
+          ${e.dueDay && (!e.allocationMethod || e.allocationMethod === 'due-date') ? `<div style="font-size:10px;color:var(--color-text-secondary);">Due ${e.dueDay}</div>` : ''}
+        </div>
         <span class="overview-row__amount">${money(amt)}<span style="font-size:10px;color:var(--color-text-secondary);">/mo</span></span>
       </div>`;
   };
@@ -359,6 +379,8 @@ function calcPeriodExp(expenses, period, cadence) {
           if (dueDayInPeriod(1, period)) total += e.amount;
         } else if (alloc === 'second') {
           if (dueDayInPeriod(16, period)) total += e.amount;
+        } else if (alloc === 'due-date') {
+          if (dueDayInPeriod(e.dueDay || 1, period)) total += e.amount;
         } else {
           total += e.amount; // 'split' = every period
         }
@@ -399,6 +421,8 @@ function getPeriodItems(expenses, period, cadence) {
           if (dueDayInPeriod(1, period)) items.push({ ...e, periodAmount: e.amount });
         } else if (alloc === 'second') {
           if (dueDayInPeriod(16, period)) items.push({ ...e, periodAmount: e.amount });
+        } else if (alloc === 'due-date') {
+          if (dueDayInPeriod(e.dueDay || 1, period)) items.push({ ...e, periodAmount: e.amount });
         } else {
           items.push({ ...e, periodAmount: e.amount }); // 'split' = every period
         }

@@ -347,14 +347,20 @@ function calcPeriodExp(expenses, period, cadence) {
         if (alloc === 'split') {
           total += e.amount / 2;
         } else if (alloc === 'first') {
-          // 1st paycheck = biweekly period containing the 1st of the month
           if (dueDayInPeriod(1, period)) total += e.amount;
         } else if (alloc === 'second') {
-          // 2nd paycheck = biweekly period containing the 16th of the month
           if (dueDayInPeriod(16, period)) total += e.amount;
         } else {
-          // 'due-date': full amount if dueDay falls in this period
           if (dueDayInPeriod(e.dueDay || 1, period)) total += e.amount;
+        }
+      } else if (freq === 'biweekly' && cadence === 'biweekly' && e.allocationMethod) {
+        const alloc = getEffectiveAllocation(e);
+        if (alloc === 'first') {
+          if (dueDayInPeriod(1, period)) total += e.amount;
+        } else if (alloc === 'second') {
+          if (dueDayInPeriod(16, period)) total += e.amount;
+        } else {
+          total += e.amount; // 'split' = every period
         }
       } else {
         total += e.amount * expMultiplier(freq, cadence);
@@ -381,14 +387,20 @@ function getPeriodItems(expenses, period, cadence) {
         if (alloc === 'split') {
           items.push({ ...e, periodAmount: Math.round(e.amount / 2 * 100) / 100 });
         } else if (alloc === 'first') {
-          // 1st paycheck = biweekly period containing the 1st of the month
           if (dueDayInPeriod(1, period)) items.push({ ...e, periodAmount: e.amount });
         } else if (alloc === 'second') {
-          // 2nd paycheck = biweekly period containing the 16th of the month
           if (dueDayInPeriod(16, period)) items.push({ ...e, periodAmount: e.amount });
         } else {
-          // 'due-date': full amount if dueDay falls in this period
           if (dueDayInPeriod(e.dueDay || 1, period)) items.push({ ...e, periodAmount: e.amount });
+        }
+      } else if (freq === 'biweekly' && cadence === 'biweekly' && e.allocationMethod) {
+        const alloc = getEffectiveAllocation(e);
+        if (alloc === 'first') {
+          if (dueDayInPeriod(1, period)) items.push({ ...e, periodAmount: e.amount });
+        } else if (alloc === 'second') {
+          if (dueDayInPeriod(16, period)) items.push({ ...e, periodAmount: e.amount });
+        } else {
+          items.push({ ...e, periodAmount: e.amount }); // 'split' = every period
         }
       } else {
         items.push({ ...e, periodAmount: Math.round(e.amount * expMultiplier(freq, cadence) * 100) / 100 });

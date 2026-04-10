@@ -219,8 +219,9 @@ function buildPill(e) {
     const freq  = e.recurrenceFrequency;
     const alloc = getEffectiveAllocation(e);
     let moAmt = null;
-    if (freq === 'weekly')                         moAmt = e.amount * 4;
-    else if (freq === 'biweekly')                  moAmt = e.amount * 2;
+    if (freq === 'weekly') moAmt = e.amount * 4;
+    // Biweekly: skip monthly total when paycheck1/paycheck2 allocation (effectively monthly spend)
+    else if (freq === 'biweekly' && alloc !== 'first' && alloc !== 'second') moAmt = e.amount * 2;
     else if (freq === 'monthly' && alloc === 'split') moAmt = e.amount; // entered is monthly; show per-period
     if (moAmt !== null) {
       const isSplitAlloc = freq === 'monthly' && alloc === 'split';
@@ -233,8 +234,25 @@ function buildPill(e) {
     }
   }
 
+  // Allocation meta: show for expenses with explicit allocationMethod
+  let allocMeta = '';
+  if (isRecurring && e.allocationMethod) {
+    const alloc = getEffectiveAllocation(e);
+    const allocLabel = alloc === 'split'  ? 'Split across both'
+                     : alloc === 'first'  ? '1st paycheck'
+                     : alloc === 'second' ? '2nd paycheck'
+                     : null;
+    if (allocLabel) {
+      allocMeta = `<div class="expense-pill__meta-item">
+        <div class="expense-pill__meta-label">Allocation</div>
+        <div class="expense-pill__meta-value">${allocLabel}</div>
+      </div>`;
+    }
+  }
+
   let dueMeta = '';
-  if (isRecurring && e.dueDay && getEffectiveAllocation(e) === 'due-date') {
+  // Show dueDay for all monthly recurring expenses (metadata, not gated on allocation type)
+  if (isRecurring && e.dueDay && e.recurrenceFrequency === 'monthly') {
     dueMeta = `<div class="expense-pill__meta-item">
       <div class="expense-pill__meta-label">Due</div>
       <div class="expense-pill__meta-value">Day ${e.dueDay}</div>
@@ -290,6 +308,7 @@ function buildPill(e) {
           </div>
           ${startMeta}
           ${dueMeta}
+          ${allocMeta}
         </div>
         <div class="expense-pill__actions">
           <button class="btn btn--ghost btn-edit"   style="font-size:13px;padding:8px 16px;">Edit</button>
@@ -361,15 +380,17 @@ async function openSheet(expense, onSave) {
   // Determine if user is on biweekly pay cadence (allocation only relevant then)
   const isBiweekly = _periods.length > 0 && inferCadence(_periods[0]) === 'biweekly';
 
-  // Detect legacy due-date mode: expense calculates as due-date but has no modern allocationMethod.
+  // Detect legacy due-date mode: monthly+biweekly expense without a modern allocationMethod.
   // We must NOT silently convert these — preserve their behavior unless the user explicitly changes it.
   const isLegacyDueDate = editing && isBiweekly && initFreq === 'monthly' && (
     expense.allocationMethod === 'due-date' ||
     (!expense.allocationMethod && !expense.splitBiweekly)
   );
 
-  // Due day hidden entirely in biweekly+monthly context (no due-date allocation option)
-  const initDueDayVisible = !(isBiweekly && initFreq === 'monthly');
+  // Due day shown for monthly expenses only (required on monthly cadence, optional metadata on biweekly)
+  const initDueDayVisible = initFreq === 'monthly';
+  // Allocation dropdown shown for biweekly cadence + monthly OR biweekly expense frequency
+  const initShowAlloc = isBiweekly && (initFreq === 'monthly' || initFreq === 'biweekly');
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="sheet-overlay" class="sheet-overlay"></div>
@@ -428,11 +449,11 @@ async function openSheet(expense, onSave) {
             <input class="form-input" id="sh-start-date" type="date" value="${initStart}" />
           </div>
           <div class="form-group" id="sh-due-day-group" style="display:${initDueDayVisible ? 'block' : 'none'}">
-            <label class="form-label" for="sh-due-day" id="sh-due-day-label">Due date ${initFreq === 'monthly' && initDueDayVisible ? '' : '<span class="text-muted">(optional, 1–31)</span>'}</label>
+            <label class="form-label" for="sh-due-day" id="sh-due-day-label">Due date ${initFreq === 'monthly' && !isBiweekly ? '' : '<span class="text-muted">(optional)</span>'}</label>
             <input class="form-input" id="sh-due-day" type="number" min="1" max="31"
               placeholder="e.g. 15" value="${initDueDay}" />
           </div>
-          <div class="form-group" id="sh-alloc-group" style="display:${isBiweekly && initFreq === 'monthly' ? 'block' : 'none'}">
+          <div class="form-group" id="sh-alloc-group" style="display:${initShowAlloc ? 'block' : 'none'}">
             <label class="form-label" for="sh-alloc">Allocation</label>
             <select class="form-input form-select" id="sh-alloc">
               <option value="split"     ${initAlloc === 'split'     ? 'selected' : ''}>Split across both</option>
@@ -478,28 +499,26 @@ async function openSheet(expense, onSave) {
   let selectedAlloc      = initAlloc;
   let hasChangedAlloc    = false; // guards legacy due-date preservation
 
-  function updateDueDayVisibility() {
+  function updateFieldVisibility() {
     const label     = document.getElementById('sh-due-day-label');
     const allocGrp  = document.getElementById('sh-alloc-group');
     const dueDayGrp = document.getElementById('sh-due-day-group');
     if (!label) return;
 
-    const isMonthly         = selectedFreq === 'monthly';
-    const isBiweeklyMonthly = isBiweekly && isMonthly;
+    const isMonthly      = selectedFreq === 'monthly';
+    const isBiweeklyFreq = selectedFreq === 'biweekly';
+    // Show alloc for biweekly cadence + (monthly OR biweekly expense freq)
+    const showAlloc = isBiweekly && (isMonthly || isBiweeklyFreq);
 
-    // Show allocation section only for monthly expenses on a biweekly budget cadence
-    if (allocGrp) allocGrp.style.display = isBiweeklyMonthly ? 'block' : 'none';
+    if (allocGrp) allocGrp.style.display = showAlloc ? 'block' : 'none';
 
-    // Due day hidden entirely in biweekly+monthly context (no due-date allocation option)
-    const showDueDay = !isBiweeklyMonthly;
+    // Due day only meaningful for monthly; required on monthly cadence, optional metadata on biweekly
+    const showDueDay = isMonthly;
     if (dueDayGrp) dueDayGrp.style.display = showDueDay ? 'block' : 'none';
 
-    // Label: required (no qualifier) when monthly; optional otherwise
-    if (isMonthly && showDueDay) {
-      label.innerHTML = 'Due date';
-    } else {
-      label.innerHTML = 'Due date <span class="text-muted">(optional, 1–31)</span>';
-    }
+    label.innerHTML = (isMonthly && !isBiweekly)
+      ? 'Due date'
+      : 'Due date <span class="text-muted">(optional)</span>';
   }
 
   // Recurrence type toggle (exclude freq-card)
@@ -519,7 +538,7 @@ async function openSheet(expense, onSave) {
       document.querySelectorAll('#expense-sheet .freq-card').forEach(c => c.classList.remove('is-selected'));
       card.classList.add('is-selected');
       selectedFreq = card.dataset.freq;
-      updateDueDayVisibility();
+      updateFieldVisibility();
     });
   });
 
@@ -562,8 +581,9 @@ async function openSheet(expense, onSave) {
       const startDate = document.getElementById('sh-start-date').value;
       if (!startDate) { alert('Enter a start date.'); return; }
       payload.recurrenceStartDate = startDate;
-      const isBiweeklyMonthly = isBiweekly && selectedFreq === 'monthly';
-      if (isBiweeklyMonthly) {
+      // Allocation applies for biweekly cadence + monthly OR biweekly expense frequency
+      const showAlloc = isBiweekly && (selectedFreq === 'monthly' || selectedFreq === 'biweekly');
+      if (showAlloc) {
         if (isLegacyDueDate && !hasChangedAlloc) {
           // Preserve legacy due-date behavior — user did not explicitly change allocation
           payload.allocationMethod = 'due-date';
@@ -571,11 +591,18 @@ async function openSheet(expense, onSave) {
         } else {
           payload.allocationMethod = selectedAlloc; // split | paycheck1 | paycheck2
         }
-      } else {
+        // For monthly+biweekly, also save optional dueDay as display metadata
+        if (selectedFreq === 'monthly' && !(isLegacyDueDate && !hasChangedAlloc)) {
+          const dueDay = document.getElementById('sh-due-day').value;
+          if (dueDay) payload.dueDay = Number(dueDay);
+        }
+      } else if (selectedFreq === 'monthly') {
+        // Monthly on non-biweekly cadence: dueDay required
         const dueDay = document.getElementById('sh-due-day').value;
-        if (selectedFreq === 'monthly' && !dueDay) { alert('Monthly expenses require a due day (1–31).'); return; }
-        if (dueDay) payload.dueDay = Number(dueDay);
+        if (!dueDay) { alert('Monthly expenses require a due day (1–31).'); return; }
+        payload.dueDay = Number(dueDay);
       }
+      // Weekly/biweekly (non-allocation): no extra fields needed
     } else {
       const dueDate = document.getElementById('sh-due-date').value;
       if (dueDate) payload.dueDate = dueDate;

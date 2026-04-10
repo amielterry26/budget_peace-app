@@ -226,14 +226,22 @@ function calcPdExpenses(expenses, period) {
           isSplit = true;
           mult = 0.5;
         } else if (alloc === 'first') {
-          // 1st paycheck = biweekly period containing the 1st of the month
           mult = dueDayInPeriod(1, period) ? 1 : 0;
         } else if (alloc === 'second') {
-          // 2nd paycheck = biweekly period containing the 16th of the month
           mult = dueDayInPeriod(16, period) ? 1 : 0;
         } else {
           // 'due-date': full amount if dueDay falls in this period
           mult = dueDayInPeriod(e.dueDay || 1, period) ? 1 : 0;
+        }
+      } else if (freq === 'biweekly' && cadence === 'biweekly' && e.allocationMethod) {
+        // Biweekly expense with explicit paycheck allocation
+        const alloc = getEffectiveAllocation(e);
+        if (alloc === 'first') {
+          mult = dueDayInPeriod(1, period) ? 1 : 0;
+        } else if (alloc === 'second') {
+          mult = dueDayInPeriod(16, period) ? 1 : 0;
+        } else {
+          mult = 1; // 'split' = every period (same as default biweekly behavior)
         }
       } else {
         mult = expMultiplier(freq, cadence);

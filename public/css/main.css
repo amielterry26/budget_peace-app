@@ -1327,8 +1327,14 @@ img  { display: block; max-width: 100%; }
 /* --- Financial Health card — collapsible dropdown treatment --- */
 .card.health-card          { border-color: rgba(74,124,89,0.35); }
 .health-card__toggle       { display: flex; align-items: center; justify-content: space-between;
-                             cursor: pointer; user-select: none; margin-bottom: var(--space-2); }
+                             cursor: pointer; user-select: none; }
 .health-card__chevron      { font-size: 11px; color: var(--color-text-secondary); }
+
+/* Collapsible card bodies — margin-top provides spacing when visible; display:none collapses gap */
+#structure-card-body,
+#health-card-body          { margin-top: var(--space-2); }
+#structure-card-body.is-hidden,
+#health-card-body.is-hidden { display: none; }
 
 .health-toolbar {
   display: flex;

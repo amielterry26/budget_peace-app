@@ -57,6 +57,13 @@ Router.register('budgets', async () => {
             if (alloc === 'second') return dueDayInPeriod(16, p) ? sum + e.amount : sum;
             return dueDayInPeriod(e.dueDay || 1, p) ? sum + e.amount : sum; // 'due-date'
           }
+          // Biweekly expense with explicit paycheck allocation
+          if (freq === 'biweekly' && cadence === 'biweekly' && e.allocationMethod) {
+            const alloc = getEffectiveAllocation(e);
+            if (alloc === 'first')  return dueDayInPeriod(1,  p) ? sum + e.amount : sum;
+            if (alloc === 'second') return dueDayInPeriod(16, p) ? sum + e.amount : sum;
+            return sum + e.amount; // 'split' = every period
+          }
           return sum + e.amount * expMultiplier(freq, cadence);
         }
         return sum;

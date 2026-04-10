@@ -1194,14 +1194,25 @@ img  { display: block; max-width: 100%; }
   padding:         var(--space-2) var(--space-4);
 }
 .exp-sort-select {
-  font-size:    12px;
+  font-size:    var(--font-size-sm);
   color:        var(--color-text-secondary);
   background:   var(--color-surface);
   border:       1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  padding:      3px 6px;
+  padding:      5px 28px 5px 10px;
   cursor:       pointer;
   outline:      none;
+  appearance:   none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748B' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 10px 6px;
+  transition: border-color var(--transition-fast);
+}
+.exp-sort-select:focus {
+  border-color: var(--color-accent);
+  outline: none;
 }
 
 /* --- Wallet Cards ------------------------------------------ */
@@ -1209,7 +1220,7 @@ img  { display: block; max-width: 100%; }
   display:    flex;
   gap:        var(--space-4);
   overflow-x: auto;
-  padding:    var(--space-1) var(--space-1) var(--space-4);
+  padding:    var(--space-3) var(--space-1) var(--space-4);
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x mandatory;
@@ -2097,6 +2108,11 @@ img  { display: block; max-width: 100%; }
 }
 
 /* --- Settings page density -------------------------------- */
+.settings-page .card-header {
+  font-size:      var(--font-size-md);
+  font-weight:    var(--font-weight-bold);
+  letter-spacing: -0.01em;
+}
 .settings-page .option-card {
   padding: var(--space-2) var(--space-3);
 }
@@ -2131,15 +2147,15 @@ img  { display: block; max-width: 100%; }
 .notes-item:hover   { background: rgba(74,124,89,0.04); }
 .notes-item__text   { flex: 1; min-width: 0; line-height: 1.55; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notes-item__input  { flex: 1; min-width: 0; font-size: var(--font-size-sm); padding: 2px var(--space-1); border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; }
-.notes-item__edit   { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 2px 4px; font-size: 14px; flex-shrink: 0; }
-.notes-item__edit:hover { color: var(--color-accent); }
-.notes-item__del    { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 2px 4px; font-size: 14px; flex-shrink: 0; }
-.notes-item__del:hover { color: var(--danger); }
+.notes-item__edit   { background: none; border: none; color: var(--color-text-secondary); cursor: pointer; padding: 4px 8px; border-radius: var(--radius-sm); font-size: 14px; flex-shrink: 0; transition: background var(--transition-fast), color var(--transition-fast); }
+.notes-item__edit:hover { background: var(--color-surface-alt); color: var(--color-accent); }
+.notes-item__del    { background: none; border: none; color: var(--color-text-secondary); cursor: pointer; padding: 4px 8px; border-radius: var(--radius-sm); font-size: 14px; flex-shrink: 0; transition: background var(--transition-fast), color var(--transition-fast); }
+.notes-item__del:hover { background: var(--color-danger-light); color: var(--color-danger); }
 .notes-add          { display: flex; flex-direction: column; gap: 0; margin-top: var(--space-2); }
 
 /* --- Notes Page ------------------------------------------- */
 .notes-page-list    { display: flex; flex-direction: column; }
-.notes-page-item    { display: flex; align-items: start; gap: var(--space-3); padding: var(--space-3) var(--space-2);
+.notes-page-item    { display: flex; align-items: start; gap: var(--space-3); padding: var(--space-3);
                       border-bottom: 1px solid var(--color-border); border-left: 2px solid var(--color-accent);
                       border-radius: 2px 0 0 2px; transition: background var(--transition-fast); cursor: pointer; }
 .notes-page-item:hover { background: rgba(74,124,89,0.04); }
@@ -2291,7 +2307,7 @@ img  { display: block; max-width: 100%; }
 .cmp-row {
   display: grid;
   grid-template-columns: 110px repeat(var(--cmp-cols), minmax(140px, 1fr));
-  min-height: 40px;
+  min-height: 44px;
   align-items: start;
 }
 .cmp-row--header {
@@ -2299,14 +2315,17 @@ img  { display: block; max-width: 100%; }
   background: var(--color-surface-alt);
   border-bottom: 1px solid var(--color-border);
 }
+.cmp-row:not(.cmp-row--header):hover {
+  background: var(--color-surface-alt);
+}
 .cmp-label {
-  padding: 8px 12px;
+  padding: 10px 14px;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-secondary);
 }
 .cmp-cell {
-  padding: 8px 12px;
+  padding: 10px 14px;
   font-size: var(--font-size-sm);
   border-left: 1px solid var(--color-border);
 }
@@ -2333,11 +2352,11 @@ img  { display: block; max-width: 100%; }
   }
   .cmp-label {
     font-size: var(--font-size-xs);
-    padding: 6px 8px;
+    padding: 6px 10px;
   }
   .cmp-cell {
     font-size: var(--font-size-xs);
-    padding: 6px 8px;
+    padding: 6px 10px;
   }
   .cmp-cell--header {
     font-size: var(--font-size-sm);

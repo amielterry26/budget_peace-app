@@ -181,7 +181,7 @@ function renderHealth(months) {
           </div>
           <div id="bills-card-body">
             <div class="home-supporting-copy" style="margin-top:var(--space-2);margin-bottom:var(--space-3);">
-              Your baseline monthly obligations.
+              Your baseline monthly obligations, including due dates.
             </div>
             ${buildMonthlyBills(recurringActive)}
           </div>

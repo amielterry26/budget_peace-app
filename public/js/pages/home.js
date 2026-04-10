@@ -142,23 +142,28 @@ function renderHealth(months) {
 
       <div class="dash-section home-section-structure">
         <div class="card home-card--center">
-          <div class="card-header">Your Financial Structure</div>
-          <div class="home-supporting-copy">
-            Based on your currently active expenses only. Upcoming or future-dated expenses are not included until their start date.
+          <div class="health-card__toggle" id="structure-card-toggle">
+            <div class="card-header" style="margin:0;">Your Financial Structure</div>
+            <span class="health-card__chevron" id="structure-card-chevron">&#9662;</span>
           </div>
+          <div id="structure-card-body">
+            <div class="home-supporting-copy">
+              Based on your currently active expenses only. Upcoming or future-dated expenses are not included until their start date.
+            </div>
 
-          <div class="metric-grid home-metric-grid">
-            <div class="metric-tile">
-              <div class="metric-tile__label">Monthly income</div>
-              <div class="metric-tile__value">${money(monthlyIncome)}</div>
-            </div>
-            <div class="metric-tile">
-              <div class="metric-tile__label">Monthly bills</div>
-              <div class="metric-tile__value">${money(monthlyBills)}</div>
-            </div>
-            <div class="metric-tile">
-              <div class="metric-tile__label">Monthly leftover</div>
-              <div class="metric-tile__value" style="color:${monthlyLeftColor};">${money(monthlyLeft)}</div>
+            <div class="metric-grid home-metric-grid">
+              <div class="metric-tile">
+                <div class="metric-tile__label">Monthly income</div>
+                <div class="metric-tile__value">${money(monthlyIncome)}</div>
+              </div>
+              <div class="metric-tile">
+                <div class="metric-tile__label">Monthly bills</div>
+                <div class="metric-tile__value">${money(monthlyBills)}</div>
+              </div>
+              <div class="metric-tile">
+                <div class="metric-tile__label">Monthly leftover</div>
+                <div class="metric-tile__value" style="color:${monthlyLeftColor};">${money(monthlyLeft)}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -228,6 +233,14 @@ function renderHealth(months) {
 
   document.querySelectorAll('.horizon-btn').forEach(btn => {
     btn.addEventListener('click', () => renderHealth(Number(btn.dataset.months)));
+  });
+
+  document.getElementById('structure-card-toggle')?.addEventListener('click', () => {
+    const body = document.getElementById('structure-card-body');
+    const chev = document.getElementById('structure-card-chevron');
+    if (!body || !chev) return;
+    const isHidden = body.classList.toggle('is-hidden');
+    chev.innerHTML = isHidden ? '&#9656;' : '&#9662;';
   });
 
   document.getElementById('health-card-toggle')?.addEventListener('click', () => {

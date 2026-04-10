@@ -352,16 +352,24 @@ async function openSheet(expense, onSave) {
   const initStart   = editing ? (expense.recurrenceStartDate || today) : today;
   const initDueDay  = editing ? (expense.dueDay || (expense.recurrenceFrequency === 'monthly' ? new Date().getDate() : '')) : '';
   const initDueDate = editing ? (expense.dueDate || '') : '';
-  // Derive initial allocation method from new field, with legacy splitBiweekly fallback
-  const initAlloc = editing
-    ? (expense.allocationMethod || (expense.splitBiweekly ? 'split' : 'due-date'))
-    : 'due-date';
+  // Normalize legacy allocation values to the 3-option model (split / paycheck1 / paycheck2)
+  const rawAlloc = editing ? (expense.allocationMethod || (expense.splitBiweekly ? 'split' : null)) : null;
+  const initAlloc = (rawAlloc === 'first'  || rawAlloc === 'paycheck1') ? 'paycheck1'
+                  : (rawAlloc === 'second' || rawAlloc === 'paycheck2') ? 'paycheck2'
+                  : 'split';
 
   // Determine if user is on biweekly pay cadence (allocation only relevant then)
   const isBiweekly = _periods.length > 0 && inferCadence(_periods[0]) === 'biweekly';
 
-  // Initial due day visibility: hidden when biweekly+monthly and alloc is not 'due-date'
-  const initDueDayVisible = !(isBiweekly && initFreq === 'monthly') || initAlloc === 'due-date';
+  // Detect legacy due-date mode: expense calculates as due-date but has no modern allocationMethod.
+  // We must NOT silently convert these — preserve their behavior unless the user explicitly changes it.
+  const isLegacyDueDate = editing && isBiweekly && initFreq === 'monthly' && (
+    expense.allocationMethod === 'due-date' ||
+    (!expense.allocationMethod && !expense.splitBiweekly)
+  );
+
+  // Due day hidden entirely in biweekly+monthly context (no due-date allocation option)
+  const initDueDayVisible = !(isBiweekly && initFreq === 'monthly');
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="sheet-overlay" class="sheet-overlay"></div>
@@ -425,25 +433,13 @@ async function openSheet(expense, onSave) {
               placeholder="e.g. 15" value="${initDueDay}" />
           </div>
           <div class="form-group" id="sh-alloc-group" style="display:${isBiweekly && initFreq === 'monthly' ? 'block' : 'none'}">
-            <label class="form-label">Allocation</label>
-            <div class="option-grid option-grid--2">
-              <div class="option-card alloc-card ${initAlloc === 'split'    ? 'is-selected' : ''}" data-alloc="split">
-                <div class="option-card__title">Split across both</div>
-                <div class="option-card__sub">½ each paycheck</div>
-              </div>
-              <div class="option-card alloc-card ${initAlloc === 'first'    ? 'is-selected' : ''}" data-alloc="first">
-                <div class="option-card__title">1st paycheck</div>
-                <div class="option-card__sub">Paycheck covering the 1st</div>
-              </div>
-              <div class="option-card alloc-card ${initAlloc === 'second'   ? 'is-selected' : ''}" data-alloc="second">
-                <div class="option-card__title">2nd paycheck</div>
-                <div class="option-card__sub">Paycheck covering the 16th</div>
-              </div>
-              <div class="option-card alloc-card ${initAlloc === 'due-date' ? 'is-selected' : ''}" data-alloc="due-date">
-                <div class="option-card__title">By due date</div>
-                <div class="option-card__sub">Follows your due day</div>
-              </div>
-            </div>
+            <label class="form-label" for="sh-alloc">Allocation</label>
+            <select class="form-input form-select" id="sh-alloc">
+              <option value="split"     ${initAlloc === 'split'     ? 'selected' : ''}>Split across both</option>
+              <option value="paycheck1" ${initAlloc === 'paycheck1' ? 'selected' : ''}>1st paycheck</option>
+              <option value="paycheck2" ${initAlloc === 'paycheck2' ? 'selected' : ''}>2nd paycheck</option>
+            </select>
+            ${isLegacyDueDate ? `<p class="text-muted text-sm" style="margin-top:var(--space-1);">Currently scheduled by due date. Select an option above to change.</p>` : ''}
           </div>
         </div>
 
@@ -480,6 +476,7 @@ async function openSheet(expense, onSave) {
   let selectedRecurrence = isRecurring ? 'recurring' : 'once';
   let selectedFreq       = initFreq;
   let selectedAlloc      = initAlloc;
+  let hasChangedAlloc    = false; // guards legacy due-date preservation
 
   function updateDueDayVisibility() {
     const label     = document.getElementById('sh-due-day-label');
@@ -493,11 +490,11 @@ async function openSheet(expense, onSave) {
     // Show allocation section only for monthly expenses on a biweekly budget cadence
     if (allocGrp) allocGrp.style.display = isBiweeklyMonthly ? 'block' : 'none';
 
-    // Show due day when: not biweekly-monthly mode, OR allocation is 'by due date'
-    const showDueDay = !isBiweeklyMonthly || selectedAlloc === 'due-date';
+    // Due day hidden entirely in biweekly+monthly context (no due-date allocation option)
+    const showDueDay = !isBiweeklyMonthly;
     if (dueDayGrp) dueDayGrp.style.display = showDueDay ? 'block' : 'none';
 
-    // Label: required (no qualifier) when monthly + due-date; optional otherwise
+    // Label: required (no qualifier) when monthly; optional otherwise
     if (isMonthly && showDueDay) {
       label.innerHTML = 'Due date';
     } else {
@@ -505,10 +502,10 @@ async function openSheet(expense, onSave) {
     }
   }
 
-  // Recurrence type toggle (exclude freq-card and alloc-card)
-  document.querySelectorAll('#expense-sheet .option-card:not(.freq-card):not(.alloc-card)').forEach(card => {
+  // Recurrence type toggle (exclude freq-card)
+  document.querySelectorAll('#expense-sheet .option-card:not(.freq-card)').forEach(card => {
     card.addEventListener('click', () => {
-      document.querySelectorAll('#expense-sheet .option-card:not(.freq-card):not(.alloc-card)').forEach(c => c.classList.remove('is-selected'));
+      document.querySelectorAll('#expense-sheet .option-card:not(.freq-card)').forEach(c => c.classList.remove('is-selected'));
       card.classList.add('is-selected');
       selectedRecurrence = card.dataset.val;
       document.getElementById('sh-recurring-fields').style.display = selectedRecurrence === 'recurring' ? 'contents' : 'none';
@@ -526,14 +523,10 @@ async function openSheet(expense, onSave) {
     });
   });
 
-  // Allocation toggle (biweekly monthly only)
-  document.querySelectorAll('#expense-sheet .alloc-card').forEach(card => {
-    card.addEventListener('click', () => {
-      document.querySelectorAll('#expense-sheet .alloc-card').forEach(c => c.classList.remove('is-selected'));
-      card.classList.add('is-selected');
-      selectedAlloc = card.dataset.alloc;
-      updateDueDayVisibility();
-    });
+  // Allocation select (biweekly monthly only)
+  document.getElementById('sh-alloc')?.addEventListener('change', (e) => {
+    selectedAlloc    = e.target.value;
+    hasChangedAlloc  = true;
   });
 
   const closeSheet = () => {
@@ -571,11 +564,12 @@ async function openSheet(expense, onSave) {
       payload.recurrenceStartDate = startDate;
       const isBiweeklyMonthly = isBiweekly && selectedFreq === 'monthly';
       if (isBiweeklyMonthly) {
-        payload.allocationMethod = selectedAlloc;
-        if (selectedAlloc === 'due-date') {
-          const dueDay = document.getElementById('sh-due-day').value;
-          if (!dueDay) { alert('Monthly expenses require a due day (1–31).'); return; }
-          payload.dueDay = Number(dueDay);
+        if (isLegacyDueDate && !hasChangedAlloc) {
+          // Preserve legacy due-date behavior — user did not explicitly change allocation
+          payload.allocationMethod = 'due-date';
+          if (expense.dueDay) payload.dueDay = expense.dueDay;
+        } else {
+          payload.allocationMethod = selectedAlloc; // split | paycheck1 | paycheck2
         }
       } else {
         const dueDay = document.getElementById('sh-due-day').value;

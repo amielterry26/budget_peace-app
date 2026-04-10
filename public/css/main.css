@@ -2997,6 +2997,19 @@ body.has-demo-banner .scenario-selector:not(.is-hidden) ~ .time-travel-strip:not
   font-weight: var(--font-weight-semi);
 }
 
+/* --- Bottom Nav: mobile active-pill alignment fix --- */
+@media (max-width: 480px) {
+  .bottom-nav {
+    padding: 5px;
+    gap:     2px;
+  }
+  .bottom-nav__item {
+    padding:   8px 10px;
+    flex-shrink: 0;
+    min-width: 0;
+  }
+}
+
 /* --- Bottom Nav: Pro tab --- */
 .bottom-nav__item--pro {
   color:       var(--color-accent);

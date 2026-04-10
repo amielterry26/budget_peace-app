@@ -234,9 +234,10 @@ function buildPill(e) {
     }
   }
 
-  // Allocation meta: show for expenses with explicit allocationMethod
+  // Allocation meta: show for any expense whose effective allocation is split/first/second
+  // (includes legacy splitBiweekly:true expenses that have no allocationMethod field)
   let allocMeta = '';
-  if (isRecurring && e.allocationMethod) {
+  if (isRecurring) {
     const alloc = getEffectiveAllocation(e);
     const allocLabel = alloc === 'split'  ? 'Split across both'
                      : alloc === 'first'  ? '1st paycheck'

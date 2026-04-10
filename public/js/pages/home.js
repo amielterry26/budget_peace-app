@@ -106,7 +106,7 @@ function renderHealth(months) {
               <div class="period-bill-card" data-bill-idx="${i}">
                 <div>
                   <span class="period-bill-card__name">${esc(it.name)}</span>
-                  ${it.dueDay && (!it.allocationMethod || it.allocationMethod === 'due-date') ? `<div class="period-bill-card__note">Due ${it.dueDay}</div>` : ''}
+                  ${it.note ? `<div class="period-bill-card__note">${it.note}</div>` : it.dueDay && (!it.allocationMethod || it.allocationMethod === 'due-date') ? `<div class="period-bill-card__note">Due ${it.dueDay}</div>` : ''}
                 </div>
                 <span class="period-bill-card__amount">${money(it.periodAmount)}</span>
               </div>`).join('')}
@@ -329,7 +329,7 @@ function buildMonthlyBills(recurring) {
       <div class="overview-row">
         <div style="flex:1;min-width:0;">
           <span class="overview-row__name">${esc(e.name)}</span>
-          ${e.dueDay && (!e.allocationMethod || e.allocationMethod === 'due-date') ? `<div style="font-size:10px;color:var(--color-text-secondary);">Due ${e.dueDay}</div>` : ''}
+          ${(() => { const _a = getEffectiveAllocation(e); const _s = _a === 'split' ? 'Split across both' : _a === 'first' ? '1st paycheck' : _a === 'second' ? '2nd paycheck' : null; return _s ? `<div style="font-size:10px;color:var(--color-text-secondary);">${_s}</div>` : e.dueDay && (!e.allocationMethod || e.allocationMethod === 'due-date') ? `<div style="font-size:10px;color:var(--color-text-secondary);">Due ${e.dueDay}</div>` : ''; })()}
         </div>
         <span class="overview-row__amount">${money(amt)}<span style="font-size:10px;color:var(--color-text-secondary);">/mo</span></span>
       </div>`;
@@ -427,20 +427,20 @@ function getPeriodItems(expenses, period, cadence) {
       if (freq === 'monthly' && cadence === 'biweekly') {
         const alloc = getEffectiveAllocation(e);
         if (alloc === 'split') {
-          items.push({ ...e, periodAmount: Math.round(e.amount / 2 * 100) / 100 });
+          items.push({ ...e, periodAmount: Math.round(e.amount / 2 * 100) / 100, note: `÷2 · ${money(e.amount)}/mo` });
         } else if (alloc === 'first') {
-          if (dueDayInPeriod(1, period)) items.push({ ...e, periodAmount: e.amount });
+          if (dueDayInPeriod(1, period)) items.push({ ...e, periodAmount: e.amount, note: '1st paycheck' });
         } else if (alloc === 'second') {
-          if (dueDayInPeriod(16, period)) items.push({ ...e, periodAmount: e.amount });
+          if (dueDayInPeriod(16, period)) items.push({ ...e, periodAmount: e.amount, note: '2nd paycheck' });
         } else {
           if (dueDayInPeriod(e.dueDay || 1, period)) items.push({ ...e, periodAmount: e.amount });
         }
       } else if (freq === 'biweekly' && cadence === 'biweekly' && e.allocationMethod) {
         const alloc = getEffectiveAllocation(e);
         if (alloc === 'first') {
-          if (dueDayInPeriod(1, period)) items.push({ ...e, periodAmount: e.amount });
+          if (dueDayInPeriod(1, period)) items.push({ ...e, periodAmount: e.amount, note: '1st paycheck' });
         } else if (alloc === 'second') {
-          if (dueDayInPeriod(16, period)) items.push({ ...e, periodAmount: e.amount });
+          if (dueDayInPeriod(16, period)) items.push({ ...e, periodAmount: e.amount, note: '2nd paycheck' });
         } else if (alloc === 'due-date') {
           if (dueDayInPeriod(e.dueDay || 1, period)) items.push({ ...e, periodAmount: e.amount });
         } else {
@@ -500,7 +500,7 @@ function openNoteDetailModal(note, scenarioId, notesArray, renderCallback) {
   document.getElementById('note-detail-edit').addEventListener('click', () => {
     const textEl = document.getElementById('note-detail-text');
     const actionsEl = document.querySelector('.note-detail__actions');
-    textEl.innerHTML = `<textarea class="note-detail__textarea" id="note-edit-textarea" maxlength="200">${esc(note.text)}</textarea>`;
+    textEl.innerHTML = `<textarea class="note-detail__textarea" id="note-edit-textarea" maxlength="500">${esc(note.text)}</textarea>`;
     actionsEl.innerHTML = `
       <button class="btn btn--primary" id="note-edit-save">Save</button>
       <button class="btn btn--ghost" id="note-edit-cancel">Cancel</button>`;
@@ -513,7 +513,7 @@ function openNoteDetailModal(note, scenarioId, notesArray, renderCallback) {
     document.getElementById('note-edit-save').addEventListener('click', async () => {
       const newText = textarea.value.trim();
       if (!newText) { alert('Note cannot be empty.'); return; }
-      if (newText.length > 200) { alert('Note must be 200 characters or less.'); return; }
+      if (newText.length > 500) { alert('Note must be 500 characters or less.'); return; }
       try {
         const res = await authFetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(scenarioId)}/notes/${encodeURIComponent(note.id)}`, {
           method: 'PATCH',

@@ -394,92 +394,101 @@ async function openSheet(expense, onSave) {
     <div id="expense-sheet" class="sheet">
       <div class="sheet__handle"></div>
       <div class="sheet__title">${editing ? 'Edit Expense' : 'New Expense'}</div>
-      <div class="stack--4">
+      <div class="sh-body">
 
-        <div class="form-group">
-          <label class="form-label" for="sh-name">Name</label>
-          <input class="form-input" id="sh-name" type="text" placeholder="e.g. Rent"
-            value="${editing ? esc(expense.name) : ''}" />
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="sh-amount">Amount</label>
-          <div class="ob-input-money">
-            <input class="form-input" id="sh-amount" type="number" placeholder="0.00"
-              min="0" step="0.01" style="padding-left:28px;"
-              value="${editing ? expense.amount : ''}" />
+        <div class="sh-section">
+          <div class="form-group">
+            <label class="form-label" for="sh-name">Name</label>
+            <input class="form-input" id="sh-name" type="text" placeholder="e.g. Rent"
+              value="${editing ? esc(expense.name) : ''}" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="sh-amount">Amount</label>
+            <div class="ob-input-money">
+              <input class="form-input" id="sh-amount" type="number" placeholder="0.00"
+                min="0" step="0.01" style="padding-left:28px;"
+                value="${editing ? expense.amount : ''}" />
+            </div>
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Recurrence</label>
-          <div class="option-grid option-grid--2">
-            <div class="option-card ${isRecurring ? 'is-selected' : ''}" data-val="recurring">
-              <div class="option-card__title">Recurring</div>
-              <div class="option-card__sub">Rent, subscriptions</div>
-            </div>
-            <div class="option-card ${!isRecurring ? 'is-selected' : ''}" data-val="once">
-              <div class="option-card__title">One time</div>
-              <div class="option-card__sub">Single expense</div>
+        <div class="sh-section">
+          <div class="form-group">
+            <label class="form-label">Recurrence</label>
+            <div class="option-grid option-grid--2">
+              <div class="option-card ${isRecurring ? 'is-selected' : ''}" data-val="recurring">
+                <div class="option-card__title">Recurring</div>
+                <div class="option-card__sub">Rent, subscriptions</div>
+              </div>
+              <div class="option-card ${!isRecurring ? 'is-selected' : ''}" data-val="once">
+                <div class="option-card__title">One time</div>
+                <div class="option-card__sub">Single expense</div>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Recurring fields -->
         <div id="sh-recurring-fields" style="display:${isRecurring ? 'contents' : 'none'}">
-          <div class="form-group">
-            <label class="form-label">Frequency</label>
-            <div class="option-grid option-grid--3">
-              <div class="option-card freq-card ${initFreq === 'weekly'    ? 'is-selected' : ''}" data-freq="weekly">
-                <div class="option-card__title">Weekly</div>
-              </div>
-              <div class="option-card freq-card ${initFreq === 'biweekly'  ? 'is-selected' : ''}" data-freq="biweekly">
-                <div class="option-card__title">Bi-weekly</div>
-              </div>
-              <div class="option-card freq-card ${initFreq === 'monthly'   ? 'is-selected' : ''}" data-freq="monthly">
-                <div class="option-card__title">Monthly</div>
+          <div class="sh-section">
+            <div class="form-group">
+              <label class="form-label">Frequency</label>
+              <div class="option-grid option-grid--3">
+                <div class="option-card freq-card ${initFreq === 'weekly'    ? 'is-selected' : ''}" data-freq="weekly">
+                  <div class="option-card__title">Weekly</div>
+                </div>
+                <div class="option-card freq-card ${initFreq === 'biweekly'  ? 'is-selected' : ''}" data-freq="biweekly">
+                  <div class="option-card__title">Bi-weekly</div>
+                </div>
+                <div class="option-card freq-card ${initFreq === 'monthly'   ? 'is-selected' : ''}" data-freq="monthly">
+                  <div class="option-card__title">Monthly</div>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="sh-start-date">Start date</label>
-            <input class="form-input" id="sh-start-date" type="date" value="${initStart}" />
-          </div>
-          <div class="form-group" id="sh-scheduling-group" style="display:${initShowScheduling ? 'block' : 'none'}">
-            <label class="form-label" for="sh-scheduling">Scheduling</label>
-            <select class="form-input form-select" id="sh-scheduling">
-              <option value="due-date"  ${initAlloc === 'due-date'  ? 'selected' : ''}>Due date</option>
-              <option value="split"     ${initAlloc === 'split'     ? 'selected' : ''}>Split across both paychecks</option>
-              ${initFreq === 'monthly' ? `
-              <option value="paycheck1" ${initAlloc === 'paycheck1' ? 'selected' : ''}>1st paycheck only</option>
-              <option value="paycheck2" ${initAlloc === 'paycheck2' ? 'selected' : ''}>2nd paycheck only</option>` : ''}
-            </select>
-          </div>
-          <div class="form-group" id="sh-due-day-group" style="display:${initDueDayVisible ? 'block' : 'none'}">
-            <label class="form-label" for="sh-due-day" id="sh-due-day-label">Due date</label>
-            <input class="form-input" id="sh-due-day" type="number" min="1" max="31"
-              placeholder="e.g. 15" value="${initDueDay}" />
+            <div class="form-group">
+              <label class="form-label" for="sh-start-date">Start date</label>
+              <input class="form-input" id="sh-start-date" type="date" value="${initStart}" />
+            </div>
+            <div class="form-group" id="sh-scheduling-group" style="display:${initShowScheduling ? 'block' : 'none'}">
+              <label class="form-label" for="sh-scheduling">Scheduling</label>
+              <select class="form-input form-select" id="sh-scheduling">
+                <option value="due-date"  ${initAlloc === 'due-date'  ? 'selected' : ''}>Due date</option>
+                <option value="split"     ${initAlloc === 'split'     ? 'selected' : ''}>Split across both paychecks</option>
+                ${initFreq === 'monthly' ? `
+                <option value="paycheck1" ${initAlloc === 'paycheck1' ? 'selected' : ''}>1st paycheck only</option>
+                <option value="paycheck2" ${initAlloc === 'paycheck2' ? 'selected' : ''}>2nd paycheck only</option>` : ''}
+              </select>
+            </div>
+            <div class="form-group" id="sh-due-day-group" style="display:${initDueDayVisible ? 'block' : 'none'}">
+              <label class="form-label" for="sh-due-day" id="sh-due-day-label">Due date</label>
+              <input class="form-input" id="sh-due-day" type="number" min="1" max="31"
+                placeholder="e.g. 15" value="${initDueDay}" />
+            </div>
           </div>
         </div>
 
         <!-- One-time fields -->
         <div id="sh-once-fields" style="display:${!isRecurring ? 'contents' : 'none'}">
-          <div class="form-group">
-            <label class="form-label" for="sh-due-date">Due date <span class="text-muted">(optional)</span></label>
-            <input class="form-input" id="sh-due-date" type="date" value="${initDueDate}" />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="sh-period">Assign to period <span class="text-muted">(optional)</span></label>
-            <select class="form-input form-select" id="sh-period">${periodOpts}</select>
+          <div class="sh-section">
+            <div class="form-group">
+              <label class="form-label" for="sh-due-date">Due date <span class="text-muted">(optional)</span></label>
+              <input class="form-input" id="sh-due-date" type="date" value="${initDueDate}" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="sh-period">Assign to period <span class="text-muted">(optional)</span></label>
+              <select class="form-input form-select" id="sh-period">${periodOpts}</select>
+            </div>
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="sh-card">Card <span class="text-muted">(optional)</span></label>
-          <select class="form-input form-select" id="sh-card">${cardOpts}</select>
+        <div class="sh-section">
+          <div class="form-group">
+            <label class="form-label" for="sh-card">Card <span class="text-muted">(optional)</span></label>
+            <select class="form-input form-select" id="sh-card">${cardOpts}</select>
+          </div>
         </div>
 
-        <div style="display:flex;gap:12px;padding-top:8px;">
+        <div class="sh-actions">
           <button class="btn btn--ghost btn--full" id="sh-cancel">Cancel</button>
           <button class="btn btn--primary btn--full" id="sh-save">${editing ? 'Save Changes' : 'Add Expense'}</button>
         </div>

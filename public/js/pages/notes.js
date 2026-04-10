@@ -443,11 +443,11 @@ function npOpenEditModal(noteId) {
     <div id="note-modal" class="sheet">
       <div class="sheet__handle"></div>
       <div class="sheet__title">Note</div>
-      <div class="form-group">
+      <div class="form-group note-modal__content">
         <textarea class="form-input note-modal__textarea" id="nm-text" rows="6" maxlength="500">${esc(note.text)}</textarea>
       </div>
-      <button class="btn btn--ghost" id="nm-pin" style="width:100%;margin-bottom:var(--space-3);">${note.pinned ? 'Unpin' : 'Pin to top'}</button>
-      <div style="display:flex;gap:var(--space-2);">
+      <button class="btn btn--ghost note-modal__pin" id="nm-pin">${note.pinned ? 'Unpin' : 'Pin to top'}</button>
+      <div class="note-modal__actions">
         <button class="btn btn--ghost" id="nm-delete" style="flex:1;color:var(--color-danger);">Delete</button>
         <button class="btn btn--ghost" id="nm-cancel" style="flex:1;">Cancel</button>
         <button class="btn btn--primary" id="nm-save" style="flex:2;">Save</button>

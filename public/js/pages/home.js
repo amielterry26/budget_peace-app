@@ -146,7 +146,7 @@ function renderHealth(months) {
       <div class="dash-section home-section-structure">
         <div class="card home-card--center">
           <div class="health-card__toggle" id="structure-card-toggle">
-            <div class="card-header" style="margin:0;">3 / 6 / 12 month horizon</div>
+            <div class="card-header" style="margin:0;">Your Financial Structure</div>
             <span class="health-card__chevron" id="structure-card-chevron">&#9662;</span>
           </div>
           <div id="structure-card-body">

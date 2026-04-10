@@ -1324,6 +1324,12 @@ img  { display: block; max-width: 100%; }
   line-height: 1.45;
 }
 
+/* --- Financial Health card — collapsible dropdown treatment --- */
+.card.health-card          { border-color: rgba(74,124,89,0.35); }
+.health-card__toggle       { display: flex; align-items: center; justify-content: space-between;
+                             cursor: pointer; user-select: none; margin-bottom: var(--space-2); }
+.health-card__chevron      { font-size: 11px; color: var(--color-text-secondary); }
+
 .health-toolbar {
   display: flex;
   align-items: center;

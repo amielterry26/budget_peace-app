@@ -178,33 +178,38 @@ function renderHealth(months) {
       <div class="dash-section home-section-health">
         <div class="rail-title">Financial Health</div>
         ${Plans.canUse('financialHealth') ? `
-        <div class="card home-card--side">
-          <div class="card-header">Financial Health</div>
-          <div class="home-supporting-copy">
-            If nothing changes, this is what your current financial structure looks like over the selected horizon.
+        <div class="card home-card--side health-card">
+          <div class="health-card__toggle" id="health-card-toggle">
+            <div class="card-header" style="margin:0;">Financial Health</div>
+            <span class="health-card__chevron" id="health-card-chevron">&#9662;</span>
           </div>
+          <div id="health-card-body">
+            <div class="home-supporting-copy">
+              If nothing changes, this is what your current financial structure looks like over the selected horizon.
+            </div>
 
-          <div class="health-toolbar">
-            <div class="health-horizon-label">${months} month horizon</div>
-            <div class="horizon-selector">
-              <button class="horizon-btn ${months === 3  ? 'is-active' : ''}" data-months="3">3 mo</button>
-              <button class="horizon-btn ${months === 6  ? 'is-active' : ''}" data-months="6">6 mo</button>
-              <button class="horizon-btn ${months === 12 ? 'is-active' : ''}" data-months="12">12 mo</button>
+            <div class="health-toolbar">
+              <div class="health-horizon-label">${months} month horizon</div>
+              <div class="horizon-selector">
+                <button class="horizon-btn ${months === 3  ? 'is-active' : ''}" data-months="3">3 mo</button>
+                <button class="horizon-btn ${months === 6  ? 'is-active' : ''}" data-months="6">6 mo</button>
+                <button class="horizon-btn ${months === 12 ? 'is-active' : ''}" data-months="12">12 mo</button>
+              </div>
             </div>
-          </div>
 
-          <div class="proj-grid home-proj-grid">
-            <div class="proj-tile">
-              <div class="proj-tile__label">Income</div>
-              <div class="proj-tile__value">${money(healthIncome)}</div>
-            </div>
-            <div class="proj-tile">
-              <div class="proj-tile__label">Obligations</div>
-              <div class="proj-tile__value">${money(healthBills)}</div>
-            </div>
-            <div class="proj-tile">
-              <div class="proj-tile__label">Remaining</div>
-              <div class="proj-tile__value" style="color:${healthRemColor};">${money(healthRemaining)}</div>
+            <div class="proj-grid home-proj-grid">
+              <div class="proj-tile">
+                <div class="proj-tile__label">Income</div>
+                <div class="proj-tile__value">${money(healthIncome)}</div>
+              </div>
+              <div class="proj-tile">
+                <div class="proj-tile__label">Obligations</div>
+                <div class="proj-tile__value">${money(healthBills)}</div>
+              </div>
+              <div class="proj-tile">
+                <div class="proj-tile__label">Remaining</div>
+                <div class="proj-tile__value" style="color:${healthRemColor};">${money(healthRemaining)}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -223,6 +228,14 @@ function renderHealth(months) {
 
   document.querySelectorAll('.horizon-btn').forEach(btn => {
     btn.addEventListener('click', () => renderHealth(Number(btn.dataset.months)));
+  });
+
+  document.getElementById('health-card-toggle')?.addEventListener('click', () => {
+    const body = document.getElementById('health-card-body');
+    const chev = document.getElementById('health-card-chevron');
+    if (!body || !chev) return;
+    const isHidden = body.classList.toggle('is-hidden');
+    chev.innerHTML = isHidden ? '&#9656;' : '&#9662;';
   });
 
   document.getElementById('health-upgrade')?.addEventListener('click', () => Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.financialHealth));
@@ -315,12 +328,20 @@ function calcPeriodExp(expenses, period, cadence) {
       const startDate = e.recurrenceStartDate || '1970-01-01';
       if (startDate > period.endDate) continue;
       const freq = e.recurrenceFrequency || 'monthly';
-      // Monthly expense in biweekly period: split evenly or place by dueDay
+      // Monthly expense in biweekly period: route by allocation method
       if (freq === 'monthly' && cadence === 'biweekly') {
-        if (e.splitBiweekly) {
+        const alloc = getEffectiveAllocation(e);
+        if (alloc === 'split') {
           total += e.amount / 2;
-        } else if (dueDayInPeriod(e.dueDay || 1, period)) {
-          total += e.amount;
+        } else if (alloc === 'first') {
+          // 1st paycheck = biweekly period containing the 1st of the month
+          if (dueDayInPeriod(1, period)) total += e.amount;
+        } else if (alloc === 'second') {
+          // 2nd paycheck = biweekly period containing the 16th of the month
+          if (dueDayInPeriod(16, period)) total += e.amount;
+        } else {
+          // 'due-date': full amount if dueDay falls in this period
+          if (dueDayInPeriod(e.dueDay || 1, period)) total += e.amount;
         }
       } else {
         total += e.amount * expMultiplier(freq, cadence);
@@ -343,10 +364,18 @@ function getPeriodItems(expenses, period, cadence) {
       if (startDate > period.endDate) continue;
       const freq = e.recurrenceFrequency || 'monthly';
       if (freq === 'monthly' && cadence === 'biweekly') {
-        if (e.splitBiweekly) {
+        const alloc = getEffectiveAllocation(e);
+        if (alloc === 'split') {
           items.push({ ...e, periodAmount: Math.round(e.amount / 2 * 100) / 100 });
-        } else if (dueDayInPeriod(e.dueDay || 1, period)) {
-          items.push({ ...e, periodAmount: e.amount });
+        } else if (alloc === 'first') {
+          // 1st paycheck = biweekly period containing the 1st of the month
+          if (dueDayInPeriod(1, period)) items.push({ ...e, periodAmount: e.amount });
+        } else if (alloc === 'second') {
+          // 2nd paycheck = biweekly period containing the 16th of the month
+          if (dueDayInPeriod(16, period)) items.push({ ...e, periodAmount: e.amount });
+        } else {
+          // 'due-date': full amount if dueDay falls in this period
+          if (dueDayInPeriod(e.dueDay || 1, period)) items.push({ ...e, periodAmount: e.amount });
         }
       } else {
         items.push({ ...e, periodAmount: Math.round(e.amount * expMultiplier(freq, cadence) * 100) / 100 });

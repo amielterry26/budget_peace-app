@@ -49,10 +49,13 @@ Router.register('budgets', async () => {
           const startDate = e.recurrenceStartDate || '1970-01-01';
           if (startDate > p.endDate) return sum;
           const freq = e.recurrenceFrequency || 'monthly';
-          // Monthly expense in biweekly period: split evenly or place by dueDay
+          // Monthly expense in biweekly period: route by allocation method
           if (freq === 'monthly' && cadence === 'biweekly') {
-            if (e.splitBiweekly) return sum + e.amount / 2;
-            return dueDayInPeriod(e.dueDay || 1, p) ? sum + e.amount : sum;
+            const alloc = getEffectiveAllocation(e);
+            if (alloc === 'split')  return sum + e.amount / 2;
+            if (alloc === 'first')  return dueDayInPeriod(1,  p) ? sum + e.amount : sum;
+            if (alloc === 'second') return dueDayInPeriod(16, p) ? sum + e.amount : sum;
+            return dueDayInPeriod(e.dueDay || 1, p) ? sum + e.amount : sum; // 'due-date'
           }
           return sum + e.amount * expMultiplier(freq, cadence);
         }

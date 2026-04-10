@@ -402,6 +402,23 @@ function mountNotesWidget(prefix, scenarioId, initialNotes) {
   render();
 }
 
+// Returns the effective allocation method for a monthly recurring expense in biweekly mode.
+// Checks allocationMethod first (new field), then falls back to legacy splitBiweekly boolean.
+//
+// Values:
+//   'split'    — amount divided evenly across both biweekly pay periods (½ each)
+//   'first'    — full amount in the biweekly period containing the 1st of the month
+//   'second'   — full amount in the biweekly period containing the 16th of the month
+//   'due-date' — full amount in the period where the stored dueDay falls (default)
+//
+// NOTE: "first paycheck" = biweekly period where dueDayInPeriod(1, period) is true.
+//       "second paycheck" = biweekly period where dueDayInPeriod(16, period) is true.
+function getEffectiveAllocation(expense) {
+  if (expense.allocationMethod) return expense.allocationMethod;
+  if (expense.splitBiweekly)    return 'split';
+  return 'due-date';
+}
+
 function dueDayInPeriod(dueDay, period) {
   const start = new Date(period.startDate + 'T00:00:00Z');
   const end   = new Date(period.endDate + 'T00:00:00Z');

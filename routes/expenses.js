@@ -35,7 +35,7 @@ router.post('/', async (req, res) => {
   try {
     const { userId, name, amount, recurrence, periodStart, cardId,
             recurrenceFrequency, recurrenceStartDate, dueDay, dueDate, scenarioId,
-            splitBiweekly } = req.body;
+            splitBiweekly, allocationMethod } = req.body;
     // Verify body userId matches authenticated user
     if (userId && userId !== req.userId) {
       return res.status(403).json({ error: 'Forbidden' });
@@ -55,7 +55,9 @@ router.post('/', async (req, res) => {
       if (!recurrenceStartDate) {
         return res.status(400).json({ error: 'recurrenceStartDate is required for recurring expenses' });
       }
-      if (recurrenceFrequency === 'monthly' && !splitBiweekly && !dueDay) {
+      // dueDay required only when allocation is 'due-date' (or legacy: no allocationMethod and not split)
+      const effectiveAlloc = allocationMethod || (splitBiweekly ? 'split' : 'due-date');
+      if (recurrenceFrequency === 'monthly' && effectiveAlloc === 'due-date' && !dueDay) {
         return res.status(400).json({ error: 'dueDay is required for monthly recurring expenses' });
       }
     }
@@ -85,7 +87,9 @@ router.post('/', async (req, res) => {
       ...(recurrenceStartDate  && { recurrenceStartDate }),
       ...(dueDay               && { dueDay: Number(dueDay) }),
       ...(dueDate              && { dueDate }),
-      ...(splitBiweekly        && { splitBiweekly: true }),
+      // Allocation: prefer allocationMethod (new); fall back to legacy splitBiweekly
+      ...(allocationMethod     && { allocationMethod }),
+      ...(!allocationMethod && splitBiweekly && { splitBiweekly: true }),
     };
     await db.send(new PutCommand({ TableName: TABLE, Item: item }));
     res.json(item);
@@ -100,7 +104,7 @@ router.put('/:userId/:expenseId', verifyOwner, async (req, res) => {
   try {
     const { name, amount, recurrence, periodStart, cardId,
             recurrenceFrequency, recurrenceStartDate, dueDay, dueDate,
-            splitBiweekly } = req.body;
+            splitBiweekly, allocationMethod } = req.body;
 
     if (!name || !amount || !recurrence) {
       return res.status(400).json({ error: 'Missing required fields (name, amount, recurrence)' });
@@ -117,7 +121,9 @@ router.put('/:userId/:expenseId', verifyOwner, async (req, res) => {
       if (!recurrenceStartDate) {
         return res.status(400).json({ error: 'recurrenceStartDate is required for recurring expenses' });
       }
-      if (recurrenceFrequency === 'monthly' && !splitBiweekly && !dueDay) {
+      // dueDay required only when allocation is 'due-date' (or legacy: no allocationMethod and not split)
+      const effectiveAlloc = allocationMethod || (splitBiweekly ? 'split' : 'due-date');
+      if (recurrenceFrequency === 'monthly' && effectiveAlloc === 'due-date' && !dueDay) {
         return res.status(400).json({ error: 'dueDay is required for monthly recurring expenses' });
       }
     }
@@ -144,7 +150,9 @@ router.put('/:userId/:expenseId', verifyOwner, async (req, res) => {
       recurrenceStartDate: recurrenceStartDate || undefined,
       dueDay:              dueDay ? Number(dueDay) : undefined,
       dueDate:             dueDate || undefined,
-      splitBiweekly:       splitBiweekly ? true : undefined,
+      // Allocation: prefer allocationMethod (new); fall back to legacy splitBiweekly; clear if neither
+      allocationMethod:    allocationMethod || undefined,
+      splitBiweekly:       (!allocationMethod && splitBiweekly) ? true : undefined,
     };
 
     await db.send(new PutCommand({ TableName: TABLE, Item: item }));

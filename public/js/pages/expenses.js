@@ -216,14 +216,16 @@ function buildPill(e) {
   // Expanded: monthly total (only when it differs from the entered amount)
   let moMeta = '';
   if (isRecurring) {
-    const freq = e.recurrenceFrequency;
+    const freq  = e.recurrenceFrequency;
+    const alloc = getEffectiveAllocation(e);
     let moAmt = null;
-    if (freq === 'weekly')        moAmt = e.amount * 4;
-    else if (freq === 'biweekly') moAmt = e.amount * 2;
-    else if (e.splitBiweekly)     moAmt = e.amount; // entered IS monthly; show per-period instead
+    if (freq === 'weekly')                         moAmt = e.amount * 4;
+    else if (freq === 'biweekly')                  moAmt = e.amount * 2;
+    else if (freq === 'monthly' && alloc === 'split') moAmt = e.amount; // entered is monthly; show per-period
     if (moAmt !== null) {
-      const moLabel = e.splitBiweekly ? 'Per period' : 'Monthly total';
-      const moVal   = e.splitBiweekly ? money(e.amount / 2) : money(moAmt);
+      const isSplitAlloc = freq === 'monthly' && alloc === 'split';
+      const moLabel = isSplitAlloc ? 'Per period' : 'Monthly total';
+      const moVal   = isSplitAlloc ? money(e.amount / 2) : money(moAmt);
       moMeta = `<div class="expense-pill__meta-item">
         <div class="expense-pill__meta-label">${moLabel}</div>
         <div class="expense-pill__meta-value">${moVal}</div>
@@ -232,7 +234,7 @@ function buildPill(e) {
   }
 
   let dueMeta = '';
-  if (isRecurring && e.dueDay && !e.splitBiweekly) {
+  if (isRecurring && e.dueDay && getEffectiveAllocation(e) === 'due-date') {
     dueMeta = `<div class="expense-pill__meta-item">
       <div class="expense-pill__meta-label">Due</div>
       <div class="expense-pill__meta-value">Day ${e.dueDay}</div>
@@ -350,13 +352,16 @@ async function openSheet(expense, onSave) {
   const initStart   = editing ? (expense.recurrenceStartDate || today) : today;
   const initDueDay  = editing ? (expense.dueDay || (expense.recurrenceFrequency === 'monthly' ? new Date().getDate() : '')) : '';
   const initDueDate = editing ? (expense.dueDate || '') : '';
-  const initSplit   = editing ? !!expense.splitBiweekly : false;
+  // Derive initial allocation method from new field, with legacy splitBiweekly fallback
+  const initAlloc = editing
+    ? (expense.allocationMethod || (expense.splitBiweekly ? 'split' : 'due-date'))
+    : 'due-date';
 
-  // Determine if user is on biweekly pay cadence (split option only relevant then)
+  // Determine if user is on biweekly pay cadence (allocation only relevant then)
   const isBiweekly = _periods.length > 0 && inferCadence(_periods[0]) === 'biweekly';
 
-  // Due day label depends on frequency
-  const dueDayRequired = initFreq === 'monthly' && !initSplit;
+  // Initial due day visibility: hidden when biweekly+monthly and alloc is not 'due-date'
+  const initDueDayVisible = !(isBiweekly && initFreq === 'monthly') || initAlloc === 'due-date';
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="sheet-overlay" class="sheet-overlay"></div>
@@ -414,17 +419,31 @@ async function openSheet(expense, onSave) {
             <label class="form-label" for="sh-start-date">Start date</label>
             <input class="form-input" id="sh-start-date" type="date" value="${initStart}" />
           </div>
-          <div class="form-group" id="sh-due-day-group" style="display:${initSplit ? 'none' : 'block'}">
-            <label class="form-label" for="sh-due-day" id="sh-due-day-label">Due date ${dueDayRequired ? '' : '<span class="text-muted">(optional, 1–31)</span>'}</label>
+          <div class="form-group" id="sh-due-day-group" style="display:${initDueDayVisible ? 'block' : 'none'}">
+            <label class="form-label" for="sh-due-day" id="sh-due-day-label">Due date ${initFreq === 'monthly' && initDueDayVisible ? '' : '<span class="text-muted">(optional, 1–31)</span>'}</label>
             <input class="form-input" id="sh-due-day" type="number" min="1" max="31"
               placeholder="e.g. 15" value="${initDueDay}" />
           </div>
-          <div class="form-group" id="sh-split-row" style="display:${isBiweekly && initFreq === 'monthly' ? 'flex' : 'none'};align-items:center;gap:var(--space-3);">
-            <input type="checkbox" id="sh-split" style="width:18px;height:18px;cursor:pointer;flex-shrink:0;" ${initSplit ? 'checked' : ''} />
-            <label for="sh-split" style="cursor:pointer;margin:0;">
-              <span class="form-label" style="margin:0;">Split across both pay periods</span>
-              <div class="text-muted text-xs" style="margin-top:2px;">Show ½ amount each biweekly period</div>
-            </label>
+          <div class="form-group" id="sh-alloc-group" style="display:${isBiweekly && initFreq === 'monthly' ? 'block' : 'none'}">
+            <label class="form-label">Allocation</label>
+            <div class="option-grid option-grid--2">
+              <div class="option-card alloc-card ${initAlloc === 'split'    ? 'is-selected' : ''}" data-alloc="split">
+                <div class="option-card__title">Split across both</div>
+                <div class="option-card__sub">½ each paycheck</div>
+              </div>
+              <div class="option-card alloc-card ${initAlloc === 'first'    ? 'is-selected' : ''}" data-alloc="first">
+                <div class="option-card__title">1st paycheck</div>
+                <div class="option-card__sub">Paycheck covering the 1st</div>
+              </div>
+              <div class="option-card alloc-card ${initAlloc === 'second'   ? 'is-selected' : ''}" data-alloc="second">
+                <div class="option-card__title">2nd paycheck</div>
+                <div class="option-card__sub">Paycheck covering the 16th</div>
+              </div>
+              <div class="option-card alloc-card ${initAlloc === 'due-date' ? 'is-selected' : ''}" data-alloc="due-date">
+                <div class="option-card__title">By due date</div>
+                <div class="option-card__sub">Follows your due day</div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -460,35 +479,36 @@ async function openSheet(expense, onSave) {
 
   let selectedRecurrence = isRecurring ? 'recurring' : 'once';
   let selectedFreq       = initFreq;
+  let selectedAlloc      = initAlloc;
 
   function updateDueDayVisibility() {
-    const label    = document.getElementById('sh-due-day-label');
-    const splitRow = document.getElementById('sh-split-row');
+    const label     = document.getElementById('sh-due-day-label');
+    const allocGrp  = document.getElementById('sh-alloc-group');
     const dueDayGrp = document.getElementById('sh-due-day-group');
-    const splitChk = document.getElementById('sh-split');
     if (!label) return;
 
-    const isMonthly = selectedFreq === 'monthly';
-    const isSplitNow = splitChk?.checked || false;
+    const isMonthly         = selectedFreq === 'monthly';
+    const isBiweeklyMonthly = isBiweekly && isMonthly;
 
-    // Show split toggle only for monthly on biweekly schedule
-    if (splitRow) splitRow.style.display = (isBiweekly && isMonthly) ? 'flex' : 'none';
+    // Show allocation section only for monthly expenses on a biweekly budget cadence
+    if (allocGrp) allocGrp.style.display = isBiweeklyMonthly ? 'block' : 'none';
 
-    // Show dueDay group when not split
-    if (dueDayGrp) dueDayGrp.style.display = isSplitNow ? 'none' : 'block';
+    // Show due day when: not biweekly-monthly mode, OR allocation is 'by due date'
+    const showDueDay = !isBiweeklyMonthly || selectedAlloc === 'due-date';
+    if (dueDayGrp) dueDayGrp.style.display = showDueDay ? 'block' : 'none';
 
-    // Update dueDay label
-    if (isMonthly && !isSplitNow) {
+    // Label: required (no qualifier) when monthly + due-date; optional otherwise
+    if (isMonthly && showDueDay) {
       label.innerHTML = 'Due date';
     } else {
       label.innerHTML = 'Due date <span class="text-muted">(optional, 1–31)</span>';
     }
   }
 
-  // Recurrence type toggle
-  document.querySelectorAll('#expense-sheet .option-card:not(.freq-card)').forEach(card => {
+  // Recurrence type toggle (exclude freq-card and alloc-card)
+  document.querySelectorAll('#expense-sheet .option-card:not(.freq-card):not(.alloc-card)').forEach(card => {
     card.addEventListener('click', () => {
-      document.querySelectorAll('#expense-sheet .option-card:not(.freq-card)').forEach(c => c.classList.remove('is-selected'));
+      document.querySelectorAll('#expense-sheet .option-card:not(.freq-card):not(.alloc-card)').forEach(c => c.classList.remove('is-selected'));
       card.classList.add('is-selected');
       selectedRecurrence = card.dataset.val;
       document.getElementById('sh-recurring-fields').style.display = selectedRecurrence === 'recurring' ? 'contents' : 'none';
@@ -506,8 +526,15 @@ async function openSheet(expense, onSave) {
     });
   });
 
-  // Split checkbox toggle
-  document.getElementById('sh-split')?.addEventListener('change', updateDueDayVisibility);
+  // Allocation toggle (biweekly monthly only)
+  document.querySelectorAll('#expense-sheet .alloc-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('#expense-sheet .alloc-card').forEach(c => c.classList.remove('is-selected'));
+      card.classList.add('is-selected');
+      selectedAlloc = card.dataset.alloc;
+      updateDueDayVisibility();
+    });
+  });
 
   const closeSheet = () => {
     document.getElementById('sheet-overlay').classList.remove('is-open');
@@ -542,12 +569,17 @@ async function openSheet(expense, onSave) {
       const startDate = document.getElementById('sh-start-date').value;
       if (!startDate) { alert('Enter a start date.'); return; }
       payload.recurrenceStartDate = startDate;
-      const splitChecked = document.getElementById('sh-split')?.checked || false;
-      if (splitChecked && selectedFreq === 'monthly') {
-        payload.splitBiweekly = true;
+      const isBiweeklyMonthly = isBiweekly && selectedFreq === 'monthly';
+      if (isBiweeklyMonthly) {
+        payload.allocationMethod = selectedAlloc;
+        if (selectedAlloc === 'due-date') {
+          const dueDay = document.getElementById('sh-due-day').value;
+          if (!dueDay) { alert('Monthly expenses require a due day (1–31).'); return; }
+          payload.dueDay = Number(dueDay);
+        }
       } else {
         const dueDay = document.getElementById('sh-due-day').value;
-        if (selectedFreq === 'monthly' && !dueDay) { alert('Monthly expenses require a due date (1–31).'); return; }
+        if (selectedFreq === 'monthly' && !dueDay) { alert('Monthly expenses require a due day (1–31).'); return; }
         if (dueDay) payload.dueDay = Number(dueDay);
       }
     } else {

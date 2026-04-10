@@ -219,12 +219,20 @@ function calcPdExpenses(expenses, period) {
       const freq = e.recurrenceFrequency || 'monthly';
       let mult;
       let isSplit = false;
-      // Monthly expense in biweekly period: split evenly or place by dueDay
+      // Monthly expense in biweekly period: route by allocation method
       if (freq === 'monthly' && cadence === 'biweekly') {
-        if (e.splitBiweekly) {
+        const alloc = getEffectiveAllocation(e);
+        if (alloc === 'split') {
           isSplit = true;
           mult = 0.5;
+        } else if (alloc === 'first') {
+          // 1st paycheck = biweekly period containing the 1st of the month
+          mult = dueDayInPeriod(1, period) ? 1 : 0;
+        } else if (alloc === 'second') {
+          // 2nd paycheck = biweekly period containing the 16th of the month
+          mult = dueDayInPeriod(16, period) ? 1 : 0;
         } else {
+          // 'due-date': full amount if dueDay falls in this period
           mult = dueDayInPeriod(e.dueDay || 1, period) ? 1 : 0;
         }
       } else {

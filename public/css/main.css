@@ -1513,7 +1513,7 @@ img  { display: block; max-width: 100%; }
     margin: 0 auto;
     padding: var(--space-6) var(--space-8) 0;
     display: grid;
-    grid-template-columns: 240px 1fr 280px;
+    grid-template-columns: 240px 1fr 300px;
     grid-template-rows: auto auto auto;
     gap: 20px 32px;
     align-items: start;
@@ -1564,6 +1564,7 @@ img  { display: block; max-width: 100%; }
     grid-column: 2;
     grid-row: 3;
     margin-top: 0;
+    padding-bottom: 28px;
   }
 
   /* RIGHT rail: bills (row 2) + notes (row 3) */
@@ -1762,7 +1763,7 @@ img  { display: block; max-width: 100%; }
 
   /* ---- Left rail: bills always expanded on desktop -------- */
   .home-section-bills .home-card--side {
-    padding: 16px 18px;
+    padding: 18px 18px 16px;
   }
   /* Hide bills toggle on desktop (rail-title serves as section label) */
   .bills-toggle { display: none; }
@@ -1773,18 +1774,25 @@ img  { display: block; max-width: 100%; }
   .home-section-bills #bills-expand {
     display: none;
   }
-  /* Clean list rows — transparent, divider-separated */
+  /* Recurring Bills — soft structured rows, premium utility panel */
   .home-section-bills .overview-row {
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    border-bottom: 1px solid var(--color-border);
-    padding: 8px 0;
-    margin-bottom: 0;
+    background: rgba(15,23,42,0.02);
+    border: 1px solid rgba(15,23,42,0.05);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    margin-bottom: 6px;
     font-size: var(--font-size-sm);
+    align-items: flex-start;
+  }
+  .home-section-bills .overview-row + .overview-row {
+    border-top: none;
   }
   .home-section-bills .overview-row:last-of-type {
-    border-bottom: none;
+    margin-bottom: 0;
+  }
+  .home-section-bills .overview-row__name {
+    font-weight: var(--font-weight-medium);
+    letter-spacing: -0.01em;
   }
   .home-section-bills .overview-row__amount {
     font-size: var(--font-size-sm);
@@ -1792,14 +1800,29 @@ img  { display: block; max-width: 100%; }
   }
   .home-section-bills .home-supporting-copy {
     font-size: var(--font-size-sm);
+    margin-bottom: var(--space-4);
   }
   .home-section-bills .monthly-bills-total {
-    margin-top: var(--space-2);
-    padding-top: var(--space-2);
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
     font-size: var(--font-size-sm);
+    border-top: 1px solid rgba(15,23,42,0.08);
+  }
+  .home-section-bills .monthly-bills-total__label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-medium);
   }
   .home-section-bills .monthly-bills-total__value {
     font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
+  }
+  .home-section-bills .period-bill-card__note,
+  .home-section-bills .overview-row .text-xs,
+  .home-section-bills .overview-row .text-muted {
+    font-size: 11px;
+    color: #64748B;
+    margin-top: 2px;
   }
 
   /* ---- Notes: interactive, clickable on desktop ----------- */

@@ -329,7 +329,7 @@ function buildMonthlyBills(recurring) {
       <div class="overview-row">
         <div style="flex:1;min-width:0;">
           <span class="overview-row__name">${esc(e.name)}</span>
-          ${(() => { const _a = getEffectiveAllocation(e); const _s = _a === 'split' ? 'Split across both' : _a === 'first' ? '1st paycheck' : _a === 'second' ? '2nd paycheck' : null; return _s ? `<div style="font-size:10px;color:var(--color-text-secondary);">${_s}</div>` : e.dueDay && (!e.allocationMethod || e.allocationMethod === 'due-date') ? `<div style="font-size:10px;color:var(--color-text-secondary);">Due ${e.dueDay}</div>` : ''; })()}
+          ${(() => { const _a = getEffectiveAllocation(e); const _s = _a === 'split' ? 'Split across both' : _a === 'first' ? '1st paycheck' : _a === 'second' ? '2nd paycheck' : null; return _s ? `<div class="overview-row__sub">${_s}</div>` : e.dueDay && (!e.allocationMethod || e.allocationMethod === 'due-date') ? `<div class="overview-row__sub">Due ${e.dueDay}</div>` : ''; })()}
         </div>
         <span class="overview-row__amount">${money(amt)}<span style="font-size:10px;color:var(--color-text-secondary);">/mo</span></span>
       </div>`;

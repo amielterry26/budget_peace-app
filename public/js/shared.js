@@ -196,6 +196,7 @@ function inferCadence(period) {
 }
 
 // Stable integer multiplier for expense frequency within a period cadence.
+// Used for pay-period math only (not monthly totals).
 function expMultiplier(expenseFreq, periodCadence) {
   if (periodCadence === 'biweekly') {
     return expenseFreq === 'weekly' ? 2 : 1;
@@ -203,6 +204,15 @@ function expMultiplier(expenseFreq, periodCadence) {
   if (expenseFreq === 'weekly') return 4;
   if (expenseFreq === 'biweekly') return 2;
   return 1;
+}
+
+// Canonical monthly normalization: weekly×4, biweekly×2, monthly×1.
+// Single source of truth for all user-facing monthly totals
+// (Home, Scenarios, Compare, Financial Structure).
+function calcMonthlyAmt(expense) {
+  const freq = expense.recurrenceFrequency || 'monthly';
+  const mult = freq === 'weekly' ? 4 : freq === 'biweekly' ? 2 : 1;
+  return Math.round(expense.amount * mult * 100) / 100;
 }
 
 // Returns true if a monthly expense's dueDay falls within a period's date range.

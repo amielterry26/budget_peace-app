@@ -358,12 +358,7 @@ function buildMonthlyBills(recurring) {
 }
 
 // ---- Math --------------------------------------------------
-
-function calcMonthlyAmt(expense) {
-  const freq = expense.recurrenceFrequency || 'monthly';
-  const mult = freq === 'weekly' ? 4 : freq === 'biweekly' ? 2 : 1;
-  return Math.round(expense.amount * mult * 100) / 100;
-}
+// calcMonthlyAmt() provided by shared.js
 
 function calcMonthlyExp(expenses, today) {
   return Math.round(

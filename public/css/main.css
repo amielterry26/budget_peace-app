@@ -1192,7 +1192,10 @@ img  { display: block; max-width: 100%; }
   cursor:        pointer;
 }
 .expense-pill:hover { border-color: var(--color-accent-light); box-shadow: var(--shadow-sm); }
-.expense-pill.is-expanded { border-color: var(--color-accent); }
+.expense-pill.is-expanded {
+  border-color: var(--color-accent);
+  box-shadow:   0 2px 8px rgba(74,124,89,0.10);
+}
 
 .expense-pill__header {
   display:     flex;
@@ -1201,45 +1204,50 @@ img  { display: block; max-width: 100%; }
   padding:     var(--space-3) var(--space-4);
 }
 
-.expense-pill__name        { flex: 1; font-weight: var(--font-weight-medium); }
-.expense-pill__amount-wrap { flex-shrink: 0; display: flex; align-items: baseline; gap: 5px; justify-content: flex-end; }
-.expense-pill__amount      { font-size: 16px; font-weight: var(--font-weight-bold); }
-.expense-pill__cadence     { display: inline-block; font-size: 10px; font-weight: var(--font-weight-normal); color: var(--color-text-secondary); background: transparent; border: 1px solid var(--color-border); border-radius: 999px; padding: 1px 6px; white-space: nowrap; line-height: 1.4; }
+.expense-pill__name        { flex: 1; font-weight: var(--font-weight-semi); font-size: var(--font-size-sm); }
+.expense-pill__amount-wrap { flex-shrink: 0; display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+.expense-pill__amount      { font-size: var(--font-size-md); font-weight: var(--font-weight-bold); letter-spacing: -0.02em; }
+.expense-pill__cadence     { display: inline-block; font-size: 10px; font-weight: var(--font-weight-medium); color: var(--color-accent-dark); background: var(--color-accent-light); border: 1px solid rgba(74,124,89,0.20); border-radius: 999px; padding: 1px 7px; white-space: nowrap; line-height: 1.5; }
 .expense-pill__chevron {
-  color:      var(--color-text-secondary);
-  font-size:  12px;
-  transition: transform var(--transition-fast);
+  color:       var(--color-text-secondary);
+  font-size:   11px;
+  transition:  transform var(--transition-fast);
   flex-shrink: 0;
+  opacity:     0.6;
 }
-.expense-pill.is-expanded .expense-pill__chevron { transform: rotate(180deg); }
+.expense-pill.is-expanded .expense-pill__chevron { transform: rotate(180deg); opacity: 1; color: var(--color-accent); }
 
 .expense-pill__details {
-  display:       none;
-  padding:       var(--space-3) var(--space-4) var(--space-4);
-  border-top:    1px solid var(--color-border);
-  background:    var(--color-bg);
+  display:    none;
+  padding:    var(--space-3) var(--space-4) var(--space-4);
+  border-top: 2px solid var(--color-accent-light);
+  background: var(--color-surface-alt);
 }
 .expense-pill.is-expanded .expense-pill__details { display: block; }
 
 .expense-pill__meta {
-  display:        grid;
+  display:               grid;
   grid-template-columns: 1fr 1fr;
-  gap:            var(--space-3) var(--space-4);
-  margin-bottom:  var(--space-4);
+  gap:                   var(--space-2);
+  margin-bottom:         var(--space-3);
 }
-.expense-pill__meta-item {}
+.expense-pill__meta-item {
+  background:    var(--color-surface);
+  border:        1px solid rgba(15,23,42,0.06);
+  border-radius: var(--radius-sm);
+  padding:       6px 8px;
+}
 .expense-pill__meta-label {
-  font-size:   9px;
-  color:       var(--color-text-secondary);
-  font-weight: var(--font-weight-semi);
+  font-size:      10px;
+  color:          var(--color-text-secondary);
+  font-weight:    var(--font-weight-semi);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  opacity: 0.75;
+  letter-spacing: 0.08em;
 }
 .expense-pill__meta-value {
   font-size:   var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  margin-top:  3px;
+  font-weight: var(--font-weight-semi);
+  margin-top:  2px;
   color:       var(--color-text-primary);
 }
 
@@ -1247,7 +1255,7 @@ img  { display: block; max-width: 100%; }
   display:     flex;
   gap:         var(--space-2);
   padding-top: var(--space-3);
-  border-top:  1px solid var(--color-border);
+  border-top:  1px solid rgba(15,23,42,0.08);
 }
 
 .exp-bank-tag {
@@ -2622,10 +2630,18 @@ img  { display: block; max-width: 100%; }
 /* --- Scenario Cards --------------------------------------- */
 .sc-card {
   padding: var(--space-3) var(--space-4);
-  transition: box-shadow var(--transition-fast);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 .sc-card--active {
   border: 2px solid var(--color-accent);
+  background: linear-gradient(135deg, #fff 0%, #f5faf7 100%);
+}
+.sc-card__body {
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+.sc-card__body:hover {
+  background: rgba(74,124,89,0.04);
 }
 .sc-card__name {
   font-size: var(--font-size-md);
@@ -2633,37 +2649,46 @@ img  { display: block; max-width: 100%; }
   letter-spacing: -0.01em;
 }
 .sc-card__badge {
-  padding: 2px 10px;
+  padding:       2px 10px;
   border-radius: var(--radius-pill);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semi);
-  background: var(--color-accent);
-  color: var(--color-text-inverse);
-  white-space: nowrap;
+  font-size:     var(--font-size-xs);
+  font-weight:   var(--font-weight-semi);
+  background:    var(--color-accent);
+  color:         var(--color-text-inverse);
+  white-space:   nowrap;
+  box-shadow:    0 1px 3px rgba(74,124,89,0.20);
 }
 .sc-card__badge--primary {
-  background: transparent;
-  color: var(--color-accent);
-  border: 1.5px solid var(--color-accent);
+  background: var(--color-accent-light);
+  color:      var(--color-accent-dark);
+  border:     1px solid rgba(74,124,89,0.25);
+  box-shadow: none;
 }
 .sc-card__actions {
-  display: flex;
-  gap: var(--space-2);
+  display:    flex;
+  gap:        var(--space-2);
+  flex-wrap:  wrap;
   margin-top: var(--space-3);
   padding-top: var(--space-3);
   border-top: 1px solid var(--color-border);
 }
+.sc-delete-btn { margin-left: auto; }
 .sc-snapshot {
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-surface-alt);
+  padding:       var(--space-3);
+  background:    var(--color-surface-alt);
   border-radius: var(--radius-sm);
-  margin-top: var(--space-2);
+  border:        1px solid rgba(15,23,42,0.06);
+  margin-top:    var(--space-2);
 }
 .sc-snapshot__row {
-  display: flex;
+  display:         flex;
   justify-content: space-between;
-  align-items: center;
-  padding: var(--space-1) 0;
+  align-items:     center;
+  padding:         6px var(--space-2);
+  border-radius:   var(--radius-sm);
+}
+.sc-snapshot__row:nth-child(odd) {
+  background: rgba(15,23,42,0.025);
 }
 
 /* --- Scenario Selector ------------------------------------ */

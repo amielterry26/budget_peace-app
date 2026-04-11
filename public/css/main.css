@@ -827,7 +827,7 @@ img  { display: block; max-width: 100%; }
 .overview-row__name {
   flex: 1;
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semi);
   min-width: 0;
 }
 .overview-row__sub {
@@ -1146,8 +1146,11 @@ img  { display: block; max-width: 100%; }
   border-top:  1px solid var(--color-border);
 }
 /* Give primary CTA more visual weight than cancel */
-#expense-sheet .sh-actions .btn     { width: auto; flex: 1; }
-#expense-sheet .sh-actions .btn--primary { flex: 2; }
+#expense-sheet .sh-actions .btn          { width: auto; flex: 1; }
+#expense-sheet .sh-actions .btn--primary { flex: 2; box-shadow: var(--shadow-sm); }
+
+/* Selected option-card: tint the title text to reinforce selection */
+#expense-sheet .option-card.is-selected .option-card__title { color: var(--color-accent-dark); }
 
 /* --- Expense Pill ------------------------------------------ */
 .expense-pill {
@@ -1242,11 +1245,12 @@ img  { display: block; max-width: 100%; }
 }
 .exp-sort-select {
   font-size:    var(--font-size-sm);
-  color:        var(--color-text-secondary);
+  font-weight:  var(--font-weight-medium);
+  color:        var(--color-text-primary);
   background:   var(--color-surface);
-  border:       1px solid var(--color-border);
+  border:       1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
-  padding:      5px 28px 5px 10px;
+  padding:      6px 28px 6px 10px;
   cursor:       pointer;
   outline:      none;
   appearance:   none;
@@ -1255,10 +1259,12 @@ img  { display: block; max-width: 100%; }
   background-repeat: no-repeat;
   background-position: right 8px center;
   background-size: 10px 6px;
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
-.exp-sort-select:focus {
+.exp-sort-select:hover  { border-color: var(--color-text-secondary); }
+.exp-sort-select:focus  {
   border-color: var(--color-accent);
+  box-shadow:   0 0 0 2px var(--color-accent-light);
   outline: none;
 }
 
@@ -1444,6 +1450,17 @@ img  { display: block; max-width: 100%; }
 }
 .bills-chevron { font-size: 11px; color: var(--color-text-secondary); }
 
+/* Internal section title inside the bills card body */
+.bills-internal-title {
+  font-size:      var(--font-size-xs);
+  font-weight:    var(--font-weight-semi);
+  color:          var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top:     var(--space-3);
+  margin-bottom:  var(--space-1);
+}
+
 .health-toolbar {
   display: flex;
   align-items: center;
@@ -1550,7 +1567,7 @@ img  { display: block; max-width: 100%; }
 .period-bill-card:last-child { margin-bottom: 0; }
 .period-bill-card__name {
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semi);
   color: var(--color-text-primary);
 }
 .period-bill-card__amount {
@@ -2398,10 +2415,12 @@ img  { display: block; max-width: 100%; }
 .cmp-row:not(.cmp-row--header):hover {
   background: var(--color-surface-alt);
 }
+.cmp-row--alt { background: rgba(15,23,42,0.025); }
+.cmp-row--alt:hover { background: var(--color-surface-alt); }
 .cmp-label {
   padding: 10px 14px;
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semi);
   color: var(--color-text-secondary);
 }
 .cmp-cell {

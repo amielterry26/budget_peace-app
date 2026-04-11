@@ -253,12 +253,11 @@ function calcPdExpenses(expenses, period) {
 
       let note = null;
       if (isSplit) {
-        note = `÷2 · ${pdMoney(e.amount)}/mo`;
+        note = 'Split across both';
       } else if (freq === 'monthly' && cadence === 'biweekly' && mult === 0) {
         note = 'Due in other period';
       } else if (mult !== 1) {
-        const short = freq === 'weekly' ? 'wk' : freq === 'biweekly' ? '2wk' : 'mo';
-        note = `${mult}× ${pdMoney(e.amount)}/${short}`;
+        note = `${mult} payments this period`;
       }
 
       if (mult > 0) recurringItems.push({ ...e, displayAmount: dispAmt, note });

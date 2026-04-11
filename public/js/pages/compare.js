@@ -205,12 +205,14 @@ function computeMetrics(scenario, expenses) {
 
 function buildDesktopGrid(data) {
   const cols = data.length;
+  let rowIndex = 0;
 
   function row(label, values, opts) {
     const cls = opts?.cls || '';
+    const alt = (++rowIndex % 2 === 0) ? ' cmp-row--alt' : '';
     const cells = values.map(v => `<div class="cmp-cell ${cls}">${v}</div>`).join('');
     return `
-      <div class="cmp-row">
+      <div class="cmp-row${alt}">
         <div class="cmp-label">${label}</div>
         ${cells}
       </div>`;

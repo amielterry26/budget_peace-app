@@ -180,7 +180,8 @@ function renderHealth(months) {
             <span class="bills-chevron" id="bills-card-chevron">&#9662;</span>
           </div>
           <div id="bills-card-body">
-            <div class="home-supporting-copy" style="margin-top:var(--space-2);margin-bottom:var(--space-3);">
+            <div class="bills-internal-title">Monthly Expenses</div>
+            <div class="home-supporting-copy" style="margin-top:var(--space-1);margin-bottom:var(--space-3);">
               Your baseline monthly obligations, including due dates.
             </div>
             ${buildMonthlyBills(recurringActive)}
@@ -427,7 +428,7 @@ function getPeriodItems(expenses, period, cadence) {
       if (freq === 'monthly' && cadence === 'biweekly') {
         const alloc = getEffectiveAllocation(e);
         if (alloc === 'split') {
-          items.push({ ...e, periodAmount: Math.round(e.amount / 2 * 100) / 100, note: `÷2 · ${money(e.amount)}/mo` });
+          items.push({ ...e, periodAmount: Math.round(e.amount / 2 * 100) / 100, note: 'Split across both' });
         } else if (alloc === 'first') {
           if (dueDayInPeriod(1, period)) items.push({ ...e, periodAmount: e.amount, note: '1st paycheck' });
         } else if (alloc === 'second') {

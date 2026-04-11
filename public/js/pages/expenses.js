@@ -390,8 +390,8 @@ async function openSheet(expense, onSave) {
 
   // Due day shown for monthly expenses only (required on monthly cadence, optional metadata on biweekly)
   const initDueDayVisible = initFreq === 'monthly';
-  // Allocation dropdown shown for biweekly cadence + monthly OR biweekly expense frequency
-  const initShowAlloc = isBiweekly && (initFreq === 'monthly' || initFreq === 'biweekly');
+  // Allocation dropdown shown for biweekly cadence + monthly expense frequency only
+  const initShowAlloc = isBiweekly && initFreq === 'monthly';
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="sheet-overlay" class="sheet-overlay"></div>
@@ -517,8 +517,8 @@ async function openSheet(expense, onSave) {
 
     const isMonthly      = selectedFreq === 'monthly';
     const isBiweeklyFreq = selectedFreq === 'biweekly';
-    // Show alloc for biweekly cadence + (monthly OR biweekly expense freq)
-    const showAlloc = isBiweekly && (isMonthly || isBiweeklyFreq);
+    // Show alloc for biweekly cadence + monthly expense frequency only
+    const showAlloc = isBiweekly && isMonthly;
 
     if (allocGrp) allocGrp.style.display = showAlloc ? 'block' : 'none';
 
@@ -591,8 +591,8 @@ async function openSheet(expense, onSave) {
       const startDate = document.getElementById('sh-start-date').value;
       if (!startDate) { alert('Enter a start date.'); return; }
       payload.recurrenceStartDate = startDate;
-      // Allocation applies for biweekly cadence + monthly OR biweekly expense frequency
-      const showAlloc = isBiweekly && (selectedFreq === 'monthly' || selectedFreq === 'biweekly');
+      // Allocation applies for biweekly cadence + monthly expense frequency only
+      const showAlloc = isBiweekly && selectedFreq === 'monthly';
       if (showAlloc) {
         if (isLegacyDueDate && !hasChangedAlloc) {
           // Preserve legacy due-date behavior — user did not explicitly change allocation

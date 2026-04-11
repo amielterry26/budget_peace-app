@@ -379,7 +379,7 @@ async function openSheet(expense, onSave) {
                   : 'split';
 
   // Determine if user is on biweekly pay cadence (allocation only relevant then)
-  const isBiweekly = _periods.length > 0 && inferCadence(_periods[0]) === 'biweekly';
+  const isBiweekly = periods.length > 0 && inferCadence(periods[0]) === 'biweekly';
 
   // Detect legacy due-date mode: monthly+biweekly expense without a modern allocationMethod.
   // We must NOT silently convert these — preserve their behavior unless the user explicitly changes it.

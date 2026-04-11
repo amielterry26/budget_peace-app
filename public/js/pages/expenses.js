@@ -89,13 +89,15 @@ function renderExpensesList() {
   const summaryHtml = `
     <div class="exp-sort-bar">
       <span class="text-muted text-sm">${expUsage}${isExpLimited && _expenses.length >= maxExp ? ' · <a href="javascript:void(0)" class="exp-usage-upgrade" style="color:var(--color-accent);font-weight:600;">Upgrade for more</a>' : ''}</span>
-      <select class="exp-sort-select" id="exp-sort">
-        <option value="amount-desc" ${_expSort === 'amount-desc' ? 'selected' : ''}>Highest</option>
-        <option value="amount-asc"  ${_expSort === 'amount-asc'  ? 'selected' : ''}>Lowest</option>
-        <option value="name-asc"    ${_expSort === 'name-asc'    ? 'selected' : ''}>A–Z</option>
-        <option value="newest"      ${_expSort === 'newest'      ? 'selected' : ''}>Newest</option>
-        <option value="oldest"      ${_expSort === 'oldest'      ? 'selected' : ''}>Oldest</option>
-      </select>
+      <div class="exp-sort-ctrl">
+        <select class="exp-sort-select" id="exp-sort">
+          <option value="amount-desc" ${_expSort === 'amount-desc' ? 'selected' : ''}>Highest</option>
+          <option value="amount-asc"  ${_expSort === 'amount-asc'  ? 'selected' : ''}>Lowest</option>
+          <option value="name-asc"    ${_expSort === 'name-asc'    ? 'selected' : ''}>A–Z</option>
+          <option value="newest"      ${_expSort === 'newest'      ? 'selected' : ''}>Newest</option>
+          <option value="oldest"      ${_expSort === 'oldest'      ? 'selected' : ''}>Oldest</option>
+        </select>
+      </div>
     </div>`;
 
   const notesHtml = _expScenario ? notesCardHtml('exp') : '';

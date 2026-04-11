@@ -1306,6 +1306,32 @@ img  { display: block; max-width: 100%; }
   outline: none;
 }
 
+/* Desktop sort bar — elevated toolbar feel */
+@media (min-width: 1200px) {
+  .exp-sort-bar {
+    padding:      var(--space-2) var(--space-4);
+    border-color: rgba(74,124,89,0.15);
+    background:   linear-gradient(to right, var(--color-surface-alt) 0%, #f8faf9 100%);
+  }
+  .exp-sort-ctrl {
+    display:     flex;
+    align-items: center;
+    gap:         6px;
+  }
+  .exp-sort-ctrl::before {
+    content:     'Sort by';
+    font-size:   var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color:       var(--color-text-secondary);
+    white-space: nowrap;
+  }
+  .exp-sort-select {
+    font-size:   var(--font-size-xs);
+    padding:     5px 28px 5px 10px;
+    box-shadow:  0 1px 3px rgba(15,23,42,0.06);
+  }
+}
+
 /* --- Wallet Cards ------------------------------------------ */
 .wallet-row {
   display:    flex;

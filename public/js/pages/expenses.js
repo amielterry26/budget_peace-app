@@ -372,11 +372,14 @@ async function openSheet(expense, onSave) {
   const initStart   = editing ? (expense.recurrenceStartDate || today) : today;
   const initDueDay  = editing ? (expense.dueDay || (expense.recurrenceFrequency === 'monthly' ? new Date().getDate() : '')) : '';
   const initDueDate = editing ? (expense.dueDate || '') : '';
-  // Normalize legacy allocation values to the 3-option model (split / paycheck1 / paycheck2)
+  // Normalize all allocation field variants to canonical values
   const rawAlloc = editing ? (expense.allocationMethod || (expense.splitBiweekly ? 'split' : null)) : null;
   const initAlloc = (rawAlloc === 'first'  || rawAlloc === 'paycheck1') ? 'paycheck1'
                   : (rawAlloc === 'second' || rawAlloc === 'paycheck2') ? 'paycheck2'
-                  : 'split';
+                  : rawAlloc === 'split'    ? 'split'
+                  : rawAlloc === 'due-date' ? 'due-date'
+                  : (editing && isBiweekly && initFreq === 'monthly') ? 'due-date'  // legacy no-alloc = due-date
+                  : 'split';  // new expense default
 
   // Determine if user is on biweekly pay cadence (allocation only relevant then)
   const isBiweekly = periods.length > 0 && inferCadence(periods[0]) === 'biweekly';
@@ -461,11 +464,11 @@ async function openSheet(expense, onSave) {
             <div class="form-group" id="sh-alloc-group" style="display:${initShowAlloc ? 'block' : 'none'}">
               <label class="form-label" for="sh-alloc">Allocation</label>
               <select class="form-input form-select" id="sh-alloc">
+                <option value="due-date"  ${initAlloc === 'due-date'  ? 'selected' : ''}>Due date</option>
                 <option value="split"     ${initAlloc === 'split'     ? 'selected' : ''}>Split across both</option>
                 <option value="paycheck1" ${initAlloc === 'paycheck1' ? 'selected' : ''}>1st paycheck</option>
                 <option value="paycheck2" ${initAlloc === 'paycheck2' ? 'selected' : ''}>2nd paycheck</option>
               </select>
-              ${isLegacyDueDate ? `<p class="text-muted text-sm" style="margin-top:var(--space-1);">Currently scheduled by due date. Select an option above to change.</p>` : ''}
             </div>
           </div>
         </div>
@@ -526,7 +529,7 @@ async function openSheet(expense, onSave) {
     const showDueDay = isMonthly;
     if (dueDayGrp) dueDayGrp.style.display = showDueDay ? 'block' : 'none';
 
-    label.innerHTML = (isMonthly && !isBiweekly)
+    label.innerHTML = (!isBiweekly || selectedAlloc === 'due-date')
       ? 'Due date'
       : 'Due date <span class="text-muted">(optional)</span>';
   }
@@ -599,12 +602,16 @@ async function openSheet(expense, onSave) {
           payload.allocationMethod = 'due-date';
           if (expense.dueDay) payload.dueDay = expense.dueDay;
         } else {
-          payload.allocationMethod = selectedAlloc; // split | paycheck1 | paycheck2
-        }
-        // For monthly+biweekly, also save optional dueDay as display metadata
-        if (selectedFreq === 'monthly' && !(isLegacyDueDate && !hasChangedAlloc)) {
+          payload.allocationMethod = selectedAlloc;
           const dueDay = document.getElementById('sh-due-day').value;
-          if (dueDay) payload.dueDay = Number(dueDay);
+          if (selectedAlloc === 'due-date') {
+            // Due date is the scheduling mode — day is required
+            if (!dueDay) { alert('Enter a due day (1–31).'); return; }
+            payload.dueDay = Number(dueDay);
+          } else if (dueDay) {
+            // Split / 1st / 2nd — due day is optional metadata only
+            payload.dueDay = Number(dueDay);
+          }
         }
       } else if (selectedFreq === 'monthly') {
         // Monthly on non-biweekly cadence: dueDay required

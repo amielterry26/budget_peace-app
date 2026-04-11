@@ -372,6 +372,10 @@ async function openSheet(expense, onSave) {
   const initStart   = editing ? (expense.recurrenceStartDate || today) : today;
   const initDueDay  = editing ? (expense.dueDay || (expense.recurrenceFrequency === 'monthly' ? new Date().getDate() : '')) : '';
   const initDueDate = editing ? (expense.dueDate || '') : '';
+
+  // Determine if user is on biweekly pay cadence (allocation only relevant then)
+  const isBiweekly = periods.length > 0 && inferCadence(periods[0]) === 'biweekly';
+
   // Normalize all allocation field variants to canonical values
   const rawAlloc = editing ? (expense.allocationMethod || (expense.splitBiweekly ? 'split' : null)) : null;
   const initAlloc = (rawAlloc === 'first'  || rawAlloc === 'paycheck1') ? 'paycheck1'
@@ -380,9 +384,6 @@ async function openSheet(expense, onSave) {
                   : rawAlloc === 'due-date' ? 'due-date'
                   : (editing && isBiweekly && initFreq === 'monthly') ? 'due-date'  // legacy no-alloc = due-date
                   : 'split';  // new expense default
-
-  // Determine if user is on biweekly pay cadence (allocation only relevant then)
-  const isBiweekly = periods.length > 0 && inferCadence(periods[0]) === 'biweekly';
 
   // Detect legacy due-date mode: monthly+biweekly expense without a modern allocationMethod.
   // We must NOT silently convert these — preserve their behavior unless the user explicitly changes it.

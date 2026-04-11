@@ -38,9 +38,11 @@ function renderGoals() {
 
   if (!_goals.length) {
     content.innerHTML = `
-      <div class="page">
-        <div class="text-muted text-sm text-center" style="padding:64px 0;">
-          No savings goals yet. Tap + to create one.
+      <div class="page goals-page">
+        <div class="goals-empty-state">
+          <div class="goals-empty-state__icon">&#9734;</div>
+          <div class="goals-empty-state__text">No savings goals yet.</div>
+          <div class="goals-empty-state__hint">Tap <strong>+</strong> to create your first goal.</div>
         </div>
       </div>`;
     return;
@@ -49,7 +51,7 @@ function renderGoals() {
   const sorted = _goals.slice().sort((a, b) => a.targetDate.localeCompare(b.targetDate));
 
   content.innerHTML = `
-    <div class="page">
+    <div class="page goals-page">
       <div class="stack--3">${sorted.map(buildGoalCard).join('')}</div>
     </div>`;
 

@@ -40,9 +40,9 @@ function renderGoals() {
     content.innerHTML = `
       <div class="page goals-page">
         <div class="goals-empty-state">
-          <div class="goals-empty-state__icon">&#9734;</div>
+          <div class="goals-empty-state__icon">&#9678;</div>
           <div class="goals-empty-state__text">No savings goals yet.</div>
-          <div class="goals-empty-state__hint">Tap <strong>+</strong> to create your first goal.</div>
+          <div class="goals-empty-state__hint">Tap <strong>+</strong> to set your first savings goal.</div>
         </div>
       </div>`;
     return;
@@ -74,28 +74,28 @@ function buildGoalCard(g) {
   const isComplete = pct >= 100;
 
   return `
-    <div class="card" id="goal-${g.goalId}" style="padding:var(--space-3) var(--space-4);">
-      <div style="display:flex;justify-content:space-between;align-items:start;gap:var(--space-2);margin-bottom:var(--space-2);">
-        <div>
-          <div class="card-header" style="margin-bottom:2px;">${esc(g.name)}</div>
-          <div class="text-muted text-sm">Target: ${targetFmt}</div>
+    <div class="card goal-card${isComplete ? ' goal-card--complete' : ''}" id="goal-${g.goalId}">
+      <div class="goal-card__header">
+        <div class="goal-card__name-area">
+          <div class="card-header goal-card__name">${esc(g.name)}</div>
+          <div class="text-muted text-sm goal-card__date">Target: ${targetFmt}</div>
         </div>
-        <div style="text-align:right;">
-          <div style="font-weight:var(--font-weight-bold);font-size:var(--font-size-lg);letter-spacing:-0.02em;">${gMoney(g.currentSaved || 0)}</div>
+        <div class="goal-card__amount-area">
+          <div class="goal-card__saved">${gMoney(g.currentSaved || 0)}</div>
           <div class="text-muted text-sm">of ${gMoney(g.targetAmount)}</div>
         </div>
       </div>
-      <div class="spend-bar" style="margin-bottom:var(--space-1);">
-        <div class="spend-bar__fill" style="width:${pct}%;${isComplete ? 'background:var(--color-accent);' : ''}"></div>
+      <div class="goal-bar">
+        <div class="goal-bar__fill${isComplete ? ' goal-bar__fill--complete' : ''}" style="width:${pct}%;"></div>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="goal-card__stats">
         <span class="text-muted text-sm">${pct}% saved${isComplete ? ' — Goal reached!' : ''}</span>
-        <span class="text-muted text-sm">${gMoney(remaining)} to go</span>
+        <span class="text-muted text-sm">${isComplete ? '' : gMoney(remaining) + ' to go'}</span>
       </div>
-      <div style="display:flex;gap:8px;margin-top:var(--space-3);padding-top:var(--space-3);border-top:1px solid var(--color-border);">
-        <button class="btn btn--primary goal-contribute-btn" style="font-size:13px;padding:8px 16px;flex:1;">Log Contribution</button>
-        <button class="btn btn--ghost goal-edit-btn" style="font-size:13px;padding:8px 16px;">Edit</button>
-        <button class="btn btn--danger goal-delete-btn" style="font-size:13px;padding:8px 16px;">Delete</button>
+      <div class="goal-card__actions">
+        <button class="btn btn--primary goal-contribute-btn goal-card__btn-contribute">Log Contribution</button>
+        <button class="btn btn--ghost goal-edit-btn goal-card__btn-secondary">Edit</button>
+        <button class="btn btn--danger goal-delete-btn goal-card__btn-secondary">Delete</button>
       </div>
     </div>`;
 }

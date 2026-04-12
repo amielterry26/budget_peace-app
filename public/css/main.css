@@ -1670,10 +1670,32 @@ img  { display: block; max-width: 100%; }
 /* --- Rail title (hidden on mobile, shown on desktop) -------- */
 .rail-title { display: none; }
 
-/* --- Home Dashboard (desktop 3-column) --------------------- */
-/* Desktop-only. Mobile renders flat source order unchanged:
-   welcome(hidden) → mode-switch → period → notes →
-   structure → bills → health.                                 */
+/* --- Home page: shell layout (mobile-first) ---------------
+   MUST appear BEFORE the @media desktop block so that the
+   desktop media query rules (which come later) properly
+   override these mobile defaults.                           */
+.home-page {
+  display: flex;
+  flex-direction: column;
+}
+/* Desktop grid wrappers transparent on mobile via display:contents */
+.home-desktop-grid,
+.home-col-left,
+.home-col-right {
+  display: contents;
+}
+/* Mobile stacking order — preserves original order */
+.home-welcome              { order: 0; }
+.home-page .home-mode-switch { order: 1; }
+.home-page .home-section-period { order: 2; }
+.home-page .notes-card     { order: 3; }
+.home-page .home-section-structure { order: 4; }
+.home-page .home-section-bills { order: 5; }
+.home-page .home-section-health { order: 6; }
+
+/* --- Home Dashboard (desktop shell) ------------------------ */
+/* Desktop overrides come after mobile defaults above so they
+   win the CSS cascade.                                        */
 
 @media (min-width: 1200px) {
 
@@ -1718,7 +1740,7 @@ img  { display: block; max-width: 100%; }
   /* Desktop grid: 2 truly independent columns */
   .home-desktop-grid {
     display: grid;
-    grid-template-columns: minmax(560px, 1.8fr) minmax(300px, 0.9fr);
+    grid-template-columns: minmax(0, 1.65fr) minmax(300px, 0.78fr);
     gap: 28px;
     align-items: start;
   }
@@ -2619,28 +2641,6 @@ img  { display: block; max-width: 100%; }
   font-weight:    var(--font-weight-bold);
   letter-spacing: -0.01em;
 }
-
-/* --- Home page: shell layout (mobile-first) ---------------
-   On mobile: desktop grid wrappers are display:contents so
-   children flow as direct flex children of .home-page.
-   order properties preserve original mobile stacking.      */
-.home-page {
-  display: flex;
-  flex-direction: column;
-}
-.home-desktop-grid,
-.home-col-left,
-.home-col-right {
-  display: contents; /* transparent on mobile — children flex directly */
-}
-/* Mobile stacking order (original) */
-.home-welcome              { order: 0; }
-.home-page .home-mode-switch { order: 1; }
-.home-page .home-section-period { order: 2; }
-.home-page .notes-card     { order: 3; }
-.home-page .home-section-structure { order: 4; }
-.home-page .home-section-bills { order: 5; }
-.home-page .home-section-health { order: 6; }
 
 /* --- Notes ------------------------------------------------ */
 .notes-card         { margin: var(--space-4) 0; }

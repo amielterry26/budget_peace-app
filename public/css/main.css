@@ -1678,14 +1678,15 @@ img  { display: block; max-width: 100%; }
 @media (min-width: 1200px) {
 
   /* ---- Grid container ------------------------------------- */
+  /* 2-col: LEFT workspace (1fr) + RIGHT utility rail (340px) */
   .home-page {
     max-width: 1320px;
     margin: 0 auto;
     padding: var(--space-6) var(--space-8) 0;
     display: grid;
-    grid-template-columns: 240px 1fr 300px;
-    grid-template-rows: auto auto auto;
-    gap: 20px 32px;
+    grid-template-columns: 1fr 340px;
+    grid-template-rows: auto;
+    gap: 20px 28px;
     align-items: start;
   }
 
@@ -1694,7 +1695,7 @@ img  { display: block; max-width: 100%; }
     display: none;
   }
 
-  /* ---- Welcome header (desktop only) ---------------------- */
+  /* ---- Welcome header (full width, row 1) ----------------- */
   .home-welcome {
     display: block;
     grid-column: 1 / -1;
@@ -1715,42 +1716,47 @@ img  { display: block; max-width: 100%; }
   }
 
   /* ---- Column placement ----------------------------------- */
-  /* Row 1 = welcome (full width), rows 2–4 = dashboard grid  */
-  /* CENTER: notes(2) → period(3) → structure(4)              */
-  /* LEFT/RIGHT rails span all three content rows             */
+  /* LEFT (1fr):   notes(row2) → period(row3)                 */
+  /* RIGHT (340px): bills(2) → health(3) → structure(4)       */
 
-  /* LEFT rail: health — spans rows 2–4 */
-  .home-section-health {
+  /* LEFT: Notes utility strip — inline expand, no z-index tricks */
+  .home-page > .notes-card {
     grid-column: 1;
-    grid-row: 2 / 5;
+    grid-row: 2;
+    margin-top: 0;
+    align-self: start;
+  }
+
+  /* LEFT: Current Pay Period — dominant workspace card */
+  .home-section-period {
+    grid-column: 1;
+    grid-row: 3;
     margin-top: 0;
   }
 
-  /* CENTER workspace: notes (row 2) → period (row 3) → structure (row 4) */
-  .home-page > .notes-card {
+  /* RIGHT: Bills — top of utility rail */
+  .home-section-bills {
     grid-column: 2;
     grid-row: 2;
     margin-top: 0;
     align-self: start;
   }
-  .home-section-period {
+
+  /* RIGHT: Financial Health — under bills */
+  .home-section-health {
     grid-column: 2;
     grid-row: 3;
     margin-top: 0;
+    align-self: start;
   }
+
+  /* RIGHT: Financial Structure — under health */
   .home-section-structure {
     grid-column: 2;
     grid-row: 4;
     margin-top: 0;
-    padding-bottom: 28px;
-  }
-
-  /* RIGHT rail: bills — spans rows 2–4, anchored at top */
-  .home-section-bills {
-    grid-column: 3;
-    grid-row: 2 / 5;
-    margin-top: 0;
     align-self: start;
+    padding-bottom: 28px;
   }
 
   /* ========================================================= */
@@ -1998,45 +2004,21 @@ img  { display: block; max-width: 100%; }
     margin-top: 2px;
   }
 
-  /* ---- Desktop Notes: compact utility widget --------------- */
-  /* Header sits in grid flow (sets row height).               */
-  /* Body drops as an absolute overlay — zero layout impact.  */
+  /* ---- Desktop Notes: compact utility strip, inline expand - */
+  /* Collapsed = slim header only. Expanded = pushes period    */
+  /* down naturally. No z-index tricks, no float/overlay.     */
   .home-page > .notes-card {
-    position: relative;
-    overflow: visible;
     padding: 10px 14px !important;
     border-radius: var(--radius-sm);
     box-shadow: 0 1px 3px rgba(15,23,42,0.06);
   }
 
-  /* Absolutely-positioned body: drops below card, no reflow */
+  /* Notes body: normal flow — global .is-hidden handles display:none */
   .home-page > .notes-card .notes-body {
-    position:      absolute;
-    top:           calc(100% + 4px);
-    left:          0;
-    right:         0;
-    background:    var(--color-surface);
-    border:        1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    box-shadow:    var(--shadow-md);
-    z-index:       50;
-    padding:       var(--space-3) var(--space-4);
-    max-height:    320px;
-    overflow-y:    auto;
-    opacity:       1;
-    transform:     translateY(0);
-    transition:    opacity 0.15s ease, transform 0.15s ease;
+    padding-top: var(--space-3);
   }
 
-  /* Hidden state: invisible + no interaction (keep in flow override) */
-  .home-page > .notes-card .notes-body.is-hidden {
-    display:        block !important;
-    opacity:        0;
-    pointer-events: none;
-    transform:      translateY(-6px);
-  }
-
-  /* Input row: horizontal, compact Add button */
+  /* Input row: horizontal layout, compact Add button */
   .home-page > .notes-card .notes-add {
     flex-direction: row;
     align-items:    center;

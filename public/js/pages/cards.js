@@ -92,6 +92,7 @@ function renderCardsPage() {
       <button class="btn btn--ghost" id="manage-banks-btn" style="font-size:12px;padding:5px 12px;flex-shrink:0;white-space:nowrap;">+ Add Bank</button>
     </div>`;
 
+  // --- Desktop: horizontal carousel ---
   const walletItems = visibleCards.map((c) => `
     <div class="wallet-card ${_selectedCard === c.cardId ? 'is-selected' : ''}"
       id="wcard-${c.cardId}"
@@ -104,9 +105,29 @@ function renderCardsPage() {
     </div>`).join('');
 
   const emptySlot = `
-    <div class="wallet-empty" id="add-card-tile">
+    <div class="wallet-empty" id="add-card-tile-desktop">
       <div class="wallet-empty__icon">＋</div>
       <div class="wallet-empty__label">Add a card</div>
+    </div>`;
+
+  // --- Mobile: vertical Apple Wallet stack ---
+  const mobileCards = visibleCards.map(c => {
+    const bank = _banks.find(b => b.bankId === c.bankId);
+    return `
+      <div class="wallet-mobile-card"
+        data-cardid="${c.cardId}"
+        style="background:${CARD_PALETTES[c.colorIndex % CARD_PALETTES.length]}">
+        <div class="wallet-card__type">${c.type}${bank ? `<span class="wallet-mobile-card__bank" style="float:right;">${esc(bank.name)}</span>` : ''}</div>
+        <div>
+          <div class="wallet-card__number">•••• •••• •••• ${esc(c.lastFour)}</div>
+          <div class="wallet-card__name">${esc(c.name)}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  const mobileEmpty = `
+    <div class="wallet-mobile-empty" id="add-card-tile-mobile">
+      <div class="wallet-mobile-empty__label">＋ Add a card</div>
     </div>`;
 
   content.innerHTML = `
@@ -114,6 +135,7 @@ function renderCardsPage() {
       ${bankChipsHtml}
       <div class="wallet-row">${walletItems}${emptySlot}</div>
       <div id="card-detail-area"></div>
+      <div class="wallet-mobile-stack">${mobileCards}${mobileEmpty}</div>
     </div>`;
 
   // Wire bank chips
@@ -127,14 +149,20 @@ function renderCardsPage() {
 
   document.getElementById('manage-banks-btn').addEventListener('click', () => openBankSheet());
 
+  // Desktop card clicks
   visibleCards.forEach(c => {
     document.getElementById(`wcard-${c.cardId}`)?.addEventListener('click', () => {
       _selectedCard = c.cardId;
       renderCardsPage();
     });
   });
+  document.getElementById('add-card-tile-desktop')?.addEventListener('click', () => openCardSheet(null));
 
-  document.getElementById('add-card-tile').addEventListener('click', () => openCardSheet(null));
+  // Mobile card clicks → detail sheet
+  document.querySelectorAll('.wallet-mobile-card').forEach(el => {
+    el.addEventListener('click', () => openCardDetailSheet(el.dataset.cardid));
+  });
+  document.getElementById('add-card-tile-mobile')?.addEventListener('click', () => openCardSheet(null));
 
   if (_selectedCard) renderCardDetail(_selectedCard);
 }
@@ -175,6 +203,74 @@ function renderCardDetail(cardId) {
   document.getElementById('del-card-btn').addEventListener('click', () => confirmDeleteCard(card));
 }
 
+// ---- Mobile: Card Detail Sheet -----------------------------
+
+function openCardDetailSheet(cardId) {
+  const card     = _cards.find(c => c.cardId === cardId);
+  const expenses = _cardExpenses.filter(e => e.cardId === cardId);
+  const total    = expenses.reduce((s, e) => s + e.amount, 0);
+  const bank     = _banks.find(b => b.bankId === card?.bankId);
+  if (!card) return;
+
+  const rows = expenses.length
+    ? expenses.map(e => `
+        <div class="pill-item">
+          <span class="pill-item__label">${esc(e.name)}</span>
+          <span class="text-xs text-muted">${e.recurrence === 'recurring' ? 'recurring' : 'one time'}</span>
+          <span class="pill-item__amount">${money(e.amount)}</span>
+        </div>`).join('')
+    : `<div class="text-muted text-sm text-center" style="padding:24px 0;">No expenses on this card.</div>`;
+
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="cds-overlay" class="sheet-overlay"></div>
+    <div id="cds-sheet" class="sheet">
+      <div class="sheet__handle"></div>
+      <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-1);">
+        <div style="width:10px;height:10px;border-radius:50%;background:${bank?.color || BANK_COLOR_DEFAULT};flex-shrink:0;"></div>
+        <div class="sheet__title" style="margin:0;">${esc(card.name)}</div>
+      </div>
+      <div class="text-muted text-xs" style="margin-bottom:var(--space-4);">
+        ${card.type} &nbsp;•&nbsp; •••• ${esc(card.lastFour)}${bank ? ` &nbsp;•&nbsp; ${esc(bank.name)}` : ''}
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:var(--space-3);">
+        <div class="text-muted text-xs" style="text-transform:uppercase;letter-spacing:0.08em;">Total on card</div>
+        <div style="font-size:22px;font-weight:700;letter-spacing:-0.03em;">${money(total)}</div>
+      </div>
+      <div class="stack--2" style="margin-bottom:var(--space-4);">${rows}</div>
+      <div style="display:flex;gap:var(--space-2);">
+        <button class="btn btn--ghost btn--full" id="cds-edit">Edit</button>
+        <button class="btn btn--danger btn--full" id="cds-delete">Delete</button>
+        <button class="btn btn--ghost btn--full" id="cds-close">Close</button>
+      </div>
+    </div>`);
+
+  requestAnimationFrame(() => {
+    document.getElementById('cds-overlay').classList.add('is-open');
+    document.getElementById('cds-sheet').classList.add('is-open');
+  });
+
+  const closeSheet = () => {
+    document.getElementById('cds-overlay').classList.remove('is-open');
+    const s = document.getElementById('cds-sheet');
+    s.classList.remove('is-open');
+    s.addEventListener('transitionend', () => {
+      document.getElementById('cds-overlay')?.remove();
+      document.getElementById('cds-sheet')?.remove();
+    }, { once: true });
+  };
+
+  document.getElementById('cds-overlay').addEventListener('click', closeSheet);
+  document.getElementById('cds-close').addEventListener('click', closeSheet);
+  document.getElementById('cds-edit').addEventListener('click', () => {
+    closeSheet();
+    setTimeout(() => openCardSheet(card), 250);
+  });
+  document.getElementById('cds-delete').addEventListener('click', () => {
+    closeSheet();
+    setTimeout(() => confirmDeleteCard(card), 250);
+  });
+}
+
 // ---- Sheet (Add / Edit Card) --------------------------------
 
 function openCardSheet(card) {
@@ -203,12 +299,15 @@ function openCardSheet(card) {
         </div>
         <div class="form-group">
           <label class="form-label">Type</label>
-          <div class="option-grid option-grid--2">
+          <div class="option-grid option-grid--3">
             <div class="option-card ${!editing || card.type === 'Debit' ? 'is-selected' : ''}" data-val="Debit">
               <div class="option-card__title">Debit</div>
             </div>
             <div class="option-card ${editing && card.type === 'Credit' ? 'is-selected' : ''}" data-val="Credit">
               <div class="option-card__title">Credit</div>
+            </div>
+            <div class="option-card ${editing && card.type === 'Savings' ? 'is-selected' : ''}" data-val="Savings">
+              <div class="option-card__title">Savings</div>
             </div>
           </div>
         </div>

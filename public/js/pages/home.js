@@ -273,7 +273,7 @@ function renderHealth(months) {
     const chev = document.getElementById('health-card-chevron');
     if (chev) chev.innerHTML = '&#9656;';
   }
-  if (window.innerWidth < 1200 && localStorage.getItem('bp_collapse_bills') === '1') {
+  if (localStorage.getItem('bp_collapse_bills') === '1') {
     document.getElementById('bills-card-body')?.classList.add('is-hidden');
     const chev = document.getElementById('bills-card-chevron');
     if (chev) chev.innerHTML = '&#9656;';
@@ -294,7 +294,6 @@ function renderHealth(months) {
   });
 
   document.getElementById('bills-card-toggle')?.addEventListener('click', () => {
-    if (window.innerWidth >= 1200) return;
     const body = document.getElementById('bills-card-body');
     const chev = document.getElementById('bills-card-chevron');
     if (!body || !chev) return;

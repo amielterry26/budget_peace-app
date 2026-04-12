@@ -1715,38 +1715,41 @@ img  { display: block; max-width: 100%; }
   }
 
   /* ---- Column placement ----------------------------------- */
-  /* Row 1 = welcome (full width), rows 2–3 = dashboard grid  */
+  /* Row 1 = welcome (full width), rows 2–4 = dashboard grid  */
+  /* CENTER: notes(2) → period(3) → structure(4)              */
+  /* LEFT/RIGHT rails span all three content rows             */
 
-  /* LEFT rail: health (spans rows 2–3) */
+  /* LEFT rail: health — spans rows 2–4 */
   .home-section-health {
     grid-column: 1;
-    grid-row: 2 / 4;
+    grid-row: 2 / 5;
     margin-top: 0;
   }
 
-  /* CENTER workspace: period (row 2) + structure (row 3) */
-  .home-section-period {
+  /* CENTER workspace: notes (row 2) → period (row 3) → structure (row 4) */
+  .home-page > .notes-card {
     grid-column: 2;
     grid-row: 2;
+    margin-top: 0;
+    align-self: start;
+  }
+  .home-section-period {
+    grid-column: 2;
+    grid-row: 3;
     margin-top: 0;
   }
   .home-section-structure {
     grid-column: 2;
-    grid-row: 3;
+    grid-row: 4;
     margin-top: 0;
     padding-bottom: 28px;
   }
 
-  /* RIGHT rail: bills (row 2) + notes (row 3) */
+  /* RIGHT rail: bills — spans rows 2–4, anchored at top */
   .home-section-bills {
     grid-column: 3;
-    grid-row: 2;
+    grid-row: 2 / 5;
     margin-top: 0;
-  }
-  .home-page > .notes-card {
-    grid-column: 3;
-    grid-row: 3;
-    margin-top: -16px;
     align-self: start;
   }
 

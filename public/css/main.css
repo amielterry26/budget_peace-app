@@ -1749,31 +1749,31 @@ img  { display: block; max-width: 100%; }
     align-items: start;
   }
 
-  /* COL 1 — primary workspace: slight left indent for better composition */
+  /* COL 1 — primary workspace: nudged right, tighter gap pulls Period card up */
   .home-col-left {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 10px;
     min-width: 0;
-    padding-left: 16px;
+    padding-left: 24px;
   }
 
-  /* COL 2 — active support (Monthly Expenses): stepped down slightly */
+  /* COL 2 — active support (Monthly Expenses): lower start, sits under workspace line */
   .home-col-mid {
     display: flex;
     flex-direction: column;
     gap: 16px;
     min-width: 0;
-    padding-top: 32px;
+    padding-top: 56px;
   }
 
-  /* COL 3 — passive utility rail (Health, Structure): stepped down, more breathing room */
+  /* COL 3 — passive utility rail: starts lower, clearly subordinate to workspace */
   .home-col-right {
     display: flex;
     flex-direction: column;
     gap: 24px;
     min-width: 0;
-    padding-top: 48px;
+    padding-top: 80px;
   }
 
   /* Reset mobile order values — match specificity of mobile rules (2 classes) */
@@ -1897,9 +1897,9 @@ img  { display: block; max-width: 100%; }
     margin-top: 2px;
   }
 
-  /* Structure card — compact utility card in right rail */
+  /* Structure card — horizontal compact summary in right rail */
   .home-card--center {
-    padding: 16px 16px;
+    padding: 12px 14px;
     border-radius: var(--radius-md);
     box-shadow: 0 1px 4px rgba(15,23,42,0.07);
     border-color: var(--color-border);
@@ -1909,37 +1909,44 @@ img  { display: block; max-width: 100%; }
     border-color: var(--color-border);
   }
   .home-card--center .card-header {
-    font-size: var(--font-size-sm);
+    font-size: 10px;
     font-weight: var(--font-weight-semi);
-    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary);
     margin-bottom: var(--space-1);
   }
   .home-card--center .home-supporting-copy {
-    font-size: var(--font-size-xs);
-    margin-bottom: var(--space-3);
+    font-size: 10px;
+    margin-bottom: var(--space-2);
+    line-height: 1.4;
   }
 
-  /* Metric tiles — single column stack for narrow right rail */
+  /* Metric tiles — horizontal 3-col layout: short, wide, scannable */
   .home-metric-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-2);
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
   }
   .home-metric-grid .metric-tile {
-    padding: 8px 10px;
+    padding: 6px 7px;
     background: var(--color-surface-alt);
     border-radius: var(--radius-sm);
     border: 1px solid rgba(15,23,42,0.05);
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--space-2);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
   }
   .home-metric-grid .metric-tile__label {
-    font-size: var(--font-size-xs);
+    font-size: 10px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    color: var(--color-text-secondary);
   }
   .home-metric-grid .metric-tile__value {
-    font-size: var(--font-size-md);
+    font-size: var(--font-size-sm);
     font-weight: var(--font-weight-semi);
     letter-spacing: -0.01em;
   }

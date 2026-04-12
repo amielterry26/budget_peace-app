@@ -2798,11 +2798,14 @@ img  { display: block; max-width: 100%; }
 .notes-add > .btn   { width: 100%; }
 
 /* --- Notes Page ------------------------------------------- */
-.notes-page-list    { display: flex; flex-direction: column; }
+.notes-page-list    { display: flex; flex-direction: column; gap: var(--space-2); }
 .notes-page-item    { display: flex; align-items: start; gap: var(--space-3); padding: var(--space-3) var(--space-4);
-                      border-bottom: 1px solid var(--color-border); border-left: 3px solid var(--color-accent);
-                      border-radius: 2px 0 0 2px; transition: background var(--transition-fast), border-left-color var(--transition-fast); cursor: pointer; }
-.notes-page-item:hover { background: rgba(27,94,59,0.04); border-left-color: var(--color-accent-vivid); }
+                      background: var(--color-surface);
+                      border: 1px solid var(--color-border); border-left: 3px solid var(--color-accent);
+                      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+                      box-shadow: var(--shadow-xs);
+                      transition: background var(--transition-fast), border-left-color var(--transition-fast), box-shadow var(--transition-fast); cursor: pointer; }
+.notes-page-item:hover { background: rgba(27,94,59,0.03); border-left-color: var(--color-accent-vivid); box-shadow: var(--shadow-sm); }
 .notes-page-item.is-pinned { border-left-width: 4px; }
 .notes-page-item__text { flex: 1; min-width: 0; font-size: var(--font-size-sm); line-height: 1.5; word-break: break-word;
                          white-space: pre-line; overflow: hidden; display: -webkit-box;
@@ -3114,6 +3117,7 @@ img  { display: block; max-width: 100%; }
   border-top: 1px solid var(--color-border);
 }
 .sc-delete-btn { margin-left: auto; }
+.sc-card + .sc-card { margin-top: var(--space-3); }
 .sc-snapshot {
   padding:       var(--space-3);
   background:    var(--color-surface-alt);

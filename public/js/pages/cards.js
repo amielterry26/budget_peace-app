@@ -31,6 +31,9 @@ const BANK_COLORS = [
 ];
 const BANK_COLOR_DEFAULT = '#6B7280';
 
+const CHEVRON_DOWN  = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+const CHEVRON_RIGHT = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>`;
+
 Router.register('cards', async () => {
   document.getElementById('page-title').textContent = 'Wallet';
   setActivePage('cards');
@@ -98,13 +101,14 @@ function buildOverviewHtml() {
       acctCount ? `${acctCount} account${acctCount !== 1 ? 's' : ''}` : '',
     ].filter(Boolean).join(' • ') || 'No cards';
     return `
-      <div class="wallet-overview__bank">
+      <div class="wallet-overview__bank wallet-overview__bank--clickable" data-bankid="${b.bankId}">
         <span class="wallet-overview__bank-dot" style="background:${b.color || BANK_COLOR_DEFAULT};"></span>
         <div style="flex:1;min-width:0;">
           <div class="wallet-overview__bank-name">${esc(b.name)}</div>
           <div class="wallet-overview__bank-sub">${sub}</div>
         </div>
         ${spend > 0 ? `<div class="wallet-overview__bank-spend">${money(Math.round(spend * 100) / 100)}/mo</div>` : ''}
+        <span style="color:var(--color-text-secondary);font-size:12px;flex-shrink:0;">${CHEVRON_RIGHT}</span>
       </div>`;
   });
 
@@ -144,6 +148,113 @@ function buildOverviewHtml() {
       </div>
       ${bankRows.length ? `<div class="wallet-overview__banks">${bankRows.join('')}</div>` : ''}
     </div>`;
+}
+
+function cardMonthly(cardId) {
+  return _cardExpenses
+    .filter(e => e.cardId === cardId)
+    .reduce((s, e) => s + calcMonthlyAmt(e), 0);
+}
+
+function buildBankOverviewHtml(bankId) {
+  const bank = _banks.find(b => b.bankId === bankId);
+  if (!bank) return '';
+  const bCards      = _cards.filter(c => c.bankId === bankId);
+  const totalCards  = bCards.filter(c => c.type !== 'Savings').length;
+  const totalAccts  = bCards.filter(c => c.type === 'Savings').length;
+  const bCardIds    = new Set(bCards.map(c => c.cardId));
+  const totalMonthly = _cardExpenses
+    .filter(e => e.cardId && bCardIds.has(e.cardId))
+    .reduce((s, e) => s + calcMonthlyAmt(e), 0);
+  return `
+    <div class="wallet-overview">
+      <div class="wallet-overview__stats">
+        <div class="wallet-overview__stat">
+          <div class="wallet-overview__stat-value">${totalCards + totalAccts}</div>
+          <div class="wallet-overview__stat-label">Cards &amp; Accounts</div>
+        </div>
+        <div class="wallet-overview__stat">
+          <div class="wallet-overview__stat-value">${totalCards}</div>
+          <div class="wallet-overview__stat-label">Cards</div>
+        </div>
+        <div class="wallet-overview__stat">
+          <div class="wallet-overview__stat-value">${money(Math.round(totalMonthly * 100) / 100)}</div>
+          <div class="wallet-overview__stat-label">Monthly on cards</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function buildItemExpand(cardId) {
+  const card = _cards.find(c => c.cardId === cardId);
+  if (!card) return '';
+  const expenses  = _cardExpenses.filter(e => e.cardId === cardId);
+  const total     = expenses.reduce((s, e) => s + calcMonthlyAmt(e), 0);
+  const isSavings = card.type === 'Savings';
+
+  const rows = expenses.length
+    ? expenses.map(e => `
+        <div class="wallet-expand__expense" data-expid="${e.expenseId}">
+          <span style="flex:1;font-size:var(--font-size-sm);font-weight:var(--font-weight-medium);">${esc(e.name)}</span>
+          <span class="text-xs text-muted">${e.recurrence === 'recurring' ? 'recurring' : 'one time'}</span>
+          <span style="font-size:var(--font-size-sm);font-weight:var(--font-weight-semi);">${money(e.amount)}</span>
+        </div>`).join('')
+    : `<div class="text-muted text-sm" style="padding:4px 0 8px;">No expenses on this ${isSavings ? 'account' : 'card'}.</div>`;
+
+  return `
+    <div class="wallet-item-expand" data-forcardid="${cardId}">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:var(--space-2);">
+        <span class="text-muted text-xs" style="text-transform:uppercase;letter-spacing:0.08em;">Monthly total</span>
+        <span style="font-size:17px;font-weight:700;letter-spacing:-0.02em;">${money(Math.round(total * 100) / 100)}</span>
+      </div>
+      <div class="stack stack--2" style="margin-bottom:var(--space-3);">${rows}</div>
+      <div style="display:flex;gap:var(--space-2);">
+        <button class="btn btn--ghost" style="flex:1;font-size:12px;padding:6px 8px;" data-action="edit" data-cardid="${cardId}">Edit</button>
+        <button class="btn btn--danger" style="flex:1;font-size:12px;padding:6px 8px;" data-action="delete" data-cardid="${cardId}">Delete</button>
+      </div>
+    </div>`;
+}
+
+function wireItemExpand(cardId) {
+  const expand = document.querySelector(`.wallet-item-expand[data-forcardid="${cardId}"]`);
+  if (!expand) return;
+  const card = _cards.find(c => c.cardId === cardId);
+
+  expand.querySelectorAll('.wallet-expand__expense').forEach(row => {
+    row.addEventListener('click', () => {
+      const exp = _cardExpenses.find(e => e.expenseId === row.dataset.expid);
+      if (exp) openBillDetailModal(exp, null);
+    });
+  });
+
+  expand.querySelector('[data-action="edit"]')?.addEventListener('click', () => {
+    const trigger = document.querySelector(`[data-cardid="${cardId}"].is-expanded`);
+    trigger?.classList.remove('is-expanded');
+    expand.remove();
+    openCardSheet(card);
+  });
+
+  expand.querySelector('[data-action="delete"]')?.addEventListener('click', () => {
+    const trigger = document.querySelector(`[data-cardid="${cardId}"].is-expanded`);
+    trigger?.classList.remove('is-expanded');
+    expand.remove();
+    confirmDeleteCard(card);
+  });
+}
+
+function toggleItemExpand(el) {
+  const cardId   = el.dataset.cardid;
+  const existing = el.nextElementSibling;
+  if (existing && existing.classList.contains('wallet-item-expand')) {
+    existing.remove();
+    el.classList.remove('is-expanded');
+    return;
+  }
+  document.querySelectorAll('.wallet-item-expand').forEach(e => e.remove());
+  document.querySelectorAll('.is-expanded').forEach(e => e.classList.remove('is-expanded'));
+  el.classList.add('is-expanded');
+  el.insertAdjacentHTML('afterend', buildItemExpand(cardId));
+  wireItemExpand(cardId);
 }
 
 function renderCardsPage() {
@@ -213,8 +324,8 @@ function renderCardsPage() {
       <div class="wallet-section-controls">
         ${_walletReorder
           ? `<button class="btn btn--primary" id="wallet-reorder-done" style="font-size:11px;padding:5px 12px;">Done Reordering</button>`
-          : `<button class="btn btn--ghost" id="wallet-compact-toggle" style="font-size:11px;padding:4px 10px;">${_walletCompact ? 'Expand' : 'Compact'}</button>
-             ${!_walletCompact ? `<button class="btn btn--ghost" id="wallet-reorder-btn" style="font-size:11px;padding:4px 10px;">Reorder</button>` : ''}`
+          : `<button class="btn btn--ghost wallet-icon-btn" id="wallet-compact-toggle" title="${_walletCompact ? 'Expand' : 'Compact'}">${_walletCompact ? CHEVRON_RIGHT : CHEVRON_DOWN}</button>
+             <button class="btn btn--ghost" id="wallet-reorder-btn" style="font-size:11px;padding:4px 10px;">Reorder</button>`
         }
       </div>
     </div>` : '';
@@ -223,13 +334,17 @@ function renderCardsPage() {
   let cardsBodyHtml = '';
   if (cardItems.length) {
     if (_walletCompact) {
-      cardsBodyHtml = cardItems.map(c => `
-        <div class="wallet-card-compact" data-cardid="${c.cardId}">
-          <div class="wallet-card-compact__swatch" style="background:${CARD_PALETTES[c.colorIndex % CARD_PALETTES.length]};"></div>
-          <span class="wallet-card-compact__name">${esc(c.name)}</span>
-          <span class="wallet-card-compact__lastfour">••${esc(c.lastFour)}</span>
-          <span class="wallet-card-compact__type">${c.type}</span>
-        </div>`).join('');
+      cardsBodyHtml = `<div id="wallet-cards-list">${cardItems.map(c => {
+        const mo = cardMonthly(c.cardId);
+        return `
+          <div class="wallet-card-compact ${_walletReorder ? 'is-reorder' : ''}" data-cardid="${c.cardId}">
+            <div class="wallet-card-compact__swatch" style="background:${CARD_PALETTES[c.colorIndex % CARD_PALETTES.length]};"></div>
+            <span class="wallet-card-compact__name">${esc(c.name)}</span>
+            <span class="wallet-card-compact__lastfour">••${esc(c.lastFour)}</span>
+            <span class="wallet-card-compact__type">${c.type}</span>
+            ${mo > 0 ? `<span class="wallet-card-compact__total">${money(Math.round(mo * 100) / 100)}/mo</span>` : ''}
+          </div>`;
+      }).join('')}</div>`;
     } else {
       cardsBodyHtml = `
         <div class="wallet-cards-grid ${_walletReorder ? 'is-reorder' : ''}" id="wallet-cards-grid">
@@ -240,7 +355,7 @@ function renderCardsPage() {
                 style="background:${CARD_PALETTES[c.colorIndex % CARD_PALETTES.length]}">
                 <div class="wallet-card__type">${c.type}${bank ? `<span class="wallet-mobile-card__bank" style="float:right;">${esc(bank.name)}</span>` : ''}</div>
                 <div>
-                  <div class="wallet-card__number">•••• •••• •••• ${esc(c.lastFour)}</div>
+                  <div class="wallet-card__number">••${esc(c.lastFour)}</div>
                   <div class="wallet-card__name">${esc(c.name)}</div>
                 </div>
               </div>`;
@@ -260,7 +375,7 @@ function renderCardsPage() {
       <div class="wallet-row">${walletItems}</div>
       <div id="card-detail-area"></div>
       <div class="wallet-mobile-stack">
-        ${!_selectedBank ? buildOverviewHtml() : ''}
+        ${!_selectedBank ? buildOverviewHtml() : buildBankOverviewHtml(_selectedBank)}
         ${accountsSection}
         ${cardsHeaderHtml}
         ${cardsBodyHtml}
@@ -298,16 +413,28 @@ function renderCardsPage() {
     document.getElementById('fab').onclick = () => openCardSheet(null);
   });
 
+  // Overview bank rows → navigate to that bank
+  document.querySelectorAll('.wallet-overview__bank--clickable').forEach(row => {
+    row.addEventListener('click', () => {
+      _selectedBank = row.dataset.bankid;
+      _walletReorder = false;
+      renderCardsPage();
+      document.getElementById('fab').onclick = () => openCardSheet(null);
+    });
+  });
+
   // Enter reorder mode
   document.getElementById('wallet-reorder-btn')?.addEventListener('click', () => {
+    document.querySelectorAll('.wallet-item-expand').forEach(e => e.remove());
+    document.querySelectorAll('.is-expanded').forEach(e => e.classList.remove('is-expanded'));
     _walletReorder = true;
     renderCardsPage();
     document.getElementById('fab').onclick = () => openCardSheet(null);
-    const grid = document.getElementById('wallet-cards-grid');
-    if (grid && typeof Sortable !== 'undefined') {
-      new Sortable(grid, {
-        animation:  150,
-        ghostClass: 'sortable-ghost',
+    const container = document.getElementById('wallet-cards-grid') || document.getElementById('wallet-cards-list');
+    if (container && typeof Sortable !== 'undefined') {
+      new Sortable(container, {
+        animation:   150,
+        ghostClass:  'sortable-ghost',
         chosenClass: 'sortable-chosen',
       });
     }
@@ -315,9 +442,9 @@ function renderCardsPage() {
 
   // Done reordering — save order
   document.getElementById('wallet-reorder-done')?.addEventListener('click', async () => {
-    const grid = document.getElementById('wallet-cards-grid');
-    if (grid) {
-      const items = Array.from(grid.querySelectorAll('.wallet-mobile-card')).map((el, i) => ({
+    const container = document.getElementById('wallet-cards-grid') || document.getElementById('wallet-cards-list');
+    if (container) {
+      const items = Array.from(container.querySelectorAll('[data-cardid]')).map((el, i) => ({
         cardId: el.dataset.cardid,
         sortOrder: (i + 1) * 1000,
       }));
@@ -344,11 +471,19 @@ function renderCardsPage() {
     }
   });
 
-  // Card + savings pill taps → detail sheet (not in reorder mode)
-  document.querySelectorAll('.wallet-mobile-card, .wallet-savings-pill, .wallet-card-compact').forEach(el => {
+  // Grid cards → bottom sheet
+  document.querySelectorAll('.wallet-mobile-card').forEach(el => {
     el.addEventListener('click', () => {
       if (_walletReorder) return;
       openCardDetailSheet(el.dataset.cardid);
+    });
+  });
+
+  // Savings pills + compact rows → inline accordion expand
+  document.querySelectorAll('.wallet-savings-pill, .wallet-card-compact').forEach(el => {
+    el.addEventListener('click', () => {
+      if (_walletReorder) return;
+      toggleItemExpand(el);
     });
   });
 
@@ -403,7 +538,7 @@ function openCardDetailSheet(cardId) {
 
   const rows = expenses.length
     ? expenses.map(e => `
-        <div class="pill-item">
+        <div class="pill-item" data-expid="${e.expenseId}" style="cursor:pointer;">
           <span class="pill-item__label">${esc(e.name)}</span>
           <span class="text-xs text-muted">${e.recurrence === 'recurring' ? 'recurring' : 'one time'}</span>
           <span class="pill-item__amount">${money(e.amount)}</span>
@@ -412,7 +547,7 @@ function openCardDetailSheet(cardId) {
 
   const subLine = isSavings
     ? `Savings Account${card.lastFour ? ` &nbsp;•&nbsp; ••${esc(card.lastFour)}` : ''}${bank ? ` &nbsp;•&nbsp; ${esc(bank.name)}` : ''}`
-    : `${card.type} &nbsp;•&nbsp; •••• ${esc(card.lastFour)}${bank ? ` &nbsp;•&nbsp; ${esc(bank.name)}` : ''}`;
+    : `${card.type} &nbsp;•&nbsp; ••${esc(card.lastFour)}${bank ? ` &nbsp;•&nbsp; ${esc(bank.name)}` : ''}`;
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="cds-overlay" class="sheet-overlay"></div>
@@ -427,7 +562,7 @@ function openCardDetailSheet(cardId) {
         <div class="text-muted text-xs" style="text-transform:uppercase;letter-spacing:0.08em;">Total on ${isSavings ? 'account' : 'card'}</div>
         <div style="font-size:22px;font-weight:700;letter-spacing:-0.03em;">${money(total)}</div>
       </div>
-      <div class="stack--2" style="margin-bottom:var(--space-4);">${rows}</div>
+      <div class="stack stack--2" style="margin-bottom:var(--space-4);">${rows}</div>
       <div style="display:flex;gap:var(--space-2);">
         <button class="btn btn--ghost btn--full" id="cds-edit">Edit</button>
         <button class="btn btn--danger btn--full" id="cds-delete">Delete</button>
@@ -459,6 +594,14 @@ function openCardDetailSheet(cardId) {
   document.getElementById('cds-delete').addEventListener('click', () => {
     closeSheet();
     setTimeout(() => confirmDeleteCard(card), 250);
+  });
+
+  // Expense rows → full detail modal
+  document.querySelectorAll('#cds-sheet .pill-item[data-expid]').forEach(row => {
+    row.addEventListener('click', () => {
+      const exp = _cardExpenses.find(e => e.expenseId === row.dataset.expid);
+      if (exp) openBillDetailModal(exp, null);
+    });
   });
 }
 

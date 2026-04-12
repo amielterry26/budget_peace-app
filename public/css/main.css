@@ -1711,6 +1711,56 @@ img  { display: block; max-width: 100%; }
   border-radius:  var(--radius-pill);
   flex-shrink:    0;
 }
+.wallet-card-compact__total {
+  font-size:   var(--font-size-xs);
+  color:       var(--color-accent);
+  font-weight: var(--font-weight-semi);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.wallet-card-compact.is-reorder { cursor: grab; }
+.wallet-card-compact.is-reorder:active { cursor: grabbing; }
+
+/* --- Wallet: inline accordion expand ----------------------- */
+.wallet-savings-pill.is-expanded,
+.wallet-card-compact.is-expanded {
+  border-bottom-left-radius:  0;
+  border-bottom-right-radius: 0;
+  border-bottom-color:        transparent;
+}
+.wallet-item-expand {
+  background:    var(--color-surface-alt);
+  border:        1px solid var(--color-border);
+  border-top:    none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  padding:       var(--space-3) var(--space-4) var(--space-4);
+  margin-top:    -1px;
+}
+.wallet-expand__expense {
+  display:       flex;
+  align-items:   center;
+  gap:           var(--space-3);
+  padding:       var(--space-2) var(--space-2);
+  border-radius: var(--radius-sm);
+  cursor:        pointer;
+  transition:    background var(--transition-fast);
+}
+.wallet-expand__expense:hover { background: var(--color-surface); }
+
+/* --- Wallet: compact toggle icon button -------------------- */
+.wallet-icon-btn {
+  padding:         5px 8px !important;
+  display:         inline-flex !important;
+  align-items:     center;
+  justify-content: center;
+}
+
+/* --- Wallet: overview bank rows clickable ------------------ */
+.wallet-overview__bank--clickable {
+  cursor:     pointer;
+  transition: background var(--transition-fast);
+}
+.wallet-overview__bank--clickable:hover { background: var(--color-surface-alt); }
 
 /* --- Wallet: section header with controls ------------------ */
 .wallet-section-header {

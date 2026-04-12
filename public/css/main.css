@@ -442,10 +442,11 @@ img  { display: block; max-width: 100%; }
   background:    var(--color-surface);
   border-radius: var(--radius-pill);
   border:        1px solid var(--color-border);
+  box-shadow:    var(--shadow-xs);
   transition:    border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 .pill-item:hover {
-  border-color: var(--color-accent-light);
+  border-color: var(--color-accent);
   box-shadow:   var(--shadow-sm);
 }
 .pill-item__label  { flex: 1; font-size: var(--font-size-md); font-weight: var(--font-weight-medium); }
@@ -854,7 +855,7 @@ img  { display: block; max-width: 100%; }
 
 /* --- Spend Progress Bar ------------------------------------ */
 .spend-bar {
-  height:        5px;
+  height:        6px;
   background:    var(--color-border);
   border-radius: var(--radius-pill);
   margin-top:    var(--space-4);
@@ -863,7 +864,7 @@ img  { display: block; max-width: 100%; }
 .spend-bar__fill {
   height:        100%;
   border-radius: var(--radius-pill);
-  background:    var(--color-accent);
+  background:    linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent-vivid) 100%);
   transition:    width 400ms ease;
 }
 .spend-bar__fill.is-over { background: var(--color-danger); }
@@ -881,8 +882,8 @@ img  { display: block; max-width: 100%; }
 
 .dash-remaining {
   font-size:      var(--font-size-2xl);
-  font-weight:    var(--font-weight-bold);
-  letter-spacing: -0.03em;
+  font-weight:    var(--font-weight-extra);
+  letter-spacing: -0.04em;
   margin-top:     4px;
   line-height:    1;
 }
@@ -1079,7 +1080,7 @@ img  { display: block; max-width: 100%; }
 
 .period-item.is-current {
   border-color: var(--color-accent);
-  background:   linear-gradient(135deg, #fff 0%, #EBF6F1 100%);
+  background:   linear-gradient(135deg, var(--color-surface) 0%, var(--color-accent-light) 100%);
 }
 
 .period-item__header {
@@ -1164,9 +1165,9 @@ img  { display: block; max-width: 100%; }
 }
 
 .period-item__remaining-value {
-  font-size:   var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: -0.02em;
+  font-size:      var(--font-size-lg);
+  font-weight:    var(--font-weight-extra);
+  letter-spacing: -0.03em;
 }
 .period-item__remaining-value.is-negative { color: var(--color-danger); }
 
@@ -1403,7 +1404,7 @@ img  { display: block; max-width: 100%; }
   .exp-sort-bar {
     padding:      var(--space-2) var(--space-4);
     border-color: rgba(27,94,59,0.15);
-    background:   linear-gradient(to right, var(--color-surface-alt) 0%, #F2F7F4 100%);
+    background:   linear-gradient(to right, var(--color-surface-alt) 0%, var(--color-accent-light) 100%);
   }
   .exp-sort-ctrl {
     display:     flex;
@@ -1741,14 +1742,17 @@ img  { display: block; max-width: 100%; }
 
 /* --- Pay Period remaining tile ------------------------------ */
 .pd-remaining-tile {
-  background: var(--color-surface-alt);
+  background:    var(--color-surface-alt);
+  border:        1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: var(--space-4);
+  padding:       var(--space-4);
   margin-bottom: var(--space-4);
-  text-align: center;
+  text-align:    center;
+  box-shadow:    var(--shadow-xs);
 }
 .pd-remaining-tile--danger {
-  background: var(--color-danger-light);
+  background:   var(--color-danger-light);
+  border-color: rgba(220,38,38,0.15);
 }
 
 /* --- Rail title (hidden on mobile, shown on desktop) -------- */
@@ -1859,7 +1863,7 @@ img  { display: block; max-width: 100%; }
     border-radius: var(--radius-lg);
     box-shadow: 0 12px 40px rgba(15,23,42,0.12), 0 4px 12px rgba(15,23,42,0.06);
     border: 1px solid rgba(27,94,59,0.22);
-    background: linear-gradient(145deg, #ffffff 0%, #E8F5EE 50%, #D6EDE2 100%);
+    background: linear-gradient(145deg, var(--color-surface) 0%, var(--color-accent-light) 55%, rgba(27,94,59,0.12) 100%);
   }
   .period-shortcut-card .card-header {
     font-size: var(--font-size-lg);
@@ -2485,7 +2489,7 @@ img  { display: block; max-width: 100%; }
 }
 .goal-card--complete {
   border-left-color: var(--color-accent);
-  background: linear-gradient(135deg, #fff 0%, #E5F4EC 100%);
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-accent-light) 100%);
 }
 
 .goal-card__header {
@@ -2504,9 +2508,9 @@ img  { display: block; max-width: 100%; }
   flex-shrink: 0;
 }
 .goal-card__saved {
-  font-weight:     var(--font-weight-bold);
+  font-weight:     var(--font-weight-extra);
   font-size:       var(--font-size-lg);
-  letter-spacing:  -0.02em;
+  letter-spacing:  -0.03em;
   color:           var(--color-text-primary);
   line-height:     1.2;
 }
@@ -2516,7 +2520,7 @@ img  { display: block; max-width: 100%; }
 
 /* Progress bar */
 .goal-bar {
-  height:        10px;
+  height:        8px;
   background:    var(--color-surface-alt);
   border:        1px solid var(--color-border);
   border-radius: 6px;
@@ -2524,14 +2528,14 @@ img  { display: block; max-width: 100%; }
   margin-bottom: var(--space-1);
 }
 .goal-bar__fill {
-  height:     100%;
-  min-width:  6px;
-  background: linear-gradient(90deg, var(--color-accent-light) 0%, var(--color-accent) 100%);
+  height:        100%;
+  min-width:     6px;
+  background:    linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent-vivid) 100%);
   border-radius: 6px;
-  transition: width 0.4s ease;
+  transition:    width 0.4s ease;
 }
 .goal-bar__fill--complete {
-  background: var(--color-accent);
+  background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent-vivid) 100%);
 }
 
 .goal-card__stats {
@@ -2665,7 +2669,7 @@ img  { display: block; max-width: 100%; }
 
 /* Profile card */
 .settings-profile-card {
-  background:    linear-gradient(135deg, #fff 0%, #E5F4EC 100%);
+  background:    linear-gradient(135deg, var(--color-surface) 0%, var(--color-accent-light) 100%);
   border-color:  rgba(27,94,59,0.22);
   padding:       var(--space-4) var(--space-4) var(--space-4);
   margin-bottom: var(--space-4);
@@ -2795,11 +2799,11 @@ img  { display: block; max-width: 100%; }
 
 /* --- Notes Page ------------------------------------------- */
 .notes-page-list    { display: flex; flex-direction: column; }
-.notes-page-item    { display: flex; align-items: start; gap: var(--space-3); padding: var(--space-3);
-                      border-bottom: 1px solid var(--color-border); border-left: 2px solid var(--color-accent);
-                      border-radius: 2px 0 0 2px; transition: background var(--transition-fast); cursor: pointer; }
-.notes-page-item:hover { background: rgba(27,94,59,0.04); }
-.notes-page-item.is-pinned { border-left-width: 3px; }
+.notes-page-item    { display: flex; align-items: start; gap: var(--space-3); padding: var(--space-3) var(--space-4);
+                      border-bottom: 1px solid var(--color-border); border-left: 3px solid var(--color-accent);
+                      border-radius: 2px 0 0 2px; transition: background var(--transition-fast), border-left-color var(--transition-fast); cursor: pointer; }
+.notes-page-item:hover { background: rgba(27,94,59,0.04); border-left-color: var(--color-accent-vivid); }
+.notes-page-item.is-pinned { border-left-width: 4px; }
 .notes-page-item__text { flex: 1; min-width: 0; font-size: var(--font-size-sm); line-height: 1.5; word-break: break-word;
                          white-space: pre-line; overflow: hidden; display: -webkit-box;
                          -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
@@ -2812,7 +2816,8 @@ img  { display: block; max-width: 100%; }
 
 /* ---- One-Time Purchases (notes page) --------------------- */
 .purchases-list         { display: flex; flex-direction: column; gap: var(--space-2); }
-.purchase-row           { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); overflow: hidden; }
+.purchase-row           { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-xs); transition: box-shadow var(--transition-fast), border-color var(--transition-fast); }
+.purchase-row:hover     { border-color: var(--color-accent); box-shadow: var(--shadow-sm); }
 .purchase-row__collapsed { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: 12px var(--space-3); cursor: pointer; user-select: none; }
 .purchase-row__collapsed:hover { background: rgba(27,94,59,0.04); }
 .purchase-row__left     { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -3070,7 +3075,7 @@ img  { display: block; max-width: 100%; }
 }
 .sc-card--active {
   border: 2px solid var(--color-accent);
-  background: linear-gradient(135deg, #fff 0%, #EEF7F2 100%);
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-accent-light) 100%);
 }
 .sc-card__body {
   border-radius: var(--radius-sm);
@@ -3927,4 +3932,53 @@ body.has-demo-banner .scenario-selector:not(.is-hidden) ~ .time-travel-strip:not
 /* Scrollbar dark */
 [data-theme="dark"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); }
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+
+/* Primary button shadow — warmer in dark mode */
+[data-theme="dark"] .btn--primary {
+  box-shadow: 0 2px 8px rgba(78,158,106,0.20), 0 1px 2px rgba(78,158,106,0.15);
+}
+[data-theme="dark"] .btn--primary:hover {
+  box-shadow: 0 4px 16px rgba(78,158,106,0.25), 0 2px 4px rgba(78,158,106,0.15);
+}
+
+/* Bills section row tint — dark mode safe */
+[data-theme="dark"] .home-section-bills .overview-row {
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.06);
+}
+[data-theme="dark"] .home-section-bills .overview-row:hover {
+  background: rgba(78,158,106,0.06);
+}
+
+/* Scenario snapshot — dark mode safe */
+[data-theme="dark"] .sc-snapshot {
+  background: var(--color-surface-alt);
+  border-color: var(--color-border);
+}
+[data-theme="dark"] .sc-snapshot__row:nth-child(odd) {
+  background: rgba(255,255,255,0.03);
+}
+
+/* Compare table alt rows — dark mode safe */
+[data-theme="dark"] .cmp-row--alt {
+  background: rgba(255,255,255,0.03);
+}
+[data-theme="dark"] .cmp-row--alt:hover,
+[data-theme="dark"] .cmp-row:not(.cmp-row--header):hover {
+  background: rgba(255,255,255,0.05);
+}
+[data-theme="dark"] .cmp-top-item {
+  border-bottom-color: rgba(255,255,255,0.04);
+}
+
+/* Period bills preview — dark mode */
+[data-theme="dark"] .period-detail__bar-fill,
+[data-theme="dark"] .home-goal-item__bar-fill {
+  background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent-vivid) 100%);
+}
+
+/* Expense pill expanded border — dark mode */
+[data-theme="dark"] .expense-pill.is-expanded {
+  box-shadow: 0 2px 8px rgba(78,158,106,0.12);
+}
 

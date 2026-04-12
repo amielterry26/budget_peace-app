@@ -2783,11 +2783,14 @@ img  { display: block; max-width: 100%; }
 .notes-count        { color: var(--color-text-secondary); font-size: var(--font-size-xs); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 0px 6px; line-height: 1.6; }
 .notes-body.is-hidden { display: none; }
 .notes-body         { margin-top: var(--space-3); }
-.notes-list         { display: flex; flex-direction: column; gap: 0; }
-.notes-item         { display: flex; align-items: center; gap: var(--space-2); padding: 9px var(--space-2); font-size: var(--font-size-sm);
-                      border-bottom: 1px solid var(--color-border); border-left: 2px solid var(--color-accent); margin-left: 0;
-                      border-radius: 2px 0 0 2px; transition: background var(--transition-fast); }
-.notes-item:hover   { background: rgba(27,94,59,0.04); }
+.notes-list         { display: flex; flex-direction: column; gap: var(--space-2); }
+.notes-item         { display: flex; align-items: center; gap: var(--space-2); padding: 9px var(--space-3); font-size: var(--font-size-sm);
+                      background: var(--color-surface-alt);
+                      border: 1px solid var(--color-border); border-left: 2px solid var(--color-accent);
+                      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+                      box-shadow: var(--shadow-xs);
+                      transition: background var(--transition-fast), box-shadow var(--transition-fast); }
+.notes-item:hover   { background: rgba(27,94,59,0.05); box-shadow: var(--shadow-sm); }
 .notes-item__text   { flex: 1; min-width: 0; line-height: 1.55; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notes-item__input  { flex: 1; min-width: 0; font-size: var(--font-size-sm); padding: 2px var(--space-1); border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-family: inherit; }
 .notes-item__edit   { background: none; border: none; color: var(--color-text-secondary); cursor: pointer; padding: 4px 6px; border-radius: var(--radius-sm); font-size: 13px; flex-shrink: 0; transition: background var(--transition-fast), color var(--transition-fast); }
@@ -3936,6 +3939,12 @@ body.has-demo-banner .scenario-selector:not(.is-hidden) ~ .time-travel-strip:not
 /* Scrollbar dark */
 [data-theme="dark"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); }
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+
+/* Proj-tiles — no heavy shadow ring in dark mode */
+[data-theme="dark"] .proj-tile {
+  box-shadow:   none;
+  border-color: var(--color-border-strong);
+}
 
 /* Primary button shadow — warmer in dark mode */
 [data-theme="dark"] .btn--primary {

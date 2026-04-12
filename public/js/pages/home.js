@@ -3,7 +3,7 @@
 // ============================================================
 
 let _healthData    = null; // { user, periods, expenses }
-let _healthHorizon = 6;    // default 6-month horizon
+let _healthHorizon = parseInt(localStorage.getItem('bp_health_horizon')) || 6; // persisted
 let _periodItems   = [];   // cached for bill card click handlers
 
 Router.register('home', async () => {
@@ -281,7 +281,11 @@ function renderHealth(months) {
   mountNotesWidget('home', scenario.scenarioId, scenario.notes);
 
   document.querySelectorAll('.horizon-btn').forEach(btn => {
-    btn.addEventListener('click', () => renderHealth(Number(btn.dataset.months)));
+    btn.addEventListener('click', () => {
+      const months = Number(btn.dataset.months);
+      localStorage.setItem('bp_health_horizon', months);
+      renderHealth(months);
+    });
   });
 
   document.getElementById('structure-card-toggle')?.addEventListener('click', () => {

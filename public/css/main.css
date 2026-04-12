@@ -1740,8 +1740,9 @@ img  { display: block; max-width: 100%; }
   .home-col-left {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
     min-width: 0;
+    padding-top: 30px; /* align Notes card with Monthly Expenses card (below its rail-title) */
   }
   .home-col-center {
     display: flex;

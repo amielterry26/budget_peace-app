@@ -1677,30 +1677,25 @@ img  { display: block; max-width: 100%; }
 
 @media (min-width: 1200px) {
 
-  /* ---- Grid container ------------------------------------- */
-  /* 2-col: LEFT workspace (1fr) + RIGHT utility rail (340px) */
+  /* ================================================================
+     DESKTOP HOME PAGE SHELL
+     Two independent flex columns inside a grid wrapper.
+     Each column manages its own height — no shared row heights.
+     ================================================================ */
+
+  /* Override mobile flex: home-page is a plain block container */
   .home-page {
-    max-width: 1320px;
+    display: block;
+    max-width: 1440px;
     margin: 0 auto;
-    padding: var(--space-6) var(--space-8) 0;
-    display: grid;
-    grid-template-columns: 1fr 340px;
-    grid-template-rows: auto;
-    gap: 20px 28px;
-    align-items: start;
+    padding: var(--space-6) 40px 0;
   }
 
-  /* Hide mobile mode switch */
-  .home-page > .home-mode-switch {
-    display: none;
-  }
-
-  /* ---- Welcome header (full width, row 1) ----------------- */
+  /* Welcome header: block, above the grid */
   .home-welcome {
     display: block;
-    grid-column: 1 / -1;
-    grid-row: 1;
-    padding: var(--space-2) 0 var(--space-1);
+    padding: var(--space-2) 0 var(--space-4);
+    order: unset;
   }
   .home-welcome__heading {
     font-size: var(--font-size-xl);
@@ -1715,48 +1710,40 @@ img  { display: block; max-width: 100%; }
     margin-top: 2px;
   }
 
-  /* ---- Column placement ----------------------------------- */
-  /* LEFT (1fr):   notes(row2) → period(row3)                 */
-  /* RIGHT (340px): bills(2) → health(3) → structure(4)       */
-
-  /* LEFT: Notes utility strip — inline expand, no z-index tricks */
-  .home-page > .notes-card {
-    grid-column: 1;
-    grid-row: 2;
-    margin-top: 0;
-    align-self: start;
+  /* Mode switch: hidden on desktop */
+  .home-page .home-mode-switch {
+    display: none;
   }
 
-  /* LEFT: Current Pay Period — dominant workspace card */
-  .home-section-period {
-    grid-column: 1;
-    grid-row: 3;
-    margin-top: 0;
+  /* Desktop grid: 2 truly independent columns */
+  .home-desktop-grid {
+    display: grid;
+    grid-template-columns: minmax(560px, 1.8fr) minmax(300px, 0.9fr);
+    gap: 28px;
+    align-items: start;
   }
 
-  /* RIGHT: Bills — top of utility rail */
-  .home-section-bills {
-    grid-column: 2;
-    grid-row: 2;
-    margin-top: 0;
-    align-self: start;
+  /* LEFT workspace: independent flex column — Notes then Period */
+  .home-col-left {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
   }
 
-  /* RIGHT: Financial Health — under bills */
-  .home-section-health {
-    grid-column: 2;
-    grid-row: 3;
-    margin-top: 0;
-    align-self: start;
+  /* RIGHT utility rail: independent flex column — Bills, Health, Structure */
+  .home-col-right {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
   }
 
-  /* RIGHT: Financial Structure — under health */
-  .home-section-structure {
-    grid-column: 2;
-    grid-row: 4;
-    margin-top: 0;
-    align-self: start;
-    padding-bottom: 28px;
+  /* Reset mobile order values inside desktop columns */
+  .home-col-left > *,
+  .home-col-right > *,
+  .home-col-right .dash-section {
+    order: unset;
   }
 
   /* ========================================================= */
@@ -2007,19 +1994,19 @@ img  { display: block; max-width: 100%; }
   /* ---- Desktop Notes: compact utility strip, inline expand - */
   /* Collapsed = slim header only. Expanded = pushes period    */
   /* down naturally. No z-index tricks, no float/overlay.     */
-  .home-page > .notes-card {
+  .home-col-left .notes-card {
     padding: 10px 14px !important;
     border-radius: var(--radius-sm);
     box-shadow: 0 1px 3px rgba(15,23,42,0.06);
   }
 
   /* Notes body: normal flow — global .is-hidden handles display:none */
-  .home-page > .notes-card .notes-body {
+  .home-col-left .notes-card .notes-body {
     padding-top: var(--space-3);
   }
 
   /* Input row: horizontal layout, compact Add button */
-  .home-page > .notes-card .notes-add {
+  .home-col-left .notes-card .notes-add {
     flex-direction: row;
     align-items:    center;
     gap:            var(--space-2);
@@ -2027,32 +2014,32 @@ img  { display: block; max-width: 100%; }
     padding-top:    var(--space-3);
     border-top:     1px solid var(--color-border);
   }
-  .home-page > .notes-card .notes-add > .form-input {
+  .home-col-left .notes-card .notes-add > .form-input {
     flex:      1;
     min-width: 0;
   }
-  .home-page > .notes-card .notes-add > .btn {
+  .home-col-left .notes-card .notes-add > .btn {
     width:       auto;
     flex-shrink: 0;
     white-space: nowrap;
   }
 
   /* Header */
-  .home-page > .notes-card .notes-header {
+  .home-col-left .notes-card .notes-header {
     cursor: pointer;
   }
-  .home-page > .notes-card .notes-header:hover .card-header,
-  .home-page > .notes-card .notes-header:hover .notes-header__chevron {
+  .home-col-left .notes-card .notes-header:hover .card-header,
+  .home-col-left .notes-card .notes-header:hover .notes-header__chevron {
     color: var(--color-accent);
   }
-  .home-page > .notes-card .card-header {
+  .home-col-left .notes-card .card-header {
     font-size:      var(--font-size-xs);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color:          var(--color-text-secondary);
     transition:     color var(--transition-fast);
   }
-  .home-page > .notes-card .notes-header__chevron {
+  .home-col-left .notes-card .notes-header__chevron {
     color:      var(--color-text-secondary);
     transition: color var(--transition-fast);
   }
@@ -2170,7 +2157,7 @@ img  { display: block; max-width: 100%; }
   }
 
   /* ---- Notes list items on desktop: clean, no accent bar --- */
-  .home-page > .notes-card .notes-item {
+  .home-col-left .notes-card .notes-item {
     border-left:  none;
     border-radius: 0;
     padding:      7px var(--space-1);
@@ -2178,10 +2165,10 @@ img  { display: block; max-width: 100%; }
     cursor:       pointer;
     transition:   background var(--transition-fast);
   }
-  .home-page > .notes-card .notes-item:last-child {
+  .home-col-left .notes-card .notes-item:last-child {
     border-bottom: none;
   }
-  .home-page > .notes-card .notes-item:hover {
+  .home-col-left .notes-card .notes-item:hover {
     background:      var(--color-surface-alt);
     border-left:     none;
     box-shadow:      none;
@@ -2632,6 +2619,28 @@ img  { display: block; max-width: 100%; }
   font-weight:    var(--font-weight-bold);
   letter-spacing: -0.01em;
 }
+
+/* --- Home page: shell layout (mobile-first) ---------------
+   On mobile: desktop grid wrappers are display:contents so
+   children flow as direct flex children of .home-page.
+   order properties preserve original mobile stacking.      */
+.home-page {
+  display: flex;
+  flex-direction: column;
+}
+.home-desktop-grid,
+.home-col-left,
+.home-col-right {
+  display: contents; /* transparent on mobile — children flex directly */
+}
+/* Mobile stacking order (original) */
+.home-welcome              { order: 0; }
+.home-page .home-mode-switch { order: 1; }
+.home-page .home-section-period { order: 2; }
+.home-page .notes-card     { order: 3; }
+.home-page .home-section-structure { order: 4; }
+.home-page .home-section-bills { order: 5; }
+.home-page .home-section-health { order: 6; }
 
 /* --- Notes ------------------------------------------------ */
 .notes-card         { margin: var(--space-4) 0; }

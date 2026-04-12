@@ -139,102 +139,113 @@ function renderHealth(months) {
         <button class="home-mode-switch__btn" id="go-pay-period" type="button">Current Pay Period</button>
       </div>
 
-      ${currentPeriodCard}
+      <!-- Desktop 2-column shell: transparent on mobile via display:contents -->
+      <div class="home-desktop-grid">
 
-      ${notesCardHtml('home')}
-
-      <div class="dash-section home-section-structure">
-        <div class="card home-card--center">
-          <div class="health-card__toggle" id="structure-card-toggle">
-            <div class="card-header" style="margin:0;">Your Financial Structure</div>
-            <span class="health-card__chevron" id="structure-card-chevron">&#9662;</span>
-          </div>
-          <div id="structure-card-body">
-            <div class="home-supporting-copy">
-              Based on your currently active expenses only. Upcoming or future-dated expenses are not included until their start date.
-            </div>
-
-            <div class="metric-grid home-metric-grid">
-              <div class="metric-tile">
-                <div class="metric-tile__label">Monthly income</div>
-                <div class="metric-tile__value">${money(monthlyIncome)}</div>
-              </div>
-              <div class="metric-tile">
-                <div class="metric-tile__label">Monthly bills</div>
-                <div class="metric-tile__value">${money(monthlyBills)}</div>
-              </div>
-              <div class="metric-tile">
-                <div class="metric-tile__label">Monthly leftover</div>
-                <div class="metric-tile__value" style="color:${monthlyLeftColor};">${money(monthlyLeft)}</div>
-              </div>
-            </div>
-          </div>
+        <!-- LEFT workspace: Notes + Current Pay Period -->
+        <div class="home-col-left">
+          ${notesCardHtml('home')}
+          ${currentPeriodCard}
         </div>
-      </div>
 
-      <div class="dash-section home-section-bills">
-        <div class="rail-title">Recurring Bills</div>
-        <div class="card home-card--side">
-          <div class="bills-toggle" id="bills-card-toggle">
-            <div class="card-header" style="margin:0;">Recurring Bills</div>
-            <span class="bills-chevron" id="bills-card-chevron">&#9662;</span>
-          </div>
-          <div id="bills-card-body">
-            <div class="bills-internal-title">Monthly Expenses</div>
-            <div class="home-supporting-copy" style="margin-top:var(--space-1);margin-bottom:var(--space-3);">
-              Your baseline monthly obligations, including due dates.
-            </div>
-            ${buildMonthlyBills(recurringActive)}
-          </div>
-        </div>
-      </div>
+        <!-- RIGHT utility rail: Bills → Health → Structure -->
+        <div class="home-col-right">
 
-      <div class="dash-section home-section-health">
-        <div class="rail-title">Financial Health</div>
-        ${Plans.canUse('financialHealth') ? `
-        <div class="card home-card--side health-card">
-          <div class="health-card__toggle" id="health-card-toggle">
-            <div class="card-header" style="margin:0;">3 / 6 / 12 month horizon</div>
-            <span class="health-card__chevron" id="health-card-chevron">&#9662;</span>
-          </div>
-          <div id="health-card-body">
-            <div class="home-supporting-copy">
-              If nothing changes, this is what your current financial structure looks like over the selected horizon.
-            </div>
-
-            <div class="health-toolbar">
-              <div class="health-horizon-label">${months} month horizon</div>
-              <div class="horizon-selector">
-                <button class="horizon-btn ${months === 3  ? 'is-active' : ''}" data-months="3">3 mo</button>
-                <button class="horizon-btn ${months === 6  ? 'is-active' : ''}" data-months="6">6 mo</button>
-                <button class="horizon-btn ${months === 12 ? 'is-active' : ''}" data-months="12">12 mo</button>
+          <div class="dash-section home-section-bills">
+            <div class="rail-title">Recurring Bills</div>
+            <div class="card home-card--side">
+              <div class="bills-toggle" id="bills-card-toggle">
+                <div class="card-header" style="margin:0;">Recurring Bills</div>
+                <span class="bills-chevron" id="bills-card-chevron">&#9662;</span>
               </div>
-            </div>
-
-            <div class="proj-grid home-proj-grid">
-              <div class="proj-tile">
-                <div class="proj-tile__label">Income</div>
-                <div class="proj-tile__value">${money(healthIncome)}</div>
-              </div>
-              <div class="proj-tile">
-                <div class="proj-tile__label">Obligations</div>
-                <div class="proj-tile__value">${money(healthBills)}</div>
-              </div>
-              <div class="proj-tile">
-                <div class="proj-tile__label">Remaining</div>
-                <div class="proj-tile__value" style="color:${healthRemColor};">${money(healthRemaining)}</div>
+              <div id="bills-card-body">
+                <div class="bills-internal-title">Monthly Expenses</div>
+                <div class="home-supporting-copy" style="margin-top:var(--space-1);margin-bottom:var(--space-3);">
+                  Your baseline monthly obligations, including due dates.
+                </div>
+                ${buildMonthlyBills(recurringActive)}
               </div>
             </div>
           </div>
-        </div>
-        ` : `
-        <div class="card home-card--side" style="text-align:center;padding:var(--space-5) var(--space-4);">
-          <div class="card-header">Financial Health</div>
-          <p class="text-muted text-sm" style="margin:var(--space-2) 0 var(--space-4);">Financial health projections are available on Budget Peace Pro.</p>
-          <button class="btn btn--primary" id="health-upgrade">Upgrade to Pro</button>
-        </div>
-        `}
-      </div>
+
+          <div class="dash-section home-section-health">
+            <div class="rail-title">Financial Health</div>
+            ${Plans.canUse('financialHealth') ? `
+            <div class="card home-card--side health-card">
+              <div class="health-card__toggle" id="health-card-toggle">
+                <div class="card-header" style="margin:0;">3 / 6 / 12 month horizon</div>
+                <span class="health-card__chevron" id="health-card-chevron">&#9662;</span>
+              </div>
+              <div id="health-card-body">
+                <div class="home-supporting-copy">
+                  If nothing changes, this is what your current financial structure looks like over the selected horizon.
+                </div>
+
+                <div class="health-toolbar">
+                  <div class="health-horizon-label">${months} month horizon</div>
+                  <div class="horizon-selector">
+                    <button class="horizon-btn ${months === 3  ? 'is-active' : ''}" data-months="3">3 mo</button>
+                    <button class="horizon-btn ${months === 6  ? 'is-active' : ''}" data-months="6">6 mo</button>
+                    <button class="horizon-btn ${months === 12 ? 'is-active' : ''}" data-months="12">12 mo</button>
+                  </div>
+                </div>
+
+                <div class="proj-grid home-proj-grid">
+                  <div class="proj-tile">
+                    <div class="proj-tile__label">Income</div>
+                    <div class="proj-tile__value">${money(healthIncome)}</div>
+                  </div>
+                  <div class="proj-tile">
+                    <div class="proj-tile__label">Obligations</div>
+                    <div class="proj-tile__value">${money(healthBills)}</div>
+                  </div>
+                  <div class="proj-tile">
+                    <div class="proj-tile__label">Remaining</div>
+                    <div class="proj-tile__value" style="color:${healthRemColor};">${money(healthRemaining)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            ` : `
+            <div class="card home-card--side" style="text-align:center;padding:var(--space-5) var(--space-4);">
+              <div class="card-header">Financial Health</div>
+              <p class="text-muted text-sm" style="margin:var(--space-2) 0 var(--space-4);">Financial health projections are available on Budget Peace Pro.</p>
+              <button class="btn btn--primary" id="health-upgrade">Upgrade to Pro</button>
+            </div>
+            `}
+          </div>
+
+          <div class="dash-section home-section-structure">
+            <div class="card home-card--center">
+              <div class="health-card__toggle" id="structure-card-toggle">
+                <div class="card-header" style="margin:0;">Your Financial Structure</div>
+                <span class="health-card__chevron" id="structure-card-chevron">&#9662;</span>
+              </div>
+              <div id="structure-card-body">
+                <div class="home-supporting-copy">
+                  Based on your currently active expenses only. Upcoming or future-dated expenses are not included until their start date.
+                </div>
+
+                <div class="metric-grid home-metric-grid">
+                  <div class="metric-tile">
+                    <div class="metric-tile__label">Monthly income</div>
+                    <div class="metric-tile__value">${money(monthlyIncome)}</div>
+                  </div>
+                  <div class="metric-tile">
+                    <div class="metric-tile__label">Monthly bills</div>
+                    <div class="metric-tile__value">${money(monthlyBills)}</div>
+                  </div>
+                  <div class="metric-tile">
+                    <div class="metric-tile__label">Monthly leftover</div>
+                    <div class="metric-tile__value" style="color:${monthlyLeftColor};">${money(monthlyLeft)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /.home-col-right -->
+      </div><!-- /.home-desktop-grid -->
 
     </div>`;
 

@@ -4,7 +4,8 @@
 
 let _healthData    = null; // { user, periods, expenses }
 let _healthHorizon = parseInt(localStorage.getItem('bp_health_horizon')) || 6; // persisted
-let _periodItems   = [];   // cached for bill card click handlers
+let _periodItems       = [];   // cached for bill card click handlers
+let _recurringExpenses = [];   // cached for overview-row click handlers
 
 Router.register('home', async () => {
   document.getElementById('page-title').textContent = 'Home';
@@ -139,6 +140,7 @@ function renderHealth(months) {
     e.recurrence === 'recurring' &&
     (!e.recurrenceStartDate || e.recurrenceStartDate <= today)
   );
+  _recurringExpenses = recurringActive;
 
   document.getElementById('main-content').innerHTML = `
     <div class="page home-page">
@@ -371,6 +373,14 @@ function renderHealth(months) {
       if (_periodItems[idx]) openBillDetailModal(_periodItems[idx], homeRefresh);
     });
   });
+
+  // Monthly bills overview-row click handlers
+  document.querySelectorAll('.bills-rows-scroll .overview-row[data-expid]').forEach(row => {
+    row.addEventListener('click', () => {
+      const exp = _recurringExpenses.find(e => e.expenseId === row.dataset.expid);
+      if (exp) openBillDetailModal(exp, homeRefresh);
+    });
+  });
 }
 
 // ---- Builders ----------------------------------------------
@@ -387,7 +397,7 @@ function buildMonthlyBills(recurring) {
   const buildRow = e => {
     const amt = calcMonthlyAmt(e);
     return `
-      <div class="overview-row">
+      <div class="overview-row" data-expid="${e.expenseId}" style="cursor:pointer;">
         <div style="flex:1;min-width:0;">
           <span class="overview-row__name">${esc(e.name)}</span>
           ${(() => { const _a = getEffectiveAllocation(e); const _s = _a === 'split' ? 'Split across both' : _a === 'first' ? '1st paycheck' : _a === 'second' ? '2nd paycheck' : null; return _s ? `<div class="overview-row__sub">${_s}</div>` : e.dueDay && (!e.allocationMethod || e.allocationMethod === 'due-date') ? `<div class="overview-row__sub">Due ${e.dueDay}</div>` : ''; })()}

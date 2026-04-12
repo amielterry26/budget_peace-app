@@ -30,7 +30,7 @@ const BANK_COLORS = [
 const BANK_COLOR_DEFAULT = '#6B7280';
 
 Router.register('cards', async () => {
-  document.getElementById('page-title').textContent = 'Cards';
+  document.getElementById('page-title').textContent = 'Wallet';
   setActivePage('cards');
   showBottomNav(true);
   showFab(true);
@@ -363,50 +363,78 @@ function openCardSheet(card) {
 
 // ---- Sheet (Bank Management) --------------------------------
 
-function openBankSheet() {
+function openBankSheet(editBank = null) {
+  const isEditing = !!editBank;
+
+  const buildColorSwatches = (selectedColor, prefix) => BANK_COLORS.map((c, i) => {
+    const sel = selectedColor ? c.value === selectedColor : i === 0;
+    return `<div class="${prefix}-color-swatch ${sel ? 'is-selected' : ''}"
+      data-color="${c.value}"
+      style="width:26px;height:26px;border-radius:50%;background:${c.value};cursor:pointer;
+             border:2px solid ${sel ? '#fff' : 'transparent'};
+             box-shadow:${sel ? '0 0 0 2px var(--color-accent)' : 'none'};
+             transition:all 150ms ease;">
+    </div>`;
+  }).join('');
+
   const bankListHtml = _banks.length
     ? _banks.map(b => `
         <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--color-border);">
           <span style="width:10px;height:10px;border-radius:50%;background:${b.color || BANK_COLOR_DEFAULT};flex-shrink:0;display:inline-block;"></span>
-          <div style="flex:1;">
+          <div style="flex:1;min-width:0;">
             <div style="font-size:var(--font-size-sm);font-weight:var(--font-weight-semi);">${esc(b.name)}</div>
             ${b.note ? `<div class="text-muted text-xs">${esc(b.note)}</div>` : ''}
           </div>
+          <button class="btn btn--ghost bs-edit-btn" data-bankid="${b.bankId}" style="font-size:12px;padding:4px 10px;">Edit</button>
           <button class="btn btn--danger bs-del-btn" data-bankid="${b.bankId}" style="font-size:12px;padding:4px 10px;">Delete</button>
         </div>`).join('')
     : `<div class="text-muted text-sm" style="padding:var(--space-2) 0;">No banks yet.</div>`;
 
-  const colorSwatchesHtml = BANK_COLORS.map((c, i) => `
-    <div class="bs-color-swatch ${i === 0 ? 'is-selected' : ''}"
-      data-color="${c.value}"
-      style="width:26px;height:26px;border-radius:50%;background:${c.value};cursor:pointer;
-             border:2px solid ${i === 0 ? '#fff' : 'transparent'};
-             box-shadow:${i === 0 ? '0 0 0 2px var(--color-accent)' : 'none'};
-             transition:all 150ms ease;">
-    </div>`).join('');
+  const addFormHtml = `
+    <div id="bs-add-form" style="border-top:1px solid var(--color-border);padding-top:var(--space-3);">
+      <div class="form-group">
+        <label class="form-label" for="bs-name">Bank name</label>
+        <input class="form-input" id="bs-name" type="text" placeholder="e.g. SoFi" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="bs-note">Note (optional)</label>
+        <input class="form-input" id="bs-note" type="text" placeholder="e.g. checking + savings" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Color</label>
+        <div style="display:flex;gap:8px;align-items:center;">${buildColorSwatches(null, 'bs')}</div>
+      </div>
+      <button class="btn btn--primary btn--full" id="bs-add">Add Bank</button>
+    </div>`;
+
+  const editFormHtml = editBank ? `
+    <div id="bs-edit-form" style="border-top:1px solid var(--color-border);padding-top:var(--space-3);">
+      <div class="form-group" style="font-weight:var(--font-weight-semi);margin-bottom:var(--space-2);">Editing: ${esc(editBank.name)}</div>
+      <div class="form-group">
+        <label class="form-label" for="bs-edit-name">Bank name</label>
+        <input class="form-input" id="bs-edit-name" type="text" value="${esc(editBank.name)}" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="bs-edit-note">Note (optional)</label>
+        <input class="form-input" id="bs-edit-note" type="text" value="${esc(editBank.note || '')}" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Color</label>
+        <div style="display:flex;gap:8px;align-items:center;">${buildColorSwatches(editBank.color || BANK_COLOR_DEFAULT, 'bse')}</div>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <button class="btn btn--ghost btn--full" id="bs-edit-cancel">Cancel</button>
+        <button class="btn btn--primary btn--full" id="bs-edit-save">Save</button>
+      </div>
+    </div>` : '';
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="bank-sheet-overlay" class="sheet-overlay"></div>
     <div id="bank-sheet" class="sheet">
       <div class="sheet__handle"></div>
-      <div class="sheet__title">Banks</div>
+      <div class="sheet__title">${isEditing ? 'Edit Bank' : 'Banks'}</div>
       <div class="stack--4">
-        <div id="bs-bank-list">${bankListHtml}</div>
-        <div style="border-top:1px solid var(--color-border);padding-top:var(--space-3);">
-          <div class="form-group">
-            <label class="form-label" for="bs-name">Bank name</label>
-            <input class="form-input" id="bs-name" type="text" placeholder="e.g. SoFi" />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="bs-note">Note (optional)</label>
-            <input class="form-input" id="bs-note" type="text" placeholder="e.g. checking + savings" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Color</label>
-            <div style="display:flex;gap:8px;align-items:center;">${colorSwatchesHtml}</div>
-          </div>
-          <button class="btn btn--primary btn--full" id="bs-add">Add Bank</button>
-        </div>
+        ${isEditing ? editFormHtml : `<div id="bs-bank-list">${bankListHtml}</div>${addFormHtml}`}
         <button class="btn btn--ghost btn--full" id="bs-cancel">Close</button>
       </div>
     </div>`);
@@ -429,7 +457,54 @@ function openBankSheet() {
   document.getElementById('bank-sheet-overlay').addEventListener('click', closeSheet);
   document.getElementById('bs-cancel').addEventListener('click', closeSheet);
 
-  // Color swatch selection
+  if (isEditing) {
+    // Edit mode: wire color swatches + save/cancel
+    let selectedEditColor = editBank.color || BANK_COLOR_DEFAULT;
+    document.querySelectorAll('#bank-sheet .bse-color-swatch').forEach(sw => {
+      sw.addEventListener('click', () => {
+        document.querySelectorAll('#bank-sheet .bse-color-swatch').forEach(x => {
+          x.style.border = '2px solid transparent';
+          x.style.boxShadow = 'none';
+        });
+        sw.style.border = '2px solid #fff';
+        sw.style.boxShadow = '0 0 0 2px var(--color-accent)';
+        selectedEditColor = sw.dataset.color;
+      });
+    });
+
+    document.getElementById('bs-edit-cancel').addEventListener('click', () => {
+      closeSheet();
+      setTimeout(() => openBankSheet(), 250);
+    });
+
+    document.getElementById('bs-edit-save').addEventListener('click', async () => {
+      const name = document.getElementById('bs-edit-name').value.trim();
+      const note = document.getElementById('bs-edit-note').value.trim();
+      if (!name) { alert('Enter a bank name.'); return; }
+      const btn = document.getElementById('bs-edit-save');
+      btn.textContent = 'Saving…';
+      btn.disabled = true;
+      try {
+        const res = await authFetch(`/api/banks/${userId()}/${editBank.bankId}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, note, color: selectedEditColor }),
+        });
+        if (!res.ok) throw new Error('Save failed');
+        Store.invalidate('banks');
+        _banks = await Store.get('banks');
+        closeSheet();
+        renderCardsPage();
+        document.getElementById('fab').onclick = () => openCardSheet(null);
+      } catch (err) {
+        console.error(err);
+        btn.textContent = 'Try Again';
+        btn.disabled = false;
+      }
+    });
+    return; // done wiring edit mode
+  }
+
+  // Add mode: color swatches + add + edit/delete buttons
   let selectedBankColor = BANK_COLORS[0].value;
   document.querySelectorAll('#bank-sheet .bs-color-swatch').forEach(sw => {
     sw.addEventListener('click', () => {
@@ -440,6 +515,15 @@ function openBankSheet() {
       sw.style.border = '2px solid #fff';
       sw.style.boxShadow = '0 0 0 2px var(--color-accent)';
       selectedBankColor = sw.dataset.color;
+    });
+  });
+
+  document.querySelectorAll('#bank-sheet .bs-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const bank = _banks.find(b => b.bankId === btn.dataset.bankid);
+      if (!bank) return;
+      closeSheet();
+      setTimeout(() => openBankSheet(bank), 250);
     });
   });
 

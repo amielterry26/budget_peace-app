@@ -49,6 +49,31 @@ router.post('/', async (req, res) => {
   }
 });
 
+// PUT /api/banks/:userId/:bankId
+router.put('/:userId/:bankId', verifyOwner, async (req, res) => {
+  const { userId, bankId } = req.params;
+  const { name, note, color } = req.body;
+  if (!name) return res.status(400).json({ error: 'Missing name' });
+  try {
+    await db.send(new UpdateCommand({
+      TableName:                 TABLE,
+      Key:                       { userId, bankId },
+      UpdateExpression:          'SET #n = :name, note = :note, color = :color, updatedAt = :now',
+      ExpressionAttributeNames:  { '#n': 'name' },
+      ExpressionAttributeValues: {
+        ':name':  name,
+        ':note':  note || '',
+        ':color': color || '',
+        ':now':   new Date().toISOString(),
+      },
+    }));
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('PUT /api/banks error:', err);
+    res.status(500).json({ error: 'Failed to update bank' });
+  }
+});
+
 // DELETE /api/banks/:userId/:bankId
 // Also unassigns any cards in the same scenario that referenced this bank.
 router.delete('/:userId/:bankId', verifyOwner, async (req, res) => {

@@ -1958,7 +1958,7 @@ img  { display: block; max-width: 100%; }
 
   /* ---- Left rail: bills always expanded on desktop -------- */
   .home-section-bills .home-card--side {
-    padding: 18px 18px 16px;
+    padding: 12px 14px 14px;
   }
   /* Hide bills toggle on desktop (rail-title serves as section label) */
   .bills-toggle { display: none; }
@@ -1994,8 +1994,7 @@ img  { display: block; max-width: 100%; }
     font-weight: var(--font-weight-semi);
   }
   .home-section-bills .home-supporting-copy {
-    font-size: var(--font-size-sm);
-    margin-bottom: var(--space-4);
+    display: none;
   }
   .home-section-bills .monthly-bills-total {
     margin-top: var(--space-3);
@@ -2013,7 +2012,7 @@ img  { display: block; max-width: 100%; }
     font-weight: var(--font-weight-bold);
   }
   .home-section-bills .bills-rows-scroll {
-    max-height: 380px;
+    max-height: 295px;
     overflow-y: auto;
     padding-right: 2px;
   }

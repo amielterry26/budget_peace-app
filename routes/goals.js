@@ -10,8 +10,6 @@ const { verifyOwner } = require('../middleware/auth');
 const TABLE = 'bp_goals';
 
 // GET /api/goals/:userId?scenario=main
-// Returns goals for the active scenario.
-// Legacy records with no scenarioId are treated as belonging to 'main'.
 router.get('/:userId', verifyOwner, async (req, res) => {
   try {
     const scenario = req.query.scenario || 'main';
@@ -32,7 +30,6 @@ router.get('/:userId', verifyOwner, async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { userId, scenarioId, name, targetAmount, targetDate, plannedContribution } = req.body;
-    // Verify body userId matches authenticated user
     if (userId && userId !== req.userId) {
       return res.status(403).json({ error: 'Forbidden' });
     }
@@ -69,6 +66,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/goals/:userId/:goalId
+// If currentSaved is explicitly changed, an adjustment entry is created so history stays reconciled.
 router.put('/:userId/:goalId', verifyOwner, async (req, res) => {
   try {
     const { name, targetAmount, targetDate, plannedContribution, currentSaved } = req.body;
@@ -84,7 +82,6 @@ router.put('/:userId/:goalId', verifyOwner, async (req, res) => {
       return res.status(400).json({ error: 'targetDate must be a valid date (YYYY-MM-DD)' });
     }
 
-    // currentSaved is optional — only updated when explicitly sent
     let parsedSaved;
     if (currentSaved !== undefined && currentSaved !== null && currentSaved !== '') {
       parsedSaved = Number(currentSaved);
@@ -101,12 +98,30 @@ router.put('/:userId/:goalId', verifyOwner, async (req, res) => {
       return res.status(404).json({ error: 'Goal not found' });
     }
 
+    const g = existing.Item;
+    let contributionEntries = Array.isArray(g.contributionEntries) ? [...g.contributionEntries] : [];
+
+    // If currentSaved changed, create a visible adjustment entry so history stays reconciled
+    if (parsedSaved !== undefined) {
+      const oldSaved = g.currentSaved || 0;
+      const delta    = Math.round((parsedSaved - oldSaved) * 100) / 100;
+      if (delta !== 0) {
+        contributionEntries.push({
+          id:   randomUUID(),
+          amount: delta,
+          date: new Date().toISOString().slice(0, 10),
+          note: 'Manual adjustment',
+        });
+      }
+    }
+
     const item = {
-      ...existing.Item,
+      ...g,
       name,
       targetAmount:  parsedAmount,
       targetDate,
       updatedAt:     new Date().toISOString(),
+      contributionEntries,
       ...(parsedSaved !== undefined && { currentSaved: parsedSaved }),
       plannedContribution: plannedContribution ? Number(plannedContribution) : undefined,
     };
@@ -152,6 +167,75 @@ router.post('/:userId/:goalId/contribute', verifyOwner, async (req, res) => {
   } catch (err) {
     console.error('POST /api/goals/contribute error:', err);
     res.status(500).json({ error: 'Failed to log contribution' });
+  }
+});
+
+// PUT /api/goals/:userId/:goalId/contributions/:entryId
+// Edit a contribution entry. Applies delta to currentSaved.
+router.put('/:userId/:goalId/contributions/:entryId', verifyOwner, async (req, res) => {
+  try {
+    const { amount, date, note } = req.body;
+    const parsedAmount = Number(amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      return res.status(400).json({ error: 'amount must be a positive number' });
+    }
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
+    }
+
+    const existing = await db.send(new GetCommand({
+      TableName: TABLE,
+      Key: { userId: req.params.userId, goalId: req.params.goalId },
+    }));
+    if (!existing.Item) return res.status(404).json({ error: 'Goal not found' });
+
+    const g = existing.Item;
+    const entries = Array.isArray(g.contributionEntries) ? [...g.contributionEntries] : [];
+    const idx     = entries.findIndex(e => e.id === req.params.entryId);
+    if (idx === -1) return res.status(404).json({ error: 'Entry not found' });
+
+    const oldAmount = entries[idx].amount;
+    const delta     = Math.round((parsedAmount - oldAmount) * 100) / 100;
+
+    const updatedEntry = { ...entries[idx], amount: parsedAmount, date };
+    if (note && note.trim()) updatedEntry.note = note.trim();
+    else delete updatedEntry.note;
+    entries[idx] = updatedEntry;
+
+    const currentSaved = Math.round(((g.currentSaved || 0) + delta) * 100) / 100;
+    const item = { ...g, contributionEntries: entries, currentSaved, updatedAt: new Date().toISOString() };
+    await db.send(new PutCommand({ TableName: TABLE, Item: item }));
+    res.json(item);
+  } catch (err) {
+    console.error('PUT /contributions/:entryId error:', err);
+    res.status(500).json({ error: 'Failed to update contribution entry' });
+  }
+});
+
+// DELETE /api/goals/:userId/:goalId/contributions/:entryId
+// Delete a contribution entry. Subtracts its amount from currentSaved.
+router.delete('/:userId/:goalId/contributions/:entryId', verifyOwner, async (req, res) => {
+  try {
+    const existing = await db.send(new GetCommand({
+      TableName: TABLE,
+      Key: { userId: req.params.userId, goalId: req.params.goalId },
+    }));
+    if (!existing.Item) return res.status(404).json({ error: 'Goal not found' });
+
+    const g       = existing.Item;
+    const entries = Array.isArray(g.contributionEntries) ? [...g.contributionEntries] : [];
+    const entry   = entries.find(e => e.id === req.params.entryId);
+    if (!entry) return res.status(404).json({ error: 'Entry not found' });
+
+    const remaining    = entries.filter(e => e.id !== req.params.entryId);
+    const currentSaved = Math.max(0, Math.round(((g.currentSaved || 0) - entry.amount) * 100) / 100);
+
+    const item = { ...g, contributionEntries: remaining, currentSaved, updatedAt: new Date().toISOString() };
+    await db.send(new PutCommand({ TableName: TABLE, Item: item }));
+    res.json(item);
+  } catch (err) {
+    console.error('DELETE /contributions/:entryId error:', err);
+    res.status(500).json({ error: 'Failed to delete contribution entry' });
   }
 });
 

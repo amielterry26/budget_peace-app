@@ -1744,8 +1744,8 @@ img  { display: block; max-width: 100%; }
   /* Desktop grid: 3-zone layout */
   .home-desktop-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.7fr) minmax(240px, 0.75fr) minmax(200px, 0.58fr);
-    gap: 28px;
+    grid-template-columns: minmax(0, 2fr) minmax(240px, 0.8fr) minmax(220px, 0.65fr);
+    gap: 20px;
     align-items: start;
   }
 
@@ -1758,13 +1758,13 @@ img  { display: block; max-width: 100%; }
     padding-left: 24px;
   }
 
-  /* COL 2 — active support (Monthly Expenses): lower start, sits under workspace line */
+  /* COL 2 — active support (Monthly Expenses): staggered down below workspace line */
   .home-col-mid {
     display: flex;
     flex-direction: column;
     gap: 16px;
     min-width: 0;
-    padding-top: 56px;
+    padding-top: 90px;
   }
 
   /* COL 3 — passive utility rail: starts lower, clearly subordinate to workspace */
@@ -1773,7 +1773,7 @@ img  { display: block; max-width: 100%; }
     flex-direction: column;
     gap: 24px;
     min-width: 0;
-    padding-top: 80px;
+    padding-top: 120px;
   }
 
   /* Reset mobile order values — match specificity of mobile rules (2 classes) */

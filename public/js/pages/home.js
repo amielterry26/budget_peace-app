@@ -411,7 +411,7 @@ function buildMonthlyBills(recurring) {
   const total  = Math.round(recurring.reduce((s, e) => s + calcMonthlyAmt(e), 0) * 100) / 100;
 
   const hiddenHtml = hidden.length ? `
-    <div id="bills-hidden" style="display:none;">
+    <div id="bills-hidden" style="display:none; border-top:1px solid var(--color-border);">
       ${hidden.map(buildRow).join('')}
     </div>
     <button class="breakdown-toggle" id="bills-expand" style="margin-top:var(--space-1);">

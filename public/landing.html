@@ -7,6 +7,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Apply theme immediately to prevent flash of wrong theme -->
+  <script>
+    (function(){
+      var s = localStorage.getItem('bp_theme');
+      if (!s) s = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', s);
+    })();
+  </script>
   <style>
     /* ── Reset ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -581,6 +589,51 @@
       border-top: 1px solid var(--color-border);
       margin: 0;
     }
+
+    /* ── Dark Mode ── */
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --color-bg:             #18181A;
+      --color-surface:        #222224;
+      --color-surface-alt:    #2C2C2E;
+      --color-border:         rgba(255,255,255,0.09);
+      --color-text-primary:   #E8E6E1;
+      --color-text-secondary: #8C8A86;
+      --color-accent:         #4E9E6A;
+      --color-accent-dark:    #3D8056;
+      --color-accent-light:   rgba(78,158,106,0.18);
+      --lp-surface:           #2C2C2E;
+      --lp-muted:             #8C8A86;
+      --shadow-sm: 0 0 0 1px rgba(0,0,0,0.50), 0 2px 8px rgba(0,0,0,0.36);
+      --shadow-md: 0 0 0 1px rgba(0,0,0,0.50), 0 4px 16px rgba(0,0,0,0.44), 0 20px 48px rgba(0,0,0,0.26);
+      --shadow-lg: 0 0 0 1px rgba(0,0,0,0.50), 0 8px 32px rgba(0,0,0,0.52), 0 40px 80px rgba(0,0,0,0.34);
+    }
+    [data-theme="dark"] .lp-nav {
+      background: rgba(24,24,26,0.85);
+    }
+    [data-theme="dark"] .crosssell-card {
+      background: linear-gradient(160deg, #1e2a22 0%, #1a241d 40%, var(--color-surface) 100%);
+    }
+
+    /* ── Theme Toggle ── */
+    .theme-toggle {
+      background: none;
+      border: 1px solid var(--color-border);
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--color-text-secondary);
+      transition: background 0.15s, color 0.15s;
+      flex-shrink: 0;
+    }
+    .theme-toggle:hover {
+      background: var(--color-surface-alt);
+      color: var(--color-text-primary);
+    }
   </style>
 </head>
 <body>
@@ -593,6 +646,7 @@
         <a href="#features">Product</a>
         <a href="#pricing">Pricing</a>
         <a href="/" class="btn btn--solid" style="padding:8px 20px;font-size:13px;">Open App</a>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Switch to dark mode"></button>
       </div>
     </div>
   </nav>
@@ -934,6 +988,40 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
     });
+
+    // Theme toggle
+    (function() {
+      var LS_KEY = 'bp_theme';
+      var MOON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+      var SUN  = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+
+      function setIcon(theme) {
+        var btn = document.getElementById('theme-toggle');
+        if (!btn) return;
+        btn.innerHTML = theme === 'dark' ? SUN : MOON;
+        btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+      }
+
+      function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem(LS_KEY, theme);
+        setIcon(theme);
+      }
+
+      setIcon(document.documentElement.getAttribute('data-theme') || 'light');
+
+      var toggleBtn = document.getElementById('theme-toggle');
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', function() {
+          var current = document.documentElement.getAttribute('data-theme') || 'light';
+          applyTheme(current === 'dark' ? 'light' : 'dark');
+        });
+      }
+
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+        if (!localStorage.getItem(LS_KEY)) applyTheme(e.matches ? 'dark' : 'light');
+      });
+    })();
 
     // FAQ accordion
     document.querySelectorAll('.faq__question').forEach(btn => {

@@ -1998,34 +1998,81 @@ img  { display: block; max-width: 100%; }
     margin-top: 2px;
   }
 
-  /* ---- Notes: interactive, clickable on desktop ----------- */
+  /* ---- Desktop Notes: compact utility widget --------------- */
+  /* Header sits in grid flow (sets row height).               */
+  /* Body drops as an absolute overlay — zero layout impact.  */
   .home-page > .notes-card {
+    position: relative;
+    overflow: visible;
     padding: 10px 14px !important;
     border-radius: var(--radius-sm);
-    box-shadow: 0 1px 3px rgba(15,23,42,0.05);
+    box-shadow: 0 1px 3px rgba(15,23,42,0.06);
   }
+
+  /* Absolutely-positioned body: drops below card, no reflow */
+  .home-page > .notes-card .notes-body {
+    position:      absolute;
+    top:           calc(100% + 4px);
+    left:          0;
+    right:         0;
+    background:    var(--color-surface);
+    border:        1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow:    var(--shadow-md);
+    z-index:       50;
+    padding:       var(--space-3) var(--space-4);
+    max-height:    320px;
+    overflow-y:    auto;
+    opacity:       1;
+    transform:     translateY(0);
+    transition:    opacity 0.15s ease, transform 0.15s ease;
+  }
+
+  /* Hidden state: invisible + no interaction (keep in flow override) */
+  .home-page > .notes-card .notes-body.is-hidden {
+    display:        block !important;
+    opacity:        0;
+    pointer-events: none;
+    transform:      translateY(-6px);
+  }
+
+  /* Input row: horizontal, compact Add button */
+  .home-page > .notes-card .notes-add {
+    flex-direction: row;
+    align-items:    center;
+    gap:            var(--space-2);
+    margin-top:     var(--space-3);
+    padding-top:    var(--space-3);
+    border-top:     1px solid var(--color-border);
+  }
+  .home-page > .notes-card .notes-add > .form-input {
+    flex:      1;
+    min-width: 0;
+  }
+  .home-page > .notes-card .notes-add > .btn {
+    width:       auto;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  /* Header */
   .home-page > .notes-card .notes-header {
     cursor: pointer;
   }
-  .home-page > .notes-card .notes-header:hover {
-    color: var(--color-accent);
-  }
-  .home-page > .notes-card .notes-header:hover .card-header {
+  .home-page > .notes-card .notes-header:hover .card-header,
+  .home-page > .notes-card .notes-header:hover .notes-header__chevron {
     color: var(--color-accent);
   }
   .home-page > .notes-card .card-header {
-    font-size: var(--font-size-xs);
+    font-size:      var(--font-size-xs);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: var(--color-text-secondary);
-    transition: color var(--transition-fast);
+    color:          var(--color-text-secondary);
+    transition:     color var(--transition-fast);
   }
   .home-page > .notes-card .notes-header__chevron {
-    color: var(--color-text-secondary);
+    color:      var(--color-text-secondary);
     transition: color var(--transition-fast);
-  }
-  .home-page > .notes-card .notes-header:hover .notes-header__chevron {
-    color: var(--color-accent);
   }
 
   /* ---- Right rail: Tier 3 numbers, informational ---------- */
@@ -2140,15 +2187,22 @@ img  { display: block; max-width: 100%; }
     color: #475569;
   }
 
-  /* ---- Notes clickable on desktop ------------------------- */
-  .home-page .notes-item {
-    cursor: pointer;
-    border-radius: var(--radius-sm);
-    transition: background var(--transition-fast), box-shadow var(--transition-fast);
+  /* ---- Notes list items on desktop: clean, no accent bar --- */
+  .home-page > .notes-card .notes-item {
+    border-left:  none;
+    border-radius: 0;
+    padding:      7px var(--space-1);
+    border-bottom: 1px solid var(--color-border);
+    cursor:       pointer;
+    transition:   background var(--transition-fast);
   }
-  .home-page .notes-item:hover {
-    background: rgba(74,124,89,0.06);
-    box-shadow: 0 1px 4px rgba(15,23,42,0.06);
+  .home-page > .notes-card .notes-item:last-child {
+    border-bottom: none;
+  }
+  .home-page > .notes-card .notes-item:hover {
+    background:      var(--color-surface-alt);
+    border-left:     none;
+    box-shadow:      none;
   }
 
   /* ---- Pay period: breakdown expanded by default ----------- */

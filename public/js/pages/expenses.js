@@ -363,9 +363,9 @@ async function openSheet(expense, onSave) {
   ].join('');
 
   const cardOpts = [
-    `<option value="">— No card —</option>`,
+    `<option value="">— None —</option>`,
     ...sheetCards.map(c =>
-      `<option value="${c.cardId}" ${expense?.cardId === c.cardId ? 'selected' : ''}>${esc(c.name)} ••${esc(c.lastFour)}</option>`
+      `<option value="${c.cardId}" ${expense?.cardId === c.cardId ? 'selected' : ''}>${esc(c.name)}${c.lastFour ? ` ••${esc(c.lastFour)}` : ''}</option>`
     ),
   ].join('');
 
@@ -492,7 +492,7 @@ async function openSheet(expense, onSave) {
 
         <div class="sh-section">
           <div class="form-group">
-            <label class="form-label" for="sh-card">Card <span class="text-muted">(optional)</span></label>
+            <label class="form-label" for="sh-card">Card / Account <span class="text-muted">(optional)</span></label>
             <select class="form-input form-select" id="sh-card">${cardOpts}</select>
           </div>
         </div>

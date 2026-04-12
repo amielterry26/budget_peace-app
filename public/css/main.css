@@ -1581,14 +1581,8 @@ img  { display: block; max-width: 100%; }
 .wallet-mobile-empty:active { border-color: var(--color-accent); color: var(--color-accent); }
 .wallet-mobile-empty__label { font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); }
 
-/* Show/hide based on viewport */
-@media (max-width: 1199px) {
-  .wallet-row   { display: none !important; }
-  .card-detail  { display: none !important; }
-}
-@media (min-width: 1200px) {
-  .wallet-mobile-stack { display: none !important; }
-}
+/* Wallet: always show vertical stack, never the old carousel */
+.wallet-row, .card-detail { display: none !important; }
 
 .card-detail {
   background:    var(--color-surface);

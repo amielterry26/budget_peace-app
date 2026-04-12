@@ -113,15 +113,19 @@ function renderCardsPage() {
   // --- Mobile: vertical Apple Wallet stack ---
   const mobileCards = visibleCards.map(c => {
     const bank = _banks.find(b => b.bankId === c.bankId);
+    const isSavings = c.type === 'Savings';
+    const bottomSection = isSavings
+      ? `<div class="wallet-card__name" style="font-size:var(--font-size-lg);font-weight:700;">${esc(c.name)}</div>`
+      : `<div>
+          <div class="wallet-card__number">•••• •••• •••• ${esc(c.lastFour)}</div>
+          <div class="wallet-card__name">${esc(c.name)}</div>
+        </div>`;
     return `
       <div class="wallet-mobile-card"
         data-cardid="${c.cardId}"
         style="background:${CARD_PALETTES[c.colorIndex % CARD_PALETTES.length]}">
         <div class="wallet-card__type">${c.type}${bank ? `<span class="wallet-mobile-card__bank" style="float:right;">${esc(bank.name)}</span>` : ''}</div>
-        <div>
-          <div class="wallet-card__number">•••• •••• •••• ${esc(c.lastFour)}</div>
-          <div class="wallet-card__name">${esc(c.name)}</div>
-        </div>
+        ${bottomSection}
       </div>`;
   }).join('');
 
@@ -209,8 +213,9 @@ function openCardDetailSheet(cardId) {
   const card     = _cards.find(c => c.cardId === cardId);
   const expenses = _cardExpenses.filter(e => e.cardId === cardId);
   const total    = expenses.reduce((s, e) => s + e.amount, 0);
-  const bank     = _banks.find(b => b.bankId === card?.bankId);
+  const bank      = _banks.find(b => b.bankId === card?.bankId);
   if (!card) return;
+  const isSavings = card.type === 'Savings';
 
   const rows = expenses.length
     ? expenses.map(e => `
@@ -219,7 +224,11 @@ function openCardDetailSheet(cardId) {
           <span class="text-xs text-muted">${e.recurrence === 'recurring' ? 'recurring' : 'one time'}</span>
           <span class="pill-item__amount">${money(e.amount)}</span>
         </div>`).join('')
-    : `<div class="text-muted text-sm text-center" style="padding:24px 0;">No expenses on this card.</div>`;
+    : `<div class="text-muted text-sm text-center" style="padding:24px 0;">No expenses on this ${isSavings ? 'account' : 'card'}.</div>`;
+
+  const subLine = isSavings
+    ? `Savings Account${card.lastFour ? ` &nbsp;•&nbsp; ••${esc(card.lastFour)}` : ''}${bank ? ` &nbsp;•&nbsp; ${esc(bank.name)}` : ''}`
+    : `${card.type} &nbsp;•&nbsp; •••• ${esc(card.lastFour)}${bank ? ` &nbsp;•&nbsp; ${esc(bank.name)}` : ''}`;
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="cds-overlay" class="sheet-overlay"></div>
@@ -229,11 +238,9 @@ function openCardDetailSheet(cardId) {
         <div style="width:10px;height:10px;border-radius:50%;background:${bank?.color || BANK_COLOR_DEFAULT};flex-shrink:0;"></div>
         <div class="sheet__title" style="margin:0;">${esc(card.name)}</div>
       </div>
-      <div class="text-muted text-xs" style="margin-bottom:var(--space-4);">
-        ${card.type} &nbsp;•&nbsp; •••• ${esc(card.lastFour)}${bank ? ` &nbsp;•&nbsp; ${esc(bank.name)}` : ''}
-      </div>
+      <div class="text-muted text-xs" style="margin-bottom:var(--space-4);">${subLine}</div>
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:var(--space-3);">
-        <div class="text-muted text-xs" style="text-transform:uppercase;letter-spacing:0.08em;">Total on card</div>
+        <div class="text-muted text-xs" style="text-transform:uppercase;letter-spacing:0.08em;">Total on ${isSavings ? 'account' : 'card'}</div>
         <div style="font-size:22px;font-weight:700;letter-spacing:-0.03em;">${money(total)}</div>
       </div>
       <div class="stack--2" style="margin-bottom:var(--space-4);">${rows}</div>
@@ -274,7 +281,8 @@ function openCardDetailSheet(cardId) {
 // ---- Sheet (Add / Edit Card) --------------------------------
 
 function openCardSheet(card) {
-  const editing = !!card;
+  const editing    = !!card;
+  const initSaving = editing && card.type === 'Savings';
 
   const bankOptions = `
     <option value="">— No bank —</option>
@@ -284,17 +292,17 @@ function openCardSheet(card) {
     <div id="card-sheet-overlay" class="sheet-overlay"></div>
     <div id="card-sheet" class="sheet">
       <div class="sheet__handle"></div>
-      <div class="sheet__title">${editing ? 'Edit Card' : 'New Card'}</div>
+      <div class="sheet__title" id="cs-title">${editing ? (initSaving ? 'Edit Account' : 'Edit Card') : (initSaving ? 'New Account' : 'New Card')}</div>
       <div class="stack--4">
         <div class="form-group">
-          <label class="form-label" for="cs-name">Card name</label>
-          <input class="form-input" id="cs-name" type="text" placeholder="e.g. Chase Sapphire"
+          <label class="form-label" id="cs-name-label" for="cs-name">${initSaving ? 'Account name' : 'Card name'}</label>
+          <input class="form-input" id="cs-name" type="text" placeholder="${initSaving ? 'e.g. High-Yield Savings' : 'e.g. Chase Sapphire'}"
             value="${editing ? esc(card.name) : ''}" />
         </div>
-        <div class="form-group">
-          <label class="form-label" for="cs-lastfour">Last 4 digits</label>
+        <div class="form-group" id="cs-lastfour-group">
+          <label class="form-label" id="cs-lastfour-label" for="cs-lastfour">${initSaving ? 'Last 4 of account # (optional)' : 'Last 4 digits'}</label>
           <input class="form-input" id="cs-lastfour" type="text" inputmode="numeric"
-            maxlength="4" placeholder="0000"
+            maxlength="4" placeholder="${initSaving ? '— optional —' : '0000'}"
             value="${editing ? esc(card.lastFour) : ''}" />
         </div>
         <div class="form-group">
@@ -331,7 +339,7 @@ function openCardSheet(card) {
         ${editing ? `
         <div class="form-group">
           <label class="form-label">Attach Expenses</label>
-          <div class="text-muted text-xs" style="margin-bottom:var(--space-2);">Select one or more expenses to assign to this card</div>
+          <div class="text-muted text-xs" style="margin-bottom:var(--space-2);">Select one or more expenses to assign to this card / account</div>
           <div id="cs-expense-list" style="max-height:200px;overflow-y:auto;border:1px solid var(--color-border);border-radius:var(--radius-sm);">
             ${_cardExpenses.length ? _cardExpenses.map(e => {
               const checked = e.cardId === card.cardId;
@@ -369,11 +377,23 @@ function openCardSheet(card) {
   let selectedType       = editing ? card.type : 'Debit';
   let selectedColorIndex = editing ? (card.colorIndex ?? 0) : 0;
 
+  const updateSavingsLabels = (isSavings) => {
+    document.getElementById('cs-name-label').textContent   = isSavings ? 'Account name' : 'Card name';
+    document.getElementById('cs-lastfour-label').textContent = isSavings ? 'Last 4 of account # (optional)' : 'Last 4 digits';
+    document.getElementById('cs-lastfour').placeholder     = isSavings ? '— optional —' : '0000';
+    document.getElementById('cs-name').placeholder         = isSavings ? 'e.g. High-Yield Savings' : 'e.g. Chase Sapphire';
+    if (!editing) {
+      document.getElementById('cs-title').textContent = isSavings ? 'New Account' : 'New Card';
+      document.getElementById('cs-save').textContent  = isSavings ? 'Add Account' : 'Add Card';
+    }
+  };
+
   document.querySelectorAll('#card-sheet .option-card').forEach(c => {
     c.addEventListener('click', () => {
       document.querySelectorAll('#card-sheet .option-card').forEach(x => x.classList.remove('is-selected'));
       c.classList.add('is-selected');
       selectedType = c.dataset.val;
+      updateSavingsLabels(selectedType === 'Savings');
     });
   });
 
@@ -406,8 +426,9 @@ function openCardSheet(card) {
     const name     = document.getElementById('cs-name').value.trim();
     const lastFour = document.getElementById('cs-lastfour').value.trim();
 
-    if (!name)                           { alert('Enter a card name.'); return; }
-    if (!/^\d{4}$/.test(lastFour))       { alert('Enter exactly 4 digits.'); return; }
+    if (!name)                                                        { alert('Enter a name.'); return; }
+    if (selectedType !== 'Savings' && !/^\d{4}$/.test(lastFour))    { alert('Enter exactly 4 digits.'); return; }
+    if (selectedType === 'Savings' && lastFour && !/^\d{4}$/.test(lastFour)) { alert('Account # last 4 must be 4 digits.'); return; }
 
     const btn    = document.getElementById('cs-save');
     const bankId = document.getElementById('cs-bank').value || null;
@@ -543,18 +564,19 @@ function openBankSheet(editBank = null) {
     document.getElementById('bank-sheet').classList.add('is-open');
   });
 
-  const closeSheet = () => {
+  const closeSheet = (onDone) => {
     document.getElementById('bank-sheet-overlay').classList.remove('is-open');
     const s = document.getElementById('bank-sheet');
     s.classList.remove('is-open');
     s.addEventListener('transitionend', () => {
       document.getElementById('bank-sheet-overlay')?.remove();
       document.getElementById('bank-sheet')?.remove();
+      if (onDone) onDone();
     }, { once: true });
   };
 
-  document.getElementById('bank-sheet-overlay').addEventListener('click', closeSheet);
-  document.getElementById('bs-cancel').addEventListener('click', closeSheet);
+  document.getElementById('bank-sheet-overlay').addEventListener('click', () => closeSheet());
+  document.getElementById('bs-cancel').addEventListener('click', () => closeSheet());
 
   if (isEditing) {
     // Edit mode: wire color swatches + save/cancel
@@ -572,8 +594,7 @@ function openBankSheet(editBank = null) {
     });
 
     document.getElementById('bs-edit-cancel').addEventListener('click', () => {
-      closeSheet();
-      setTimeout(() => openBankSheet(), 250);
+      closeSheet(() => openBankSheet());
     });
 
     document.getElementById('bs-edit-save').addEventListener('click', async () => {
@@ -621,8 +642,7 @@ function openBankSheet(editBank = null) {
     btn.addEventListener('click', () => {
       const bank = _banks.find(b => b.bankId === btn.dataset.bankid);
       if (!bank) return;
-      closeSheet();
-      setTimeout(() => openBankSheet(bank), 250);
+      closeSheet(() => openBankSheet(bank));
     });
   });
 

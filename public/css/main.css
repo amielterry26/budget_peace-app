@@ -3954,13 +3954,15 @@ body.has-demo-banner .scenario-selector:not(.is-hidden) ~ .time-travel-strip:not
   box-shadow: 0 4px 16px rgba(78,158,106,0.25), 0 2px 4px rgba(78,158,106,0.15);
 }
 
-/* Bills section row tint — dark mode safe */
-[data-theme="dark"] .home-section-bills .overview-row {
-  background: rgba(255,255,255,0.03);
-  border-color: rgba(255,255,255,0.06);
-}
-[data-theme="dark"] .home-section-bills .overview-row:hover {
-  background: rgba(78,158,106,0.06);
+/* Bills section row tint — desktop only (mobile rows are plain dividers) */
+@media (min-width: 1200px) {
+  [data-theme="dark"] .home-section-bills .overview-row {
+    background: rgba(255,255,255,0.03);
+    border-color: rgba(255,255,255,0.06);
+  }
+  [data-theme="dark"] .home-section-bills .overview-row:hover {
+    background: rgba(78,158,106,0.06);
+  }
 }
 
 /* Scenario snapshot — dark mode safe */
@@ -3990,8 +3992,13 @@ body.has-demo-banner .scenario-selector:not(.is-hidden) ~ .time-travel-strip:not
   background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent-vivid) 100%);
 }
 
+/* Expense pills — stronger border in dark mode so pills read as separate cards */
+[data-theme="dark"] .expense-pill {
+  border-color: var(--color-border-strong);
+}
 /* Expense pill expanded border — dark mode */
 [data-theme="dark"] .expense-pill.is-expanded {
+  border-color: var(--color-accent);
   box-shadow: 0 2px 8px rgba(78,158,106,0.12);
 }
 

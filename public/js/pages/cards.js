@@ -7,6 +7,8 @@ let _cardExpenses  = [];
 let _selectedCard  = null;
 let _banks         = [];
 let _selectedBank  = null; // null = All Banks
+let _walletCompact = localStorage.getItem('bp_wallet_compact') === '1';
+let _walletReorder = false;
 
 const CARD_PALETTES = [
   'linear-gradient(135deg, #1C1C2E 0%, #2D3561 100%)',
@@ -67,15 +69,93 @@ async function loadCards() {
 
 // ---- Render ------------------------------------------------
 
+function sortedCards(cards) {
+  return [...cards].sort((a, b) => {
+    const sa = a.sortOrder ?? new Date(a.createdAt).getTime();
+    const sb = b.sortOrder ?? new Date(b.createdAt).getTime();
+    return sa - sb;
+  });
+}
+
+function buildOverviewHtml() {
+  const totalCards    = _cards.filter(c => c.type !== 'Savings').length;
+  const totalAccounts = _cards.filter(c => c.type === 'Savings').length;
+  const allCardIds    = new Set(_cards.map(c => c.cardId));
+  const totalMonthly  = _cardExpenses
+    .filter(e => e.cardId && allCardIds.has(e.cardId))
+    .reduce((s, e) => s + calcMonthlyAmt(e), 0);
+
+  const bankRows = _banks.map(b => {
+    const bCards    = _cards.filter(c => c.bankId === b.bankId);
+    const cardCount = bCards.filter(c => c.type !== 'Savings').length;
+    const acctCount = bCards.filter(c => c.type === 'Savings').length;
+    const bCardIds  = new Set(bCards.map(c => c.cardId));
+    const spend     = _cardExpenses
+      .filter(e => e.cardId && bCardIds.has(e.cardId))
+      .reduce((s, e) => s + calcMonthlyAmt(e), 0);
+    const sub = [
+      cardCount ? `${cardCount} card${cardCount !== 1 ? 's' : ''}` : '',
+      acctCount ? `${acctCount} account${acctCount !== 1 ? 's' : ''}` : '',
+    ].filter(Boolean).join(' • ') || 'No cards';
+    return `
+      <div class="wallet-overview__bank">
+        <span class="wallet-overview__bank-dot" style="background:${b.color || BANK_COLOR_DEFAULT};"></span>
+        <div style="flex:1;min-width:0;">
+          <div class="wallet-overview__bank-name">${esc(b.name)}</div>
+          <div class="wallet-overview__bank-sub">${sub}</div>
+        </div>
+        ${spend > 0 ? `<div class="wallet-overview__bank-spend">${money(Math.round(spend * 100) / 100)}/mo</div>` : ''}
+      </div>`;
+  });
+
+  const unassigned = _cards.filter(c => !c.bankId);
+  if (unassigned.length) {
+    const cardCount = unassigned.filter(c => c.type !== 'Savings').length;
+    const acctCount = unassigned.filter(c => c.type === 'Savings').length;
+    const sub = [
+      cardCount ? `${cardCount} card${cardCount !== 1 ? 's' : ''}` : '',
+      acctCount ? `${acctCount} account${acctCount !== 1 ? 's' : ''}` : '',
+    ].filter(Boolean).join(' • ');
+    bankRows.push(`
+      <div class="wallet-overview__bank">
+        <span class="wallet-overview__bank-dot" style="background:var(--color-border);"></span>
+        <div style="flex:1;min-width:0;">
+          <div class="wallet-overview__bank-name">Unassigned</div>
+          <div class="wallet-overview__bank-sub">${sub}</div>
+        </div>
+      </div>`);
+  }
+
+  return `
+    <div class="wallet-overview">
+      <div class="wallet-overview__stats">
+        <div class="wallet-overview__stat">
+          <div class="wallet-overview__stat-value">${totalCards + totalAccounts}</div>
+          <div class="wallet-overview__stat-label">Cards &amp; Accounts</div>
+        </div>
+        <div class="wallet-overview__stat">
+          <div class="wallet-overview__stat-value">${_banks.length}</div>
+          <div class="wallet-overview__stat-label">Banks</div>
+        </div>
+        <div class="wallet-overview__stat">
+          <div class="wallet-overview__stat-value">${money(Math.round(totalMonthly * 100) / 100)}</div>
+          <div class="wallet-overview__stat-label">Monthly on cards</div>
+        </div>
+      </div>
+      ${bankRows.length ? `<div class="wallet-overview__banks">${bankRows.join('')}</div>` : ''}
+    </div>`;
+}
+
 function renderCardsPage() {
   const content = document.getElementById('main-content');
 
-  // Filter by selected bank
-  const visibleCards = _selectedBank
+  // Filter + sort by selected bank
+  const raw = _selectedBank
     ? _cards.filter(c => c.bankId === _selectedBank)
     : _cards;
+  const visibleCards = sortedCards(raw);
 
-  // Keep selected card in sync with visible set
+  // Keep selected card in sync
   if (!_selectedCard && visibleCards.length) {
     _selectedCard = visibleCards[0].cardId;
   } else if (_selectedCard && !visibleCards.find(c => c.cardId === _selectedCard)) {
@@ -92,10 +172,9 @@ function renderCardsPage() {
       <button class="btn btn--ghost" id="manage-banks-btn" style="font-size:12px;padding:5px 12px;flex-shrink:0;white-space:nowrap;">+ Add Bank</button>
     </div>`;
 
-  // --- Desktop: horizontal carousel ---
-  const walletItems = visibleCards.map((c) => `
-    <div class="wallet-card ${_selectedCard === c.cardId ? 'is-selected' : ''}"
-      id="wcard-${c.cardId}"
+  // Old carousel (hidden by CSS — kept for routing compatibility)
+  const walletItems = visibleCards.map(c => `
+    <div class="wallet-card ${_selectedCard === c.cardId ? 'is-selected' : ''}" id="wcard-${c.cardId}"
       style="background:${CARD_PALETTES[c.colorIndex % CARD_PALETTES.length]}">
       <div class="wallet-card__type">${c.type}</div>
       <div>
@@ -104,17 +183,12 @@ function renderCardsPage() {
       </div>
     </div>`).join('');
 
-  const emptySlot = `
-    <div class="wallet-empty" id="add-card-tile-desktop">
-      <div class="wallet-empty__icon">＋</div>
-      <div class="wallet-empty__label">Add a card</div>
-    </div>`;
-
-  // --- Vertical stack: savings pills + debit/credit cards ---
+  // Separate savings accounts vs debit/credit cards
   const savingsItems = visibleCards.filter(c => c.type === 'Savings');
   const cardItems    = visibleCards.filter(c => c.type !== 'Savings');
   const showLabels   = savingsItems.length > 0 && cardItems.length > 0;
 
+  // Accounts section (savings pills — unchanged)
   const savingsPillsHtml = savingsItems.map(c => {
     const bank = _banks.find(b => b.bankId === c.bankId);
     return `
@@ -126,57 +200,88 @@ function renderCardsPage() {
       </div>`;
   }).join('');
 
-  const mobileCardsHtml = cardItems.map(c => {
-    const bank = _banks.find(b => b.bankId === c.bankId);
-    return `
-      <div class="wallet-mobile-card"
-        data-cardid="${c.cardId}"
-        style="background:${CARD_PALETTES[c.colorIndex % CARD_PALETTES.length]}">
-        <div class="wallet-card__type">${c.type}${bank ? `<span class="wallet-mobile-card__bank" style="float:right;">${esc(bank.name)}</span>` : ''}</div>
-        <div>
-          <div class="wallet-card__number">•••• •••• •••• ${esc(c.lastFour)}</div>
-          <div class="wallet-card__name">${esc(c.name)}</div>
-        </div>
-      </div>`;
-  }).join('');
+  const accountsSection = savingsItems.length
+    ? `${showLabels ? '<div class="wallet-section-label">Accounts</div>' : ''}${savingsPillsHtml}`
+    : '';
+
+  // Cards section header with compact + reorder controls
+  const cardsHeaderHtml = cardItems.length ? `
+    <div class="wallet-section-header">
+      <div class="wallet-section-label" style="padding:0;">
+        ${showLabels ? `Cards (${cardItems.length})` : `Cards (${cardItems.length})`}
+      </div>
+      <div class="wallet-section-controls">
+        ${_walletReorder
+          ? `<button class="btn btn--primary" id="wallet-reorder-done" style="font-size:11px;padding:5px 12px;">Done Reordering</button>`
+          : `<button class="btn btn--ghost" id="wallet-compact-toggle" style="font-size:11px;padding:4px 10px;">${_walletCompact ? 'Expand' : 'Compact'}</button>
+             ${!_walletCompact ? `<button class="btn btn--ghost" id="wallet-reorder-btn" style="font-size:11px;padding:4px 10px;">Reorder</button>` : ''}`
+        }
+      </div>
+    </div>` : '';
+
+  // Cards body — grid (expanded) or compact pill rows
+  let cardsBodyHtml = '';
+  if (cardItems.length) {
+    if (_walletCompact) {
+      cardsBodyHtml = cardItems.map(c => `
+        <div class="wallet-card-compact" data-cardid="${c.cardId}">
+          <div class="wallet-card-compact__swatch" style="background:${CARD_PALETTES[c.colorIndex % CARD_PALETTES.length]};"></div>
+          <span class="wallet-card-compact__name">${esc(c.name)}</span>
+          <span class="wallet-card-compact__lastfour">••${esc(c.lastFour)}</span>
+          <span class="wallet-card-compact__type">${c.type}</span>
+        </div>`).join('');
+    } else {
+      cardsBodyHtml = `
+        <div class="wallet-cards-grid ${_walletReorder ? 'is-reorder' : ''}" id="wallet-cards-grid">
+          ${cardItems.map(c => {
+            const bank = _banks.find(b => b.bankId === c.bankId);
+            return `
+              <div class="wallet-mobile-card" data-cardid="${c.cardId}"
+                style="background:${CARD_PALETTES[c.colorIndex % CARD_PALETTES.length]}">
+                <div class="wallet-card__type">${c.type}${bank ? `<span class="wallet-mobile-card__bank" style="float:right;">${esc(bank.name)}</span>` : ''}</div>
+                <div>
+                  <div class="wallet-card__number">•••• •••• •••• ${esc(c.lastFour)}</div>
+                  <div class="wallet-card__name">${esc(c.name)}</div>
+                </div>
+              </div>`;
+          }).join('')}
+        </div>`;
+    }
+  }
 
   const mobileEmpty = `
     <div class="wallet-mobile-empty" id="add-card-tile-mobile">
       <div class="wallet-mobile-empty__label">＋ Add a card or account</div>
     </div>`;
 
-  const accountsSection = savingsItems.length
-    ? `${showLabels ? '<div class="wallet-section-label">Accounts</div>' : ''}${savingsPillsHtml}`
-    : '';
-  const cardsSection = cardItems.length
-    ? `${showLabels ? '<div class="wallet-section-label">Cards</div>' : ''}${mobileCardsHtml}`
-    : '';
-
   content.innerHTML = `
     <div class="page">
       ${bankChipsHtml}
-      <div class="wallet-row">${walletItems}${emptySlot}</div>
+      <div class="wallet-row">${walletItems}</div>
       <div id="card-detail-area"></div>
       <div class="wallet-mobile-stack">
+        ${!_selectedBank ? buildOverviewHtml() : ''}
         ${accountsSection}
-        ${cardsSection}
+        ${cardsHeaderHtml}
+        ${cardsBodyHtml}
         ${mobileEmpty}
       </div>
     </div>`;
 
-  // Wire bank chips — first tap selects, second tap on same chip opens manage/edit
+  // ---- Wire events ----
+
+  // Bank chips
   document.querySelectorAll('.bank-tabs__chips .cmp-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       const clickedId = chip.dataset.bankid || null;
       if (clickedId === null && _selectedBank === null) {
-        // All Banks tapped while already on All Banks → open bank management
         openBankSheet();
       } else if (clickedId && clickedId === _selectedBank) {
-        // Named bank tapped while already selected → open edit
         const bank = _banks.find(b => b.bankId === clickedId);
         if (bank) openBankSheet(bank);
       } else {
         _selectedBank = clickedId;
+        _walletReorder = false;
         renderCardsPage();
         document.getElementById('fab').onclick = () => openCardSheet(null);
       }
@@ -185,19 +290,68 @@ function renderCardsPage() {
 
   document.getElementById('manage-banks-btn').addEventListener('click', () => openBankSheet());
 
-  // Desktop card clicks
-  visibleCards.forEach(c => {
-    document.getElementById(`wcard-${c.cardId}`)?.addEventListener('click', () => {
-      _selectedCard = c.cardId;
+  // Compact toggle
+  document.getElementById('wallet-compact-toggle')?.addEventListener('click', () => {
+    _walletCompact = !_walletCompact;
+    localStorage.setItem('bp_wallet_compact', _walletCompact ? '1' : '');
+    renderCardsPage();
+    document.getElementById('fab').onclick = () => openCardSheet(null);
+  });
+
+  // Enter reorder mode
+  document.getElementById('wallet-reorder-btn')?.addEventListener('click', () => {
+    _walletReorder = true;
+    renderCardsPage();
+    document.getElementById('fab').onclick = () => openCardSheet(null);
+    const grid = document.getElementById('wallet-cards-grid');
+    if (grid && typeof Sortable !== 'undefined') {
+      new Sortable(grid, {
+        animation:  150,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+      });
+    }
+  });
+
+  // Done reordering — save order
+  document.getElementById('wallet-reorder-done')?.addEventListener('click', async () => {
+    const grid = document.getElementById('wallet-cards-grid');
+    if (grid) {
+      const items = Array.from(grid.querySelectorAll('.wallet-mobile-card')).map((el, i) => ({
+        cardId: el.dataset.cardid,
+        sortOrder: (i + 1) * 1000,
+      }));
+      items.forEach(({ cardId, sortOrder }) => {
+        const card = _cards.find(c => c.cardId === cardId);
+        if (card) card.sortOrder = sortOrder;
+      });
+      _walletReorder = false;
       renderCardsPage();
+      document.getElementById('fab').onclick = () => openCardSheet(null);
+      try {
+        await authFetch(`/api/cards/${userId()}/order`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items }),
+        });
+        Store.invalidate('cards');
+        _cards = await Store.get('cards');
+      } catch (err) {
+        console.error('Failed to save card order:', err);
+      }
+    } else {
+      _walletReorder = false;
+      renderCardsPage();
+    }
+  });
+
+  // Card + savings pill taps → detail sheet (not in reorder mode)
+  document.querySelectorAll('.wallet-mobile-card, .wallet-savings-pill, .wallet-card-compact').forEach(el => {
+    el.addEventListener('click', () => {
+      if (_walletReorder) return;
+      openCardDetailSheet(el.dataset.cardid);
     });
   });
-  document.getElementById('add-card-tile-desktop')?.addEventListener('click', () => openCardSheet(null));
 
-  // Mobile card + savings pill clicks → detail sheet
-  document.querySelectorAll('.wallet-mobile-card, .wallet-savings-pill').forEach(el => {
-    el.addEventListener('click', () => openCardDetailSheet(el.dataset.cardid));
-  });
   document.getElementById('add-card-tile-mobile')?.addEventListener('click', () => openCardSheet(null));
 }
 

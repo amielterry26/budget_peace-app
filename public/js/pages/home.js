@@ -19,13 +19,14 @@ Router.register('home', async () => {
     </div>`;
 
   try {
-    const [scenario, periods, expenses] = await Promise.all([
+    const [scenario, periods, expenses, goals] = await Promise.all([
       Store.get('scenario'),
       Store.get('periods'),
       Store.get('expenses'),
+      Store.get('goals'),
     ]);
 
-    _healthData = { scenario, periods, expenses };
+    _healthData = { scenario, periods, expenses, goals };
     renderHealth(_healthHorizon);
   } catch (err) {
     console.error(err);
@@ -43,7 +44,7 @@ function renderHealth(months) {
   if (!_healthData) return;
   _healthHorizon = months;
 
-  const { scenario, periods, expenses } = _healthData;
+  const { scenario, periods, expenses, goals = [] } = _healthData;
   const today = effectiveToday();
 
   // Monthly structure
@@ -71,6 +72,8 @@ function renderHealth(months) {
       ? Math.min(100, Math.round((pd.total / currentPeriod.income) * 100)) : 0;
     const periodItems = getPeriodItems(expenses, currentPeriod, scenario.cadence);
     _periodItems = periodItems;
+    const shownPeriodItems  = periodItems.slice(0, 5);
+    const hiddenPeriodItems = periodItems.slice(5);
     currentPeriodCard = `
       <div class="dash-section home-section-period">
         <div class="card period-shortcut-card" id="period-shortcut" style="cursor:pointer;padding:var(--space-3) var(--space-4);">
@@ -102,7 +105,7 @@ function renderHealth(months) {
             ${periodItems.length ? `
             <div class="period-bills-preview">
               <div class="period-bills-preview__header">Bills this period</div>
-              ${periodItems.map((it, i) => `
+              ${shownPeriodItems.map((it, i) => `
               <div class="period-bill-card" data-bill-idx="${i}">
                 <div>
                   <span class="period-bill-card__name">${esc(it.name)}</span>
@@ -110,6 +113,20 @@ function renderHealth(months) {
                 </div>
                 <span class="period-bill-card__amount">${money(it.periodAmount)}</span>
               </div>`).join('')}
+              ${hiddenPeriodItems.length ? `
+              <div id="period-bills-more" style="display:none;">
+                ${hiddenPeriodItems.map((it, i) => `
+                <div class="period-bill-card" data-bill-idx="${5 + i}">
+                  <div>
+                    <span class="period-bill-card__name">${esc(it.name)}</span>
+                    ${it.note ? `<div class="period-bill-card__note">${it.note}</div>` : it.dueDay && (!it.allocationMethod || it.allocationMethod === 'due-date') ? `<div class="period-bill-card__note">Due ${it.dueDay}</div>` : ''}
+                  </div>
+                  <span class="period-bill-card__amount">${money(it.periodAmount)}</span>
+                </div>`).join('')}
+              </div>
+              <button class="breakdown-toggle" id="period-bills-expand" style="margin-top:var(--space-2);">
+                View ${hiddenPeriodItems.length} more ▼
+              </button>` : ''}
             </div>` : ''}
           </div>
           <div class="period-shortcut__action" style="margin-top:var(--space-2);">Review pay period →</div>
@@ -139,102 +156,125 @@ function renderHealth(months) {
         <button class="home-mode-switch__btn" id="go-pay-period" type="button">Current Pay Period</button>
       </div>
 
-      ${currentPeriodCard}
+      <!-- Desktop 3-column shell: transparent on mobile via display:contents -->
+      <div class="home-desktop-grid">
 
-      ${notesCardHtml('home')}
+        <!-- LEFT utility column: Notes · Horizon · Structure -->
+        <div class="home-col-left">
 
-      <div class="dash-section home-section-structure">
-        <div class="card home-card--center">
-          <div class="health-card__toggle" id="structure-card-toggle">
-            <div class="card-header" style="margin:0;">Your Financial Structure</div>
-            <span class="health-card__chevron" id="structure-card-chevron">&#9662;</span>
-          </div>
-          <div id="structure-card-body">
-            <div class="home-supporting-copy">
-              Based on your currently active expenses only. Upcoming or future-dated expenses are not included until their start date.
-            </div>
+          ${notesCardHtml('home')}
 
-            <div class="metric-grid home-metric-grid">
-              <div class="metric-tile">
-                <div class="metric-tile__label">Monthly income</div>
-                <div class="metric-tile__value">${money(monthlyIncome)}</div>
+          <div class="dash-section home-section-health">
+            <div class="rail-title">Financial Health</div>
+            ${Plans.canUse('financialHealth') ? `
+            <div class="card home-card--side health-card">
+              <div class="health-card__toggle" id="health-card-toggle">
+                <div class="card-header" style="margin:0;">3 / 6 / 12 month horizon</div>
+                <span class="health-card__chevron" id="health-card-chevron">&#9662;</span>
               </div>
-              <div class="metric-tile">
-                <div class="metric-tile__label">Monthly bills</div>
-                <div class="metric-tile__value">${money(monthlyBills)}</div>
-              </div>
-              <div class="metric-tile">
-                <div class="metric-tile__label">Monthly leftover</div>
-                <div class="metric-tile__value" style="color:${monthlyLeftColor};">${money(monthlyLeft)}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+              <div id="health-card-body">
+                <div class="home-supporting-copy">
+                  If nothing changes, this is what your current financial structure looks like over the selected horizon.
+                </div>
 
-      <div class="dash-section home-section-bills">
-        <div class="rail-title">Recurring Bills</div>
-        <div class="card home-card--side">
-          <div class="bills-toggle" id="bills-card-toggle">
-            <div class="card-header" style="margin:0;">Recurring Bills</div>
-            <span class="bills-chevron" id="bills-card-chevron">&#9662;</span>
-          </div>
-          <div id="bills-card-body">
-            <div class="bills-internal-title">Monthly Expenses</div>
-            <div class="home-supporting-copy" style="margin-top:var(--space-1);margin-bottom:var(--space-3);">
-              Your baseline monthly obligations, including due dates.
-            </div>
-            ${buildMonthlyBills(recurringActive)}
-          </div>
-        </div>
-      </div>
+                <div class="health-toolbar">
+                  <div class="health-horizon-label">${months} month horizon</div>
+                  <div class="horizon-selector">
+                    <button class="horizon-btn ${months === 3  ? 'is-active' : ''}" data-months="3">3 mo</button>
+                    <button class="horizon-btn ${months === 6  ? 'is-active' : ''}" data-months="6">6 mo</button>
+                    <button class="horizon-btn ${months === 12 ? 'is-active' : ''}" data-months="12">12 mo</button>
+                  </div>
+                </div>
 
-      <div class="dash-section home-section-health">
-        <div class="rail-title">Financial Health</div>
-        ${Plans.canUse('financialHealth') ? `
-        <div class="card home-card--side health-card">
-          <div class="health-card__toggle" id="health-card-toggle">
-            <div class="card-header" style="margin:0;">3 / 6 / 12 month horizon</div>
-            <span class="health-card__chevron" id="health-card-chevron">&#9662;</span>
-          </div>
-          <div id="health-card-body">
-            <div class="home-supporting-copy">
-              If nothing changes, this is what your current financial structure looks like over the selected horizon.
-            </div>
-
-            <div class="health-toolbar">
-              <div class="health-horizon-label">${months} month horizon</div>
-              <div class="horizon-selector">
-                <button class="horizon-btn ${months === 3  ? 'is-active' : ''}" data-months="3">3 mo</button>
-                <button class="horizon-btn ${months === 6  ? 'is-active' : ''}" data-months="6">6 mo</button>
-                <button class="horizon-btn ${months === 12 ? 'is-active' : ''}" data-months="12">12 mo</button>
+                <div class="proj-grid home-proj-grid">
+                  <div class="proj-tile">
+                    <div class="proj-tile__label">Income</div>
+                    <div class="proj-tile__value">${money(healthIncome)}</div>
+                  </div>
+                  <div class="proj-tile">
+                    <div class="proj-tile__label">Obligations</div>
+                    <div class="proj-tile__value">${money(healthBills)}</div>
+                  </div>
+                  <div class="proj-tile">
+                    <div class="proj-tile__label">Remaining</div>
+                    <div class="proj-tile__value" style="color:${healthRemColor};">${money(healthRemaining)}</div>
+                  </div>
+                </div>
               </div>
             </div>
+            ` : `
+            <div class="card home-card--side" style="text-align:center;padding:var(--space-5) var(--space-4);">
+              <div class="card-header">Financial Health</div>
+              <p class="text-muted text-sm" style="margin:var(--space-2) 0 var(--space-4);">Financial health projections are available on Budget Peace Pro.</p>
+              <button class="btn btn--primary" id="health-upgrade">Upgrade to Pro</button>
+            </div>
+            `}
+          </div>
 
-            <div class="proj-grid home-proj-grid">
-              <div class="proj-tile">
-                <div class="proj-tile__label">Income</div>
-                <div class="proj-tile__value">${money(healthIncome)}</div>
+          <div class="dash-section home-section-structure">
+            <div class="card home-card--center">
+              <div class="health-card__toggle" id="structure-card-toggle">
+                <div class="card-header" style="margin:0;">Your Financial Structure</div>
+                <span class="health-card__chevron" id="structure-card-chevron">&#9662;</span>
               </div>
-              <div class="proj-tile">
-                <div class="proj-tile__label">Obligations</div>
-                <div class="proj-tile__value">${money(healthBills)}</div>
-              </div>
-              <div class="proj-tile">
-                <div class="proj-tile__label">Remaining</div>
-                <div class="proj-tile__value" style="color:${healthRemColor};">${money(healthRemaining)}</div>
+              <div id="structure-card-body">
+                <div class="home-supporting-copy">
+                  Based on your currently active expenses only. Upcoming or future-dated expenses are not included until their start date.
+                </div>
+
+                <div class="metric-grid home-metric-grid">
+                  <div class="metric-tile">
+                    <div class="metric-tile__label">Monthly income</div>
+                    <div class="metric-tile__value">${money(monthlyIncome)}</div>
+                  </div>
+                  <div class="metric-tile">
+                    <div class="metric-tile__label">Monthly bills</div>
+                    <div class="metric-tile__value">${money(monthlyBills)}</div>
+                  </div>
+                  <div class="metric-tile">
+                    <div class="metric-tile__label">Monthly leftover</div>
+                    <div class="metric-tile__value" style="color:${monthlyLeftColor};">${money(monthlyLeft)}</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        ` : `
-        <div class="card home-card--side" style="text-align:center;padding:var(--space-5) var(--space-4);">
-          <div class="card-header">Financial Health</div>
-          <p class="text-muted text-sm" style="margin:var(--space-2) 0 var(--space-4);">Financial health projections are available on Budget Peace Pro.</p>
-          <button class="btn btn--primary" id="health-upgrade">Upgrade to Pro</button>
-        </div>
-        `}
-      </div>
+
+        </div><!-- /.home-col-left -->
+
+        <!-- CENTER: Current Pay Period -->
+        <div class="home-col-center">
+          ${currentPeriodCard}
+        </div><!-- /.home-col-center -->
+
+        <!-- RIGHT: Monthly Expenses + Goals -->
+        <div class="home-col-right">
+
+          <div class="dash-section home-section-bills">
+            <div class="rail-title">Recurring Bills</div>
+            <div class="card home-card--side">
+              <div class="bills-toggle" id="bills-card-toggle">
+                <div class="card-header" style="margin:0;">Recurring Bills</div>
+                <span class="bills-chevron" id="bills-card-chevron">&#9662;</span>
+              </div>
+              <div id="bills-card-body">
+                <div class="bills-internal-title">Monthly Expenses</div>
+                <div class="home-supporting-copy" style="margin-top:var(--space-1);margin-bottom:var(--space-3);">
+                  Your baseline monthly obligations, including due dates.
+                </div>
+                ${buildMonthlyBills(recurringActive)}
+              </div>
+            </div>
+          </div>
+
+          <div class="dash-section home-section-goals">
+            <div class="rail-title">Goals</div>
+            ${buildHomeGoalsCard(goals)}
+          </div>
+
+        </div><!-- /.home-col-right -->
+
+      </div><!-- /.home-desktop-grid -->
 
     </div>`;
 
@@ -262,8 +302,14 @@ function renderHealth(months) {
     localStorage.setItem('bp_collapse_health', isHidden ? '1' : '0');
   });
 
-  // Restore collapse state from localStorage
-  if (localStorage.getItem('bp_collapse_structure') === '1') {
+  // Structure: collapsed by default on desktop; restore from localStorage on mobile
+  if (window.innerWidth >= 1200) {
+    if (localStorage.getItem('bp_collapse_structure') !== '0') {
+      document.getElementById('structure-card-body')?.classList.add('is-hidden');
+      const chev = document.getElementById('structure-card-chevron');
+      if (chev) chev.innerHTML = '&#9656;';
+    }
+  } else if (localStorage.getItem('bp_collapse_structure') === '1') {
     document.getElementById('structure-card-body')?.classList.add('is-hidden');
     const chev = document.getElementById('structure-card-chevron');
     if (chev) chev.innerHTML = '&#9656;';
@@ -290,6 +336,16 @@ function renderHealth(months) {
     const isOpen = hidden.style.display !== 'none';
     hidden.style.display = isOpen ? 'none' : 'block';
     const count = hidden.querySelectorAll('.overview-row').length;
+    btn.innerHTML = isOpen ? `View ${count} more ▼` : 'Show less ▲';
+  });
+
+  document.getElementById('period-bills-expand')?.addEventListener('click', () => {
+    const more = document.getElementById('period-bills-more');
+    const btn  = document.getElementById('period-bills-expand');
+    if (!more || !btn) return;
+    const isOpen = more.style.display !== 'none';
+    more.style.display = isOpen ? 'none' : 'block';
+    const count = more.querySelectorAll('.period-bill-card').length;
     btn.innerHTML = isOpen ? `View ${count} more ▼` : 'Show less ▲';
   });
 
@@ -349,11 +405,46 @@ function buildMonthlyBills(recurring) {
     </button>` : '';
 
   return `
-    ${shown.map(buildRow).join('')}
-    ${hiddenHtml}
+    <div class="bills-rows-scroll">
+      ${shown.map(buildRow).join('')}
+      ${hiddenHtml}
+    </div>
     <div class="monthly-bills-total">
       <span class="monthly-bills-total__label">Total monthly bills</span>
       <span class="monthly-bills-total__value">${money(total)}</span>
+    </div>`;
+}
+
+function buildHomeGoalsCard(goals) {
+  if (!goals || !goals.length) {
+    return `
+      <div class="card home-card--side home-goals-card">
+        <div class="home-goals-empty">
+          <div class="home-goals-empty__text">No goals yet</div>
+          <div class="home-goals-empty__hint">Visit Goals to set your first target.</div>
+        </div>
+      </div>`;
+  }
+  const gFmt = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  const sorted = goals.slice().sort((a, b) => a.targetDate.localeCompare(b.targetDate));
+  return `
+    <div class="card home-card--side home-goals-card">
+      ${sorted.map(g => {
+        const pct = g.targetAmount > 0
+          ? Math.min(100, Math.round((g.currentSaved || 0) / g.targetAmount * 100))
+          : 0;
+        return `
+          <div class="home-goal-item">
+            <div class="home-goal-item__header">
+              <span class="home-goal-item__name">${esc(g.name)}</span>
+              <span class="home-goal-item__pct">${pct}%</span>
+            </div>
+            <div class="home-goal-item__bar-track">
+              <div class="home-goal-item__bar-fill" style="width:${pct}%"></div>
+            </div>
+            <div class="home-goal-item__meta">${gFmt(g.currentSaved || 0)} / ${gFmt(g.targetAmount)}</div>
+          </div>`;
+      }).join('')}
     </div>`;
 }
 
@@ -665,13 +756,14 @@ function setupSpeedDial() {
 
 async function homeRefresh() {
   try {
-    const [scenario, periods, expenses] = await Promise.all([
+    const [scenario, periods, expenses, goals] = await Promise.all([
       Store.get('scenario'),
       Store.get('periods'),
       Store.get('expenses'),
+      Store.get('goals'),
     ]);
     if (_currentPage !== 'home') return;
-    _healthData = { scenario, periods, expenses };
+    _healthData = { scenario, periods, expenses, goals };
     renderHealth(_healthHorizon);
     setupSpeedDial();
   } catch (err) {

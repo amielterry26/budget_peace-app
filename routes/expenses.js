@@ -104,7 +104,8 @@ router.put('/:userId/:expenseId', verifyOwner, async (req, res) => {
   try {
     const { name, amount, recurrence, periodStart, cardId,
             recurrenceFrequency, recurrenceStartDate, dueDay, dueDate,
-            splitBiweekly, allocationMethod } = req.body;
+            splitBiweekly, allocationMethod,
+            category, notes, tags } = req.body;
 
     if (!name || !amount || !recurrence) {
       return res.status(400).json({ error: 'Missing required fields (name, amount, recurrence)' });
@@ -153,6 +154,10 @@ router.put('/:userId/:expenseId', verifyOwner, async (req, res) => {
       // Allocation: prefer allocationMethod (new); fall back to legacy splitBiweekly; clear if neither
       allocationMethod:    allocationMethod || undefined,
       splitBiweekly:       (!allocationMethod && splitBiweekly) ? true : undefined,
+      // Optional metadata
+      category:            category || undefined,
+      notes:               notes    || undefined,
+      tags:                tags     || undefined,
     };
 
     await db.send(new PutCommand({ TableName: TABLE, Item: item }));

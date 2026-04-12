@@ -501,6 +501,21 @@ async function openSheet(expense, onSave) {
           </div>
         </div>
 
+        <div class="sh-section">
+          <div class="form-group">
+            <label class="form-label" for="sh-category">Category <span class="text-muted">(optional)</span></label>
+            <input class="form-input" id="sh-category" type="text" placeholder="e.g. Housing, Food, Transport" value="${esc(expense?.category || '')}" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="sh-notes">Notes <span class="text-muted">(optional)</span></label>
+            <textarea class="form-input" id="sh-notes" rows="2" placeholder="Any notes about this expense…" style="resize:vertical;">${esc(expense?.notes || '')}</textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="sh-tags">Tags <span class="text-muted">(optional, comma-separated)</span></label>
+            <input class="form-input" id="sh-tags" type="text" placeholder="e.g. fixed, annual, shared" value="${esc(expense?.tags || '')}" />
+          </div>
+        </div>
+
         <div class="sh-actions">
           <button class="btn btn--ghost btn--full" id="sh-cancel">Cancel</button>
           <button class="btn btn--primary btn--full" id="sh-save">${editing ? 'Save Changes' : 'Add Expense'}</button>
@@ -589,11 +604,18 @@ async function openSheet(expense, onSave) {
     if (!name)   { alert('Enter a name.'); return; }
     if (!amount) { alert('Enter an amount.'); return; }
 
+    const category = document.getElementById('sh-category').value.trim();
+    const notes    = document.getElementById('sh-notes').value.trim();
+    const tags     = document.getElementById('sh-tags').value.trim();
+
     const payload = {
       userId: userId(), name, amount: Number(amount),
       recurrence: selectedRecurrence,
       scenarioId: _activeScenario,
-      ...(cardId && { cardId }),
+      ...(cardId    && { cardId }),
+      ...(category  && { category }),
+      ...(notes     && { notes }),
+      ...(tags      && { tags }),
     };
 
     if (selectedRecurrence === 'recurring') {

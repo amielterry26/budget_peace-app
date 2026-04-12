@@ -699,19 +699,23 @@ async function openBillDetailModal(expense, refreshFn) {
           <span class="bill-detail__label">Since</span>
           <span class="bill-detail__value">${sinceValue}</span>
         </div>` : ''}
+        ${(expense.category || expense.notes || expense.tags) ? `
         <div class="bill-detail__separator"></div>
+        ${expense.category ? `
         <div class="bill-detail__row">
           <span class="bill-detail__label">Category</span>
-          <span class="bill-detail__placeholder">— Not set</span>
-        </div>
+          <span class="bill-detail__value">${esc(expense.category)}</span>
+        </div>` : ''}
+        ${expense.notes ? `
         <div class="bill-detail__row">
           <span class="bill-detail__label">Notes</span>
-          <span class="bill-detail__placeholder">— Not set</span>
-        </div>
+          <span class="bill-detail__value" style="white-space:pre-wrap;word-break:break-word;">${esc(expense.notes)}</span>
+        </div>` : ''}
+        ${expense.tags ? `
         <div class="bill-detail__row">
           <span class="bill-detail__label">Tags</span>
-          <span class="bill-detail__placeholder">— Not set</span>
-        </div>
+          <span class="bill-detail__value">${esc(expense.tags)}</span>
+        </div>` : ''}` : ''}
       </div>
       <div class="bill-detail__actions">
         <button class="btn btn--ghost" id="bill-detail-edit">Edit</button>

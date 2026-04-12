@@ -1663,6 +1663,18 @@ img  { display: block; max-width: 100%; }
 .sortable-ghost  { opacity: 0.35; }
 .sortable-chosen { box-shadow: var(--shadow-lg); }
 
+/* --- Wallet: savings list + compact cards list containers -- */
+#wallet-savings-list {
+  display:        flex;
+  flex-direction: column;
+  gap:            var(--space-2);
+}
+#wallet-cards-list {
+  display:        flex;
+  flex-direction: column;
+  gap:            var(--space-2);
+}
+
 /* --- Wallet: compact card row ------------------------------ */
 .wallet-card-compact {
   display:         flex;
@@ -1720,6 +1732,8 @@ img  { display: block; max-width: 100%; }
 }
 .wallet-card-compact.is-reorder { cursor: grab; }
 .wallet-card-compact.is-reorder:active { cursor: grabbing; }
+.wallet-savings-pill.is-reorder { cursor: grab; }
+.wallet-savings-pill.is-reorder:active { cursor: grabbing; }
 
 /* --- Wallet: inline accordion expand ----------------------- */
 .wallet-savings-pill.is-expanded,
@@ -1744,6 +1758,10 @@ img  { display: block; max-width: 100%; }
   border-radius: var(--radius-sm);
   cursor:        pointer;
   transition:    background var(--transition-fast);
+}
+.wallet-expand__expense + .wallet-expand__expense {
+  border-top: 1px solid var(--color-border);
+  border-radius: 0;
 }
 .wallet-expand__expense:hover { background: var(--color-surface); }
 

@@ -7,8 +7,9 @@ let _cardExpenses  = [];
 let _selectedCard  = null;
 let _banks         = [];
 let _selectedBank  = null; // null = All Banks
-let _walletCompact = localStorage.getItem('bp_wallet_compact') === '1';
-let _walletReorder = false;
+let _walletCompact    = localStorage.getItem('bp_wallet_compact') === '1';
+let _walletReorder    = false;
+let _accountsReorder  = false;
 
 const CARD_PALETTES = [
   'linear-gradient(135deg, #1C1C2E 0%, #2D3561 100%)',
@@ -299,20 +300,37 @@ function renderCardsPage() {
   const cardItems    = visibleCards.filter(c => c.type !== 'Savings');
   const showLabels   = savingsItems.length > 0 && cardItems.length > 0;
 
-  // Accounts section (savings pills — unchanged)
+  // Accounts section (savings pills)
   const savingsPillsHtml = savingsItems.map(c => {
     const bank = _banks.find(b => b.bankId === c.bankId);
+    const mo   = cardMonthly(c.cardId);
     return `
-      <div class="wallet-savings-pill" data-cardid="${c.cardId}">
+      <div class="wallet-savings-pill ${_accountsReorder ? 'is-reorder' : ''}" data-cardid="${c.cardId}">
         <div style="width:10px;height:10px;border-radius:50%;background:${bank?.color || BANK_COLOR_DEFAULT};flex-shrink:0;"></div>
         <span class="wallet-savings-pill__name">${esc(c.name)}${c.lastFour ? `<span class="wallet-savings-pill__sub" style="margin-left:4px;">••${esc(c.lastFour)}</span>` : ''}</span>
         ${bank ? `<span class="wallet-savings-pill__sub">${esc(bank.name)}</span>` : ''}
+        ${mo > 0 ? `<span class="wallet-card-compact__total">${money(Math.round(mo * 100) / 100)}/mo</span>` : ''}
         <span class="wallet-savings-pill__badge">Savings</span>
       </div>`;
   }).join('');
 
+  const accountsHeaderHtml = savingsItems.length ? `
+    <div class="wallet-section-header">
+      <div class="wallet-section-label" style="padding:0;">
+        ${showLabels ? `Accounts (${savingsItems.length})` : `Accounts (${savingsItems.length})`}
+      </div>
+      <div class="wallet-section-controls">
+        ${_accountsReorder
+          ? `<button class="btn btn--primary" id="accounts-reorder-done" style="font-size:11px;padding:5px 12px;">Done Reordering</button>`
+          : (savingsItems.length > 1
+              ? `<button class="btn btn--ghost" id="accounts-reorder-btn" style="font-size:11px;padding:4px 10px;">Reorder</button>`
+              : '')
+        }
+      </div>
+    </div>` : '';
+
   const accountsSection = savingsItems.length
-    ? `${showLabels ? '<div class="wallet-section-label">Accounts</div>' : ''}${savingsPillsHtml}`
+    ? `${accountsHeaderHtml}<div id="wallet-savings-list">${savingsPillsHtml}</div>`
     : '';
 
   // Cards section header with compact + reorder controls
@@ -479,10 +497,56 @@ function renderCardsPage() {
     });
   });
 
+  // Accounts reorder
+  document.getElementById('accounts-reorder-btn')?.addEventListener('click', () => {
+    document.querySelectorAll('.wallet-item-expand').forEach(e => e.remove());
+    document.querySelectorAll('.is-expanded').forEach(e => e.classList.remove('is-expanded'));
+    _accountsReorder = true;
+    renderCardsPage();
+    document.getElementById('fab').onclick = () => openCardSheet(null);
+    const container = document.getElementById('wallet-savings-list');
+    if (container && typeof Sortable !== 'undefined') {
+      new Sortable(container, {
+        animation:   150,
+        ghostClass:  'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+      });
+    }
+  });
+
+  document.getElementById('accounts-reorder-done')?.addEventListener('click', async () => {
+    const container = document.getElementById('wallet-savings-list');
+    const items = container
+      ? Array.from(container.querySelectorAll('[data-cardid]')).map((el, i) => ({
+          cardId: el.dataset.cardid,
+          sortOrder: (i + 1) * 1000,
+        }))
+      : [];
+    items.forEach(({ cardId, sortOrder }) => {
+      const card = _cards.find(c => c.cardId === cardId);
+      if (card) card.sortOrder = sortOrder;
+    });
+    _accountsReorder = false;
+    renderCardsPage();
+    document.getElementById('fab').onclick = () => openCardSheet(null);
+    if (items.length) {
+      try {
+        await authFetch(`/api/cards/${userId()}/order`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items }),
+        });
+        Store.invalidate('cards');
+        _cards = await Store.get('cards');
+      } catch (err) {
+        console.error('Failed to save account order:', err);
+      }
+    }
+  });
+
   // Savings pills + compact rows → inline accordion expand
   document.querySelectorAll('.wallet-savings-pill, .wallet-card-compact').forEach(el => {
     el.addEventListener('click', () => {
-      if (_walletReorder) return;
+      if (_walletReorder || _accountsReorder) return;
       toggleItemExpand(el);
     });
   });

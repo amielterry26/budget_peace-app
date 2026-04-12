@@ -19,13 +19,14 @@ Router.register('home', async () => {
     </div>`;
 
   try {
-    const [scenario, periods, expenses] = await Promise.all([
+    const [scenario, periods, expenses, goals] = await Promise.all([
       Store.get('scenario'),
       Store.get('periods'),
       Store.get('expenses'),
+      Store.get('goals'),
     ]);
 
-    _healthData = { scenario, periods, expenses };
+    _healthData = { scenario, periods, expenses, goals };
     renderHealth(_healthHorizon);
   } catch (err) {
     console.error(err);
@@ -43,7 +44,7 @@ function renderHealth(months) {
   if (!_healthData) return;
   _healthHorizon = months;
 
-  const { scenario, periods, expenses } = _healthData;
+  const { scenario, periods, expenses, goals = [] } = _healthData;
   const today = effectiveToday();
 
   // Monthly structure
@@ -220,6 +221,11 @@ function renderHealth(months) {
             `}
           </div>
 
+          <div class="dash-section home-section-goals">
+            <div class="rail-title">Goals</div>
+            ${buildHomeGoalsCard(goals)}
+          </div>
+
           <div class="dash-section home-section-structure">
             <div class="rail-title">Financial Structure</div>
             <div class="card home-card--center">
@@ -365,11 +371,46 @@ function buildMonthlyBills(recurring) {
     </button>` : '';
 
   return `
-    ${shown.map(buildRow).join('')}
-    ${hiddenHtml}
+    <div class="bills-rows-scroll">
+      ${shown.map(buildRow).join('')}
+      ${hiddenHtml}
+    </div>
     <div class="monthly-bills-total">
       <span class="monthly-bills-total__label">Total monthly bills</span>
       <span class="monthly-bills-total__value">${money(total)}</span>
+    </div>`;
+}
+
+function buildHomeGoalsCard(goals) {
+  if (!goals || !goals.length) {
+    return `
+      <div class="card home-card--side home-goals-card">
+        <div class="home-goals-empty">
+          <div class="home-goals-empty__text">No goals yet</div>
+          <div class="home-goals-empty__hint">Visit Goals to set your first target.</div>
+        </div>
+      </div>`;
+  }
+  const gFmt = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  const sorted = goals.slice().sort((a, b) => a.targetDate.localeCompare(b.targetDate));
+  return `
+    <div class="card home-card--side home-goals-card">
+      ${sorted.map(g => {
+        const pct = g.targetAmount > 0
+          ? Math.min(100, Math.round((g.currentSaved || 0) / g.targetAmount * 100))
+          : 0;
+        return `
+          <div class="home-goal-item">
+            <div class="home-goal-item__header">
+              <span class="home-goal-item__name">${esc(g.name)}</span>
+              <span class="home-goal-item__pct">${pct}%</span>
+            </div>
+            <div class="home-goal-item__bar-track">
+              <div class="home-goal-item__bar-fill" style="width:${pct}%"></div>
+            </div>
+            <div class="home-goal-item__meta">${gFmt(g.currentSaved || 0)} / ${gFmt(g.targetAmount)}</div>
+          </div>`;
+      }).join('')}
     </div>`;
 }
 
@@ -681,13 +722,14 @@ function setupSpeedDial() {
 
 async function homeRefresh() {
   try {
-    const [scenario, periods, expenses] = await Promise.all([
+    const [scenario, periods, expenses, goals] = await Promise.all([
       Store.get('scenario'),
       Store.get('periods'),
       Store.get('expenses'),
+      Store.get('goals'),
     ]);
     if (_currentPage !== 'home') return;
-    _healthData = { scenario, periods, expenses };
+    _healthData = { scenario, periods, expenses, goals };
     renderHealth(_healthHorizon);
     setupSpeedDial();
   } catch (err) {

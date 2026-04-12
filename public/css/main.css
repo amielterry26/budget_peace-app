@@ -1670,6 +1670,9 @@ img  { display: block; max-width: 100%; }
 /* --- Rail title (hidden on mobile, shown on desktop) -------- */
 .rail-title { display: none; }
 
+/* --- Goals section: desktop-only (hidden on mobile) --------- */
+.home-section-goals { display: none; }
+
 /* --- Home page: shell layout (mobile-first) ---------------
    MUST appear BEFORE the @media desktop block so that the
    desktop media query rules (which come later) properly
@@ -1778,7 +1781,11 @@ img  { display: block; max-width: 100%; }
   .home-col-left .home-section-period { order: 0; }
   .home-col-mid .home-section-bills   { order: 0; }
   .home-col-right .home-section-health,
-  .home-col-right .home-section-structure { order: 0; }
+  .home-col-right .home-section-structure,
+  .home-col-right .home-section-goals { order: 0; }
+
+  /* Goals section: show on desktop */
+  .home-section-goals { display: block; }
 
   /* ========================================================= */
   /* CENTER — dominant workspace                               */
@@ -2224,6 +2231,78 @@ img  { display: block; max-width: 100%; }
   }
   #breakdown-toggle {
     display: none;
+  }
+
+  /* ---- Bills scroll: clip list to ~5 rows, total stays pinned */
+  .home-section-bills .bills-rows-scroll {
+    max-height: 260px;
+    overflow-y: auto;
+    padding-right: 3px;
+  }
+
+  /* ---- Goals compact card ---------------------------------- */
+  .home-goals-card {
+    padding: 12px 14px;
+  }
+  .home-goal-item {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .home-goal-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .home-goal-item__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin-bottom: 5px;
+  }
+  .home-goal-item__name {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .home-goal-item__pct {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+  .home-goal-item__bar-track {
+    height: 4px;
+    background: rgba(74,124,89,0.12);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+  .home-goal-item__bar-fill {
+    height: 100%;
+    background: var(--color-accent);
+    border-radius: 2px;
+  }
+  .home-goal-item__meta {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .home-goals-empty {
+    padding: 6px 0 2px;
+    text-align: center;
+  }
+  .home-goals-empty__text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin-bottom: 4px;
+  }
+  .home-goals-empty__hint {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
   }
 }
 

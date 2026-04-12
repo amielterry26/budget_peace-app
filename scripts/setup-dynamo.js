@@ -64,6 +64,18 @@ const tables = [
     ],
     BillingMode: 'PAY_PER_REQUEST',
   },
+  {
+    TableName: 'bp_purchases',
+    KeySchema: [
+      { AttributeName: 'userId',     KeyType: 'HASH'  },
+      { AttributeName: 'purchaseId', KeyType: 'RANGE' },
+    ],
+    AttributeDefinitions: [
+      { AttributeName: 'userId',     AttributeType: 'S' },
+      { AttributeName: 'purchaseId', AttributeType: 'S' },
+    ],
+    BillingMode: 'PAY_PER_REQUEST',
+  },
 ];
 
 async function tableExists(name) {

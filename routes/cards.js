@@ -11,13 +11,17 @@ const TABLE = 'bp_cards';
 
 router.get('/health', (req, res) => res.json({ ok: true }));
 
-// GET /api/cards/:userId
+// GET /api/cards/:userId?scenario=main
+// Returns cards for the active scenario.
+// Legacy records with no scenarioId are treated as belonging to 'main'.
 router.get('/:userId', verifyOwner, async (req, res) => {
   try {
+    const scenario = req.query.scenario || 'main';
     const result = await db.send(new QueryCommand({
       TableName:                 TABLE,
       KeyConditionExpression:    'userId = :uid',
-      ExpressionAttributeValues: { ':uid': req.params.userId },
+      FilterExpression:          'scenarioId = :sid OR (attribute_not_exists(scenarioId) AND :sid = :main)',
+      ExpressionAttributeValues: { ':uid': req.params.userId, ':sid': scenario, ':main': 'main' },
     }));
     res.json(result.Items || []);
   } catch (err) {
@@ -29,7 +33,7 @@ router.get('/:userId', verifyOwner, async (req, res) => {
 // POST /api/cards
 router.post('/', async (req, res) => {
   try {
-    const { userId, name, type, lastFour, colorIndex, bankId } = req.body;
+    const { userId, scenarioId, name, type, lastFour, colorIndex, bankId } = req.body;
     // Verify body userId matches authenticated user
     if (userId && userId !== req.userId) {
       return res.status(403).json({ error: 'Forbidden' });
@@ -42,8 +46,10 @@ router.post('/', async (req, res) => {
     }
     const item = {
       userId, cardId: randomUUID(),
+      scenarioId: scenarioId || 'main',
       name, type, lastFour: String(lastFour),
       colorIndex: colorIndex ?? 0,
+      sortOrder:  Date.now(),
       createdAt:  new Date().toISOString(),
     };
     if (bankId) item.bankId = bankId;
@@ -52,6 +58,27 @@ router.post('/', async (req, res) => {
   } catch (err) {
     console.error('POST /api/cards error:', err);
     res.status(500).json({ error: 'Failed to create card' });
+  }
+});
+
+// PUT /api/cards/:userId/order — batch-update sortOrder for a list of cards
+router.put('/:userId/order', verifyOwner, async (req, res) => {
+  const { userId } = req.params;
+  const { items } = req.body; // [{cardId, sortOrder}]
+  if (!Array.isArray(items)) return res.status(400).json({ error: 'items must be an array' });
+  try {
+    await Promise.all(items.map(({ cardId, sortOrder }) =>
+      db.send(new UpdateCommand({
+        TableName: TABLE,
+        Key: { userId, cardId },
+        UpdateExpression: 'SET sortOrder = :so',
+        ExpressionAttributeValues: { ':so': Number(sortOrder) },
+      }))
+    ));
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('PUT /api/cards/order error:', err);
+    res.status(500).json({ error: 'Failed to update order' });
   }
 });
 

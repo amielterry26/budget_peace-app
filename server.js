@@ -331,6 +331,7 @@ app.use('/api/budgets',   requireAuth, require('./routes/budgets'));
 app.use('/api/expenses',  requireAuth, require('./routes/expenses'));
 app.use('/api/cards',     requireAuth, require('./routes/cards'));
 app.use('/api/banks',     requireAuth, require('./routes/banks'));
+app.use('/api/purchases', requireAuth, require('./routes/purchases'));
 app.use('/api/goals',     requireAuth, require('./routes/goals'));
 app.use('/api/scenarios', requireAuth, require('./routes/scenarios'));
 

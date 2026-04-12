@@ -160,14 +160,12 @@ function computeMetrics(scenario, expenses) {
   const cadence = scenario.cadence || 'biweekly';
   const monthlyIncome = cadence === 'biweekly' ? income * 2 : income;
 
-  // Monthly expenses: only recurring, normalized to monthly
+  // Monthly expenses: only recurring, normalized via shared canonical helper
   let monthlyExp = 0;
   const recurringExps = [];
   for (const e of expenses) {
     if (e.recurrence !== 'recurring') continue;
-    const freq = e.recurrenceFrequency || 'monthly';
-    const mult = freq === 'weekly' ? 4 : freq === 'biweekly' ? 2 : 1;
-    const monthly = Math.round(e.amount * mult * 100) / 100;
+    const monthly = calcMonthlyAmt(e);
     monthlyExp += monthly;
     recurringExps.push({ name: e.name, monthly });
   }
@@ -205,12 +203,14 @@ function computeMetrics(scenario, expenses) {
 
 function buildDesktopGrid(data) {
   const cols = data.length;
+  let rowIndex = 0;
 
   function row(label, values, opts) {
     const cls = opts?.cls || '';
+    const alt = (++rowIndex % 2 === 0) ? ' cmp-row--alt' : '';
     const cells = values.map(v => `<div class="cmp-cell ${cls}">${v}</div>`).join('');
     return `
-      <div class="cmp-row">
+      <div class="cmp-row${alt}">
         <div class="cmp-label">${label}</div>
         ${cells}
       </div>`;

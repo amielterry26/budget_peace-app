@@ -41,11 +41,11 @@ function renderSettings(scenario) {
     <div class="page settings-page">
 
       <!-- Scenario Profile -->
-      <div class="card" style="padding:var(--space-3) var(--space-4);margin-bottom:var(--space-4);">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="card settings-profile-card">
+        <div class="settings-profile-card__inner">
           <div>
-            <div style="font-size:var(--font-size-md);font-weight:var(--font-weight-bold);letter-spacing:-0.02em;">${esc(name)}</div>
-            <div class="text-muted text-sm" style="margin-top:2px;">
+            <div class="settings-profile-card__name">${esc(name)}</div>
+            <div class="settings-profile-card__summary">
               ${cadenceLabel} · ${incomeFmt}/check · ${duration}-month horizon
             </div>
           </div>
@@ -58,8 +58,8 @@ function renderSettings(scenario) {
       </div>
 
       <!-- Financial Setup -->
-      <div class="card" style="padding:var(--space-3) var(--space-4) var(--space-4);">
-        <div class="card-header" style="margin-bottom:var(--space-3);">Financial Setup</div>
+      <div class="card settings-setup-card">
+        <div class="card-header settings-setup-card__title">Financial Setup</div>
 
         ${!isMain ? `
         <div class="form-group" style="margin-bottom:var(--space-3);">
@@ -111,11 +111,12 @@ function renderSettings(scenario) {
           </div>
         </div>
 
-        <button class="btn btn--primary btn--full" id="settings-save" style="margin-top:var(--space-1);">Save Changes</button>
-
-        <p class="text-muted text-sm text-center" style="margin-top:var(--space-2);line-height:1.4;">
-          Changing your income updates all calculations instantly. Changing pay frequency, start date, or horizon will regenerate your pay periods.
-        </p>
+        <div class="settings-save-area">
+          <button class="btn btn--primary btn--full" id="settings-save">Save Changes</button>
+          <p class="text-muted text-sm text-center settings-save-area__hint">
+            Changing your income updates all calculations instantly. Changing pay frequency, start date, or horizon will regenerate your pay periods.
+          </p>
+        </div>
       </div>
 
       <!-- Notes -->

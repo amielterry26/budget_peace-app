@@ -62,14 +62,11 @@ function buildSnapshotHtml(scenario) {
   const exps = _scenarioExpCache[scenario.scenarioId] || [];
   const monthlyIncome = scenario.cadence === 'biweekly' ? scenario.income * 2 : scenario.income;
 
-  // Compute monthly obligations
+  // Compute monthly obligations using shared canonical helper (weekly×4, biweekly×2, monthly×1)
   let monthlyExp = 0;
   for (const e of exps) {
     if (e.recurrence !== 'recurring') continue;
-    const freq = e.recurrenceFrequency || 'monthly';
-    if (freq === 'monthly') monthlyExp += e.amount;
-    else if (freq === 'biweekly') monthlyExp += e.amount * (26 / 12);
-    else if (freq === 'weekly') monthlyExp += e.amount * (52 / 12);
+    monthlyExp += calcMonthlyAmt(e);
   }
   monthlyExp = Math.round(monthlyExp * 100) / 100;
 

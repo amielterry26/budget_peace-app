@@ -69,6 +69,10 @@ async function setScenario(scenarioId) {
   Store.invalidate('periods');
   Store.invalidate('expenses');
   Store.invalidate('scenario');
+  Store.invalidate('cards');
+  Store.invalidate('banks');
+  Store.invalidate('purchases');
+  Store.invalidate('goals');
   // Re-render current page
   const { page, params } = Router.parseHash(location.hash);
   Router.render(page, params);
@@ -125,7 +129,7 @@ function fmtRange(p) {
 
 // ============================================================
 // Store — lightweight shared data cache
-// Keys: user, periods, expenses, cards, goals, scenarios, scenario
+// Keys: user, periods, expenses, cards, banks, goals, purchases, scenarios, scenario
 // ============================================================
 
 const Store = (() => {
@@ -136,9 +140,10 @@ const Store = (() => {
     user:      () => `/api/users/${userId()}`,
     periods:   () => `/api/budgets/${userId()}?scenario=${_activeScenario}`,
     expenses:  () => `/api/expenses/${userId()}?scenario=${_activeScenario}`,
-    cards:     () => `/api/cards/${userId()}`,
-    banks:     () => `/api/banks/${userId()}`,
-    goals:     () => `/api/goals/${userId()}`,
+    cards:     () => `/api/cards/${userId()}?scenario=${_activeScenario}`,
+    banks:     () => `/api/banks/${userId()}?scenario=${_activeScenario}`,
+    purchases: () => `/api/purchases/${userId()}?scenario=${_activeScenario}`,
+    goals:     () => `/api/goals/${userId()}?scenario=${_activeScenario}`,
     scenarios: () => `/api/scenarios/${userId()}`,
     scenario:  () => `/api/scenarios/${userId()}/${_activeScenario}`,
   };
@@ -191,6 +196,7 @@ function inferCadence(period) {
 }
 
 // Stable integer multiplier for expense frequency within a period cadence.
+// Used for pay-period math only (not monthly totals).
 function expMultiplier(expenseFreq, periodCadence) {
   if (periodCadence === 'biweekly') {
     return expenseFreq === 'weekly' ? 2 : 1;
@@ -198,6 +204,15 @@ function expMultiplier(expenseFreq, periodCadence) {
   if (expenseFreq === 'weekly') return 4;
   if (expenseFreq === 'biweekly') return 2;
   return 1;
+}
+
+// Canonical monthly normalization: weekly×4, biweekly×2, monthly×1.
+// Single source of truth for all user-facing monthly totals
+// (Home, Scenarios, Compare, Financial Structure).
+function calcMonthlyAmt(expense) {
+  const freq = expense.recurrenceFrequency || 'monthly';
+  const mult = freq === 'weekly' ? 4 : freq === 'biweekly' ? 2 : 1;
+  return Math.round(expense.amount * mult * 100) / 100;
 }
 
 // Returns true if a monthly expense's dueDay falls within a period's date range.
@@ -215,7 +230,7 @@ function notesCardHtml(prefix) {
       <div class="notes-body is-hidden" id="${prefix}-notes-body">
         <div class="notes-list" id="${prefix}-notes-list"></div>
         <div class="notes-add" id="${prefix}-notes-add">
-          <input class="form-input" type="text" id="${prefix}-notes-input" placeholder="Add a note…" maxlength="200" />
+          <input class="form-input" type="text" id="${prefix}-notes-input" placeholder="Add a note…" maxlength="500" />
           <button class="btn btn--primary" id="${prefix}-notes-add-btn" style="white-space:nowrap;">Add</button>
         </div>
       </div>
@@ -276,7 +291,7 @@ function mountNotesWidget(prefix, scenarioId, initialNotes) {
     const input = document.getElementById(`${prefix}-notes-input`);
     const text = (input.value || '').trim();
     if (!text) return;
-    if (text.length > 200) { alert('Note must be 200 characters or less.'); return; }
+    if (text.length > 500) { alert('Note must be 500 characters or less.'); return; }
     input.value = '';
 
     try {
@@ -327,7 +342,7 @@ function mountNotesWidget(prefix, scenarioId, initialNotes) {
     input.type = 'text';
     input.className = 'notes-item__input';
     input.value = original;
-    input.maxLength = 200;
+    input.maxLength = 500;
     textEl.replaceWith(input);
     if (editBtn) editBtn.style.display = 'none';
     if (delBtn) delBtn.style.display = 'none';
@@ -342,7 +357,7 @@ function mountNotesWidget(prefix, scenarioId, initialNotes) {
         render();
         return;
       }
-      if (newText.length > 200) { alert('Note must be 200 characters or less.'); render(); return; }
+      if (newText.length > 500) { alert('Note must be 500 characters or less.'); render(); return; }
       note.text = newText;
       render();
       editNote(noteId, newText, original);
@@ -395,6 +410,28 @@ function mountNotesWidget(prefix, scenarioId, initialNotes) {
   });
 
   render();
+}
+
+// Returns the normalized allocation for a monthly recurring expense in biweekly mode.
+// Canonical output values: 'split' | 'first' | 'second' | 'due-date'
+//
+// Field migration path:
+//   allocationMethod: 'paycheck1' → 'first'   (new UI values)
+//   allocationMethod: 'paycheck2' → 'second'  (new UI values)
+//   allocationMethod: 'first'     → 'first'   (legacy Phase 9 values)
+//   allocationMethod: 'second'    → 'second'  (legacy Phase 9 values)
+//   allocationMethod: 'split'     → 'split'
+//   allocationMethod: 'due-date'  → 'due-date' (legacy — hidden from UI)
+//   splitBiweekly: true           → 'split'   (oldest legacy)
+//   (none)                        → 'due-date' (oldest legacy default)
+function getEffectiveAllocation(expense) {
+  const m = expense.allocationMethod;
+  if (m === 'paycheck1' || m === 'first')  return 'first';
+  if (m === 'paycheck2' || m === 'second') return 'second';
+  if (m === 'split')    return 'split';
+  if (m === 'due-date') return 'due-date';
+  if (expense.splitBiweekly) return 'split';
+  return 'due-date';
 }
 
 function dueDayInPeriod(dueDay, period) {

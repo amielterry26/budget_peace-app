@@ -8,6 +8,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
+  <!-- Apply theme immediately to prevent flash of wrong theme -->
+  <script>
+    (function(){
+      var s = localStorage.getItem('bp_theme');
+      if (!s) s = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', s);
+    })();
+  </script>
+
   <!-- Real app stylesheet — so real renderers produce correctly styled output -->
   <link rel="stylesheet" href="/css/main.css" />
 
@@ -799,6 +808,7 @@
   <header class="demo-header">
     <a href="/landing" class="demo-header__brand">Budget <span>Peace</span></a>
     <div class="demo-progress" id="demo-progress"></div>
+    <button id="theme-toggle" class="top-bar__theme-toggle" aria-label="Switch to dark mode"></button>
   </header>
 
   <!-- Stage: concept pane (left) + app pane (right) -->
@@ -855,6 +865,7 @@
   </script>
 
   <!-- Scripts: shim first, then real app modules, then demo engine -->
+  <script src="/js/theme.js"></script>
   <script src="/js/demo-shim.js"></script>
   <script src="/js/shared.js"></script>
   <script src="/js/pages/home.js"></script>

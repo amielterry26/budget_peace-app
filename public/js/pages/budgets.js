@@ -49,9 +49,21 @@ Router.register('budgets', async () => {
           const startDate = e.recurrenceStartDate || '1970-01-01';
           if (startDate > p.endDate) return sum;
           const freq = e.recurrenceFrequency || 'monthly';
-          // Monthly expense in biweekly period: only count if dueDay falls in this period
+          // Monthly expense in biweekly period: route by allocation method
           if (freq === 'monthly' && cadence === 'biweekly') {
-            return dueDayInPeriod(e.dueDay || 1, p) ? sum + e.amount : sum;
+            const alloc = getEffectiveAllocation(e);
+            if (alloc === 'split')  return sum + e.amount / 2;
+            if (alloc === 'first')  return dueDayInPeriod(1,  p) ? sum + e.amount : sum;
+            if (alloc === 'second') return dueDayInPeriod(16, p) ? sum + e.amount : sum;
+            return dueDayInPeriod(e.dueDay || 1, p) ? sum + e.amount : sum; // 'due-date'
+          }
+          // Biweekly expense with explicit paycheck allocation
+          if (freq === 'biweekly' && cadence === 'biweekly' && e.allocationMethod) {
+            const alloc = getEffectiveAllocation(e);
+            if (alloc === 'first')    return dueDayInPeriod(1,  p) ? sum + e.amount : sum;
+            if (alloc === 'second')   return dueDayInPeriod(16, p) ? sum + e.amount : sum;
+            if (alloc === 'due-date') return dueDayInPeriod(e.dueDay || 1, p) ? sum + e.amount : sum;
+            return sum + e.amount; // 'split' = every period
           }
           return sum + e.amount * expMultiplier(freq, cadence);
         }

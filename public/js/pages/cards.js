@@ -7,6 +7,9 @@ let _cardExpenses  = [];
 let _selectedCard  = null;
 let _banks         = [];
 let _selectedBank  = null; // null = All Banks
+let _walletCompact    = localStorage.getItem('bp_wallet_compact') === '1';
+let _walletReorder    = false;
+let _accountsReorder  = false;
 
 const CARD_PALETTES = [
   'linear-gradient(135deg, #1C1C2E 0%, #2D3561 100%)',
@@ -15,10 +18,25 @@ const CARD_PALETTES = [
   'linear-gradient(135deg, #6B3FA0 0%, #3D1B6E 100%)',
   'linear-gradient(135deg, #B5451B 0%, #7A1A0E 100%)',
   'linear-gradient(135deg, #1B4B82 0%, #0A2647 100%)',
+  'linear-gradient(135deg, #111111 0%, #2C2C2C 100%)',  // Black
+  'linear-gradient(135deg, #C0C0C0 0%, #8A9BA8 100%)',  // Silver
 ];
 
+const BANK_COLORS = [
+  { label: 'Blue',   value: '#3B82F6' },
+  { label: 'Green',  value: '#22C55E' },
+  { label: 'Purple', value: '#8B5CF6' },
+  { label: 'Orange', value: '#F97316' },
+  { label: 'Red',    value: '#EF4444' },
+  { label: 'Gray',   value: '#6B7280' },
+];
+const BANK_COLOR_DEFAULT = '#6B7280';
+
+const CHEVRON_DOWN  = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+const CHEVRON_RIGHT = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>`;
+
 Router.register('cards', async () => {
-  document.getElementById('page-title').textContent = 'Cards';
+  document.getElementById('page-title').textContent = 'Wallet';
   setActivePage('cards');
   showBottomNav(true);
   showFab(true);
@@ -55,15 +73,201 @@ async function loadCards() {
 
 // ---- Render ------------------------------------------------
 
+function sortedCards(cards) {
+  return [...cards].sort((a, b) => {
+    const sa = a.sortOrder ?? new Date(a.createdAt).getTime();
+    const sb = b.sortOrder ?? new Date(b.createdAt).getTime();
+    return sa - sb;
+  });
+}
+
+function buildOverviewHtml() {
+  const totalCards    = _cards.filter(c => c.type !== 'Savings').length;
+  const totalAccounts = _cards.filter(c => c.type === 'Savings').length;
+  const allCardIds    = new Set(_cards.map(c => c.cardId));
+  const totalMonthly  = _cardExpenses
+    .filter(e => e.cardId && allCardIds.has(e.cardId))
+    .reduce((s, e) => s + calcMonthlyAmt(e), 0);
+
+  const bankRows = _banks.map(b => {
+    const bCards    = _cards.filter(c => c.bankId === b.bankId);
+    const cardCount = bCards.filter(c => c.type !== 'Savings').length;
+    const acctCount = bCards.filter(c => c.type === 'Savings').length;
+    const bCardIds  = new Set(bCards.map(c => c.cardId));
+    const spend     = _cardExpenses
+      .filter(e => e.cardId && bCardIds.has(e.cardId))
+      .reduce((s, e) => s + calcMonthlyAmt(e), 0);
+    const sub = [
+      cardCount ? `${cardCount} card${cardCount !== 1 ? 's' : ''}` : '',
+      acctCount ? `${acctCount} account${acctCount !== 1 ? 's' : ''}` : '',
+    ].filter(Boolean).join(' • ') || 'No cards';
+    return `
+      <div class="wallet-overview__bank wallet-overview__bank--clickable" data-bankid="${b.bankId}">
+        <span class="wallet-overview__bank-dot" style="background:${b.color || BANK_COLOR_DEFAULT};"></span>
+        <div style="flex:1;min-width:0;">
+          <div class="wallet-overview__bank-name">${esc(b.name)}</div>
+          <div class="wallet-overview__bank-sub">${sub}</div>
+        </div>
+        ${spend > 0 ? `<div class="wallet-overview__bank-spend">${money(Math.round(spend * 100) / 100)}/mo</div>` : ''}
+        <span style="color:var(--color-text-secondary);font-size:12px;flex-shrink:0;">${CHEVRON_RIGHT}</span>
+      </div>`;
+  });
+
+  const unassigned = _cards.filter(c => !c.bankId);
+  if (unassigned.length) {
+    const cardCount = unassigned.filter(c => c.type !== 'Savings').length;
+    const acctCount = unassigned.filter(c => c.type === 'Savings').length;
+    const sub = [
+      cardCount ? `${cardCount} card${cardCount !== 1 ? 's' : ''}` : '',
+      acctCount ? `${acctCount} account${acctCount !== 1 ? 's' : ''}` : '',
+    ].filter(Boolean).join(' • ');
+    bankRows.push(`
+      <div class="wallet-overview__bank">
+        <span class="wallet-overview__bank-dot" style="background:var(--color-border);"></span>
+        <div style="flex:1;min-width:0;">
+          <div class="wallet-overview__bank-name">Unassigned</div>
+          <div class="wallet-overview__bank-sub">${sub}</div>
+        </div>
+      </div>`);
+  }
+
+  return `
+    <div class="wallet-overview">
+      <div class="wallet-overview__stats">
+        <div class="wallet-overview__stat">
+          <div class="wallet-overview__stat-value">${totalCards + totalAccounts}</div>
+          <div class="wallet-overview__stat-label">Cards &amp; Accounts</div>
+        </div>
+        <div class="wallet-overview__stat">
+          <div class="wallet-overview__stat-value">${_banks.length}</div>
+          <div class="wallet-overview__stat-label">Banks</div>
+        </div>
+        <div class="wallet-overview__stat">
+          <div class="wallet-overview__stat-value">${money(Math.round(totalMonthly * 100) / 100)}</div>
+          <div class="wallet-overview__stat-label">Monthly on cards</div>
+        </div>
+      </div>
+      ${bankRows.length ? `<div class="wallet-overview__banks">${bankRows.join('')}</div>` : ''}
+    </div>`;
+}
+
+function cardMonthly(cardId) {
+  return _cardExpenses
+    .filter(e => e.cardId === cardId)
+    .reduce((s, e) => s + calcMonthlyAmt(e), 0);
+}
+
+function buildBankOverviewHtml(bankId) {
+  const bank = _banks.find(b => b.bankId === bankId);
+  if (!bank) return '';
+  const bCards      = _cards.filter(c => c.bankId === bankId);
+  const totalCards  = bCards.filter(c => c.type !== 'Savings').length;
+  const totalAccts  = bCards.filter(c => c.type === 'Savings').length;
+  const bCardIds    = new Set(bCards.map(c => c.cardId));
+  const totalMonthly = _cardExpenses
+    .filter(e => e.cardId && bCardIds.has(e.cardId))
+    .reduce((s, e) => s + calcMonthlyAmt(e), 0);
+  return `
+    <div class="wallet-overview">
+      <div class="wallet-overview__stats">
+        <div class="wallet-overview__stat">
+          <div class="wallet-overview__stat-value">${totalCards + totalAccts}</div>
+          <div class="wallet-overview__stat-label">Cards &amp; Accounts</div>
+        </div>
+        <div class="wallet-overview__stat">
+          <div class="wallet-overview__stat-value">${totalCards}</div>
+          <div class="wallet-overview__stat-label">Cards</div>
+        </div>
+        <div class="wallet-overview__stat">
+          <div class="wallet-overview__stat-value">${money(Math.round(totalMonthly * 100) / 100)}</div>
+          <div class="wallet-overview__stat-label">Monthly on cards</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function buildItemExpand(cardId) {
+  const card = _cards.find(c => c.cardId === cardId);
+  if (!card) return '';
+  const expenses  = _cardExpenses.filter(e => e.cardId === cardId);
+  const total     = expenses.reduce((s, e) => s + calcMonthlyAmt(e), 0);
+  const isSavings = card.type === 'Savings';
+
+  const rows = expenses.length
+    ? expenses.map(e => `
+        <div class="wallet-expand__expense" data-expid="${e.expenseId}">
+          <span style="flex:1;font-size:var(--font-size-sm);font-weight:var(--font-weight-medium);">${esc(e.name)}</span>
+          <span class="text-xs text-muted">${e.recurrence === 'recurring' ? 'recurring' : 'one time'}</span>
+          <span style="font-size:var(--font-size-sm);font-weight:var(--font-weight-semi);">${money(e.amount)}</span>
+        </div>`).join('')
+    : `<div class="text-muted text-sm" style="padding:4px 0 8px;">No expenses on this ${isSavings ? 'account' : 'card'}.</div>`;
+
+  return `
+    <div class="wallet-item-expand" data-forcardid="${cardId}">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:var(--space-2);">
+        <span class="text-muted text-xs" style="text-transform:uppercase;letter-spacing:0.08em;">Monthly total</span>
+        <span style="font-size:17px;font-weight:700;letter-spacing:-0.02em;">${money(Math.round(total * 100) / 100)}</span>
+      </div>
+      <div class="stack stack--2" style="margin-bottom:var(--space-3);">${rows}</div>
+      <div style="display:flex;gap:var(--space-2);">
+        <button class="btn btn--ghost" style="flex:1;font-size:12px;padding:6px 8px;" data-action="edit" data-cardid="${cardId}">Edit</button>
+        <button class="btn btn--danger" style="flex:1;font-size:12px;padding:6px 8px;" data-action="delete" data-cardid="${cardId}">Delete</button>
+      </div>
+    </div>`;
+}
+
+function wireItemExpand(cardId) {
+  const expand = document.querySelector(`.wallet-item-expand[data-forcardid="${cardId}"]`);
+  if (!expand) return;
+  const card = _cards.find(c => c.cardId === cardId);
+
+  expand.querySelectorAll('.wallet-expand__expense').forEach(row => {
+    row.addEventListener('click', () => {
+      const exp = _cardExpenses.find(e => e.expenseId === row.dataset.expid);
+      if (exp) openBillDetailModal(exp, null);
+    });
+  });
+
+  expand.querySelector('[data-action="edit"]')?.addEventListener('click', () => {
+    const trigger = document.querySelector(`[data-cardid="${cardId}"].is-expanded`);
+    trigger?.classList.remove('is-expanded');
+    expand.remove();
+    openCardSheet(card);
+  });
+
+  expand.querySelector('[data-action="delete"]')?.addEventListener('click', () => {
+    const trigger = document.querySelector(`[data-cardid="${cardId}"].is-expanded`);
+    trigger?.classList.remove('is-expanded');
+    expand.remove();
+    confirmDeleteCard(card);
+  });
+}
+
+function toggleItemExpand(el) {
+  const cardId   = el.dataset.cardid;
+  const existing = el.nextElementSibling;
+  if (existing && existing.classList.contains('wallet-item-expand')) {
+    existing.remove();
+    el.classList.remove('is-expanded');
+    return;
+  }
+  document.querySelectorAll('.wallet-item-expand').forEach(e => e.remove());
+  document.querySelectorAll('.is-expanded').forEach(e => e.classList.remove('is-expanded'));
+  el.classList.add('is-expanded');
+  el.insertAdjacentHTML('afterend', buildItemExpand(cardId));
+  wireItemExpand(cardId);
+}
+
 function renderCardsPage() {
   const content = document.getElementById('main-content');
 
-  // Filter by selected bank
-  const visibleCards = _selectedBank
+  // Filter + sort by selected bank
+  const raw = _selectedBank
     ? _cards.filter(c => c.bankId === _selectedBank)
     : _cards;
+  const visibleCards = sortedCards(raw);
 
-  // Keep selected card in sync with visible set
+  // Keep selected card in sync
   if (!_selectedCard && visibleCards.length) {
     _selectedCard = visibleCards[0].cardId;
   } else if (_selectedCard && !visibleCards.find(c => c.cardId === _selectedCard)) {
@@ -80,9 +284,9 @@ function renderCardsPage() {
       <button class="btn btn--ghost" id="manage-banks-btn" style="font-size:12px;padding:5px 12px;flex-shrink:0;white-space:nowrap;">+ Add Bank</button>
     </div>`;
 
-  const walletItems = visibleCards.map((c) => `
-    <div class="wallet-card ${_selectedCard === c.cardId ? 'is-selected' : ''}"
-      id="wcard-${c.cardId}"
+  // Old carousel (hidden by CSS — kept for routing compatibility)
+  const walletItems = visibleCards.map(c => `
+    <div class="wallet-card ${_selectedCard === c.cardId ? 'is-selected' : ''}" id="wcard-${c.cardId}"
       style="background:${CARD_PALETTES[c.colorIndex % CARD_PALETTES.length]}">
       <div class="wallet-card__type">${c.type}</div>
       <div>
@@ -91,40 +295,263 @@ function renderCardsPage() {
       </div>
     </div>`).join('');
 
-  const emptySlot = `
-    <div class="wallet-empty" id="add-card-tile">
-      <div class="wallet-empty__icon">＋</div>
-      <div class="wallet-empty__label">Add a card</div>
+  // Separate savings accounts vs debit/credit cards
+  const savingsItems = visibleCards.filter(c => c.type === 'Savings');
+  const cardItems    = visibleCards.filter(c => c.type !== 'Savings');
+  const showLabels   = savingsItems.length > 0 && cardItems.length > 0;
+
+  // Accounts section (savings pills)
+  const savingsPillsHtml = savingsItems.map(c => {
+    const bank = _banks.find(b => b.bankId === c.bankId);
+    const mo   = cardMonthly(c.cardId);
+    return `
+      <div class="wallet-savings-pill ${_accountsReorder ? 'is-reorder' : ''}" data-cardid="${c.cardId}">
+        <div style="width:10px;height:10px;border-radius:50%;background:${bank?.color || BANK_COLOR_DEFAULT};flex-shrink:0;"></div>
+        <span class="wallet-savings-pill__name">${esc(c.name)}${c.lastFour ? `<span class="wallet-savings-pill__sub" style="margin-left:4px;">••${esc(c.lastFour)}</span>` : ''}</span>
+        ${bank ? `<span class="wallet-savings-pill__sub">${esc(bank.name)}</span>` : ''}
+        ${mo > 0 ? `<span class="wallet-card-compact__total">${money(Math.round(mo * 100) / 100)}/mo</span>` : ''}
+        <span class="wallet-savings-pill__badge">Savings</span>
+      </div>`;
+  }).join('');
+
+  const accountsHeaderHtml = savingsItems.length ? `
+    <div class="wallet-section-header">
+      <div class="wallet-section-label" style="padding:0;">
+        ${showLabels ? `Accounts (${savingsItems.length})` : `Accounts (${savingsItems.length})`}
+      </div>
+      <div class="wallet-section-controls">
+        ${_accountsReorder
+          ? `<button class="btn btn--primary" id="accounts-reorder-done" style="font-size:11px;padding:5px 12px;">Done Reordering</button>`
+          : (savingsItems.length > 1
+              ? `<button class="btn btn--ghost" id="accounts-reorder-btn" style="font-size:11px;padding:4px 10px;">Reorder</button>`
+              : '')
+        }
+      </div>
+    </div>` : '';
+
+  const accountsSection = savingsItems.length
+    ? `${accountsHeaderHtml}<div id="wallet-savings-list">${savingsPillsHtml}</div>`
+    : '';
+
+  // Cards section header with compact + reorder controls
+  const cardsHeaderHtml = cardItems.length ? `
+    <div class="wallet-section-header">
+      <div class="wallet-section-label" style="padding:0;">
+        ${showLabels ? `Cards (${cardItems.length})` : `Cards (${cardItems.length})`}
+      </div>
+      <div class="wallet-section-controls">
+        ${_walletReorder
+          ? `<button class="btn btn--primary" id="wallet-reorder-done" style="font-size:11px;padding:5px 12px;">Done Reordering</button>`
+          : `<button class="btn btn--ghost wallet-icon-btn" id="wallet-compact-toggle" title="${_walletCompact ? 'Expand' : 'Compact'}">${_walletCompact ? CHEVRON_RIGHT : CHEVRON_DOWN}</button>
+             <button class="btn btn--ghost" id="wallet-reorder-btn" style="font-size:11px;padding:4px 10px;">Reorder</button>`
+        }
+      </div>
+    </div>` : '';
+
+  // Cards body — grid (expanded) or compact pill rows
+  let cardsBodyHtml = '';
+  if (cardItems.length) {
+    if (_walletCompact) {
+      cardsBodyHtml = `<div id="wallet-cards-list">${cardItems.map(c => {
+        const mo = cardMonthly(c.cardId);
+        return `
+          <div class="wallet-card-compact ${_walletReorder ? 'is-reorder' : ''}" data-cardid="${c.cardId}">
+            <div class="wallet-card-compact__swatch" style="background:${CARD_PALETTES[c.colorIndex % CARD_PALETTES.length]};"></div>
+            <span class="wallet-card-compact__name">${esc(c.name)}</span>
+            <span class="wallet-card-compact__lastfour">••${esc(c.lastFour)}</span>
+            <span class="wallet-card-compact__type">${c.type}</span>
+            ${mo > 0 ? `<span class="wallet-card-compact__total">${money(Math.round(mo * 100) / 100)}/mo</span>` : ''}
+          </div>`;
+      }).join('')}</div>`;
+    } else {
+      cardsBodyHtml = `
+        <div class="wallet-cards-grid ${_walletReorder ? 'is-reorder' : ''}" id="wallet-cards-grid">
+          ${cardItems.map(c => {
+            const bank = _banks.find(b => b.bankId === c.bankId);
+            return `
+              <div class="wallet-mobile-card" data-cardid="${c.cardId}"
+                style="background:${CARD_PALETTES[c.colorIndex % CARD_PALETTES.length]}">
+                <div class="wallet-card__type">${c.type}${bank ? `<span class="wallet-mobile-card__bank" style="float:right;">${esc(bank.name)}</span>` : ''}</div>
+                <div>
+                  <div class="wallet-card__number">••${esc(c.lastFour)}</div>
+                  <div class="wallet-card__name">${esc(c.name)}</div>
+                </div>
+              </div>`;
+          }).join('')}
+        </div>`;
+    }
+  }
+
+  const mobileEmpty = `
+    <div class="wallet-mobile-empty" id="add-card-tile-mobile">
+      <div class="wallet-mobile-empty__label">＋ Add a card or account</div>
     </div>`;
 
   content.innerHTML = `
     <div class="page">
       ${bankChipsHtml}
-      <div class="wallet-row">${walletItems}${emptySlot}</div>
+      <div class="wallet-row">${walletItems}</div>
       <div id="card-detail-area"></div>
+      <div class="wallet-mobile-stack">
+        ${!_selectedBank ? buildOverviewHtml() : buildBankOverviewHtml(_selectedBank)}
+        ${accountsSection}
+        ${cardsHeaderHtml}
+        ${cardsBodyHtml}
+        ${mobileEmpty}
+      </div>
     </div>`;
 
-  // Wire bank chips
+  // ---- Wire events ----
+
+  // Bank chips
   document.querySelectorAll('.bank-tabs__chips .cmp-chip').forEach(chip => {
     chip.addEventListener('click', () => {
-      _selectedBank = chip.dataset.bankid || null;
-      renderCardsPage();
-      document.getElementById('fab').onclick = () => openCardSheet(null);
+      const clickedId = chip.dataset.bankid || null;
+      if (clickedId === null && _selectedBank === null) {
+        openBankSheet();
+      } else if (clickedId && clickedId === _selectedBank) {
+        const bank = _banks.find(b => b.bankId === clickedId);
+        if (bank) openBankSheet(bank);
+      } else {
+        _selectedBank = clickedId;
+        _walletReorder = false;
+        renderCardsPage();
+        document.getElementById('fab').onclick = () => openCardSheet(null);
+      }
     });
   });
 
   document.getElementById('manage-banks-btn').addEventListener('click', () => openBankSheet());
 
-  visibleCards.forEach(c => {
-    document.getElementById(`wcard-${c.cardId}`)?.addEventListener('click', () => {
-      _selectedCard = c.cardId;
+  // Compact toggle
+  document.getElementById('wallet-compact-toggle')?.addEventListener('click', () => {
+    _walletCompact = !_walletCompact;
+    localStorage.setItem('bp_wallet_compact', _walletCompact ? '1' : '');
+    renderCardsPage();
+    document.getElementById('fab').onclick = () => openCardSheet(null);
+  });
+
+  // Overview bank rows → navigate to that bank
+  document.querySelectorAll('.wallet-overview__bank--clickable').forEach(row => {
+    row.addEventListener('click', () => {
+      _selectedBank = row.dataset.bankid;
+      _walletReorder = false;
       renderCardsPage();
+      document.getElementById('fab').onclick = () => openCardSheet(null);
     });
   });
 
-  document.getElementById('add-card-tile').addEventListener('click', () => openCardSheet(null));
+  // Enter reorder mode
+  document.getElementById('wallet-reorder-btn')?.addEventListener('click', () => {
+    document.querySelectorAll('.wallet-item-expand').forEach(e => e.remove());
+    document.querySelectorAll('.is-expanded').forEach(e => e.classList.remove('is-expanded'));
+    _walletReorder = true;
+    renderCardsPage();
+    document.getElementById('fab').onclick = () => openCardSheet(null);
+    const container = document.getElementById('wallet-cards-grid') || document.getElementById('wallet-cards-list');
+    if (container && typeof Sortable !== 'undefined') {
+      new Sortable(container, {
+        animation:   150,
+        ghostClass:  'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+      });
+    }
+  });
 
-  if (_selectedCard) renderCardDetail(_selectedCard);
+  // Done reordering — save order
+  document.getElementById('wallet-reorder-done')?.addEventListener('click', async () => {
+    const container = document.getElementById('wallet-cards-grid') || document.getElementById('wallet-cards-list');
+    if (container) {
+      const items = Array.from(container.querySelectorAll('[data-cardid]')).map((el, i) => ({
+        cardId: el.dataset.cardid,
+        sortOrder: (i + 1) * 1000,
+      }));
+      items.forEach(({ cardId, sortOrder }) => {
+        const card = _cards.find(c => c.cardId === cardId);
+        if (card) card.sortOrder = sortOrder;
+      });
+      _walletReorder = false;
+      renderCardsPage();
+      document.getElementById('fab').onclick = () => openCardSheet(null);
+      try {
+        await authFetch(`/api/cards/${userId()}/order`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items }),
+        });
+        Store.invalidate('cards');
+        _cards = await Store.get('cards');
+      } catch (err) {
+        console.error('Failed to save card order:', err);
+      }
+    } else {
+      _walletReorder = false;
+      renderCardsPage();
+    }
+  });
+
+  // Grid cards → bottom sheet
+  document.querySelectorAll('.wallet-mobile-card').forEach(el => {
+    el.addEventListener('click', () => {
+      if (_walletReorder) return;
+      openCardDetailSheet(el.dataset.cardid);
+    });
+  });
+
+  // Accounts reorder
+  document.getElementById('accounts-reorder-btn')?.addEventListener('click', () => {
+    document.querySelectorAll('.wallet-item-expand').forEach(e => e.remove());
+    document.querySelectorAll('.is-expanded').forEach(e => e.classList.remove('is-expanded'));
+    _accountsReorder = true;
+    renderCardsPage();
+    document.getElementById('fab').onclick = () => openCardSheet(null);
+    const container = document.getElementById('wallet-savings-list');
+    if (container && typeof Sortable !== 'undefined') {
+      new Sortable(container, {
+        animation:   150,
+        ghostClass:  'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+      });
+    }
+  });
+
+  document.getElementById('accounts-reorder-done')?.addEventListener('click', async () => {
+    const container = document.getElementById('wallet-savings-list');
+    const items = container
+      ? Array.from(container.querySelectorAll('[data-cardid]')).map((el, i) => ({
+          cardId: el.dataset.cardid,
+          sortOrder: (i + 1) * 1000,
+        }))
+      : [];
+    items.forEach(({ cardId, sortOrder }) => {
+      const card = _cards.find(c => c.cardId === cardId);
+      if (card) card.sortOrder = sortOrder;
+    });
+    _accountsReorder = false;
+    renderCardsPage();
+    document.getElementById('fab').onclick = () => openCardSheet(null);
+    if (items.length) {
+      try {
+        await authFetch(`/api/cards/${userId()}/order`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items }),
+        });
+        Store.invalidate('cards');
+        _cards = await Store.get('cards');
+      } catch (err) {
+        console.error('Failed to save account order:', err);
+      }
+    }
+  });
+
+  // Savings pills + compact rows → inline accordion expand
+  document.querySelectorAll('.wallet-savings-pill, .wallet-card-compact').forEach(el => {
+    el.addEventListener('click', () => {
+      if (_walletReorder || _accountsReorder) return;
+      toggleItemExpand(el);
+    });
+  });
+
+  document.getElementById('add-card-tile-mobile')?.addEventListener('click', () => openCardSheet(null));
 }
 
 function renderCardDetail(cardId) {
@@ -163,10 +590,90 @@ function renderCardDetail(cardId) {
   document.getElementById('del-card-btn').addEventListener('click', () => confirmDeleteCard(card));
 }
 
+// ---- Mobile: Card Detail Sheet -----------------------------
+
+function openCardDetailSheet(cardId) {
+  const card     = _cards.find(c => c.cardId === cardId);
+  const expenses = _cardExpenses.filter(e => e.cardId === cardId);
+  const total    = expenses.reduce((s, e) => s + e.amount, 0);
+  const bank      = _banks.find(b => b.bankId === card?.bankId);
+  if (!card) return;
+  const isSavings = card.type === 'Savings';
+
+  const rows = expenses.length
+    ? expenses.map(e => `
+        <div class="pill-item" data-expid="${e.expenseId}" style="cursor:pointer;">
+          <span class="pill-item__label">${esc(e.name)}</span>
+          <span class="text-xs text-muted">${e.recurrence === 'recurring' ? 'recurring' : 'one time'}</span>
+          <span class="pill-item__amount">${money(e.amount)}</span>
+        </div>`).join('')
+    : `<div class="text-muted text-sm text-center" style="padding:24px 0;">No expenses on this ${isSavings ? 'account' : 'card'}.</div>`;
+
+  const subLine = isSavings
+    ? `Savings Account${card.lastFour ? ` &nbsp;•&nbsp; ••${esc(card.lastFour)}` : ''}${bank ? ` &nbsp;•&nbsp; ${esc(bank.name)}` : ''}`
+    : `${card.type} &nbsp;•&nbsp; ••${esc(card.lastFour)}${bank ? ` &nbsp;•&nbsp; ${esc(bank.name)}` : ''}`;
+
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="cds-overlay" class="sheet-overlay"></div>
+    <div id="cds-sheet" class="sheet">
+      <div class="sheet__handle"></div>
+      <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-1);">
+        <div style="width:10px;height:10px;border-radius:50%;background:${bank?.color || BANK_COLOR_DEFAULT};flex-shrink:0;"></div>
+        <div class="sheet__title" style="margin:0;">${esc(card.name)}</div>
+      </div>
+      <div class="text-muted text-xs" style="margin-bottom:var(--space-4);">${subLine}</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:var(--space-3);">
+        <div class="text-muted text-xs" style="text-transform:uppercase;letter-spacing:0.08em;">Total on ${isSavings ? 'account' : 'card'}</div>
+        <div style="font-size:22px;font-weight:700;letter-spacing:-0.03em;">${money(total)}</div>
+      </div>
+      <div class="stack stack--2" style="margin-bottom:var(--space-4);">${rows}</div>
+      <div style="display:flex;gap:var(--space-2);">
+        <button class="btn btn--ghost btn--full" id="cds-edit">Edit</button>
+        <button class="btn btn--danger btn--full" id="cds-delete">Delete</button>
+        <button class="btn btn--ghost btn--full" id="cds-close">Close</button>
+      </div>
+    </div>`);
+
+  requestAnimationFrame(() => {
+    document.getElementById('cds-overlay').classList.add('is-open');
+    document.getElementById('cds-sheet').classList.add('is-open');
+  });
+
+  const closeSheet = () => {
+    document.getElementById('cds-overlay').classList.remove('is-open');
+    const s = document.getElementById('cds-sheet');
+    s.classList.remove('is-open');
+    s.addEventListener('transitionend', () => {
+      document.getElementById('cds-overlay')?.remove();
+      document.getElementById('cds-sheet')?.remove();
+    }, { once: true });
+  };
+
+  document.getElementById('cds-overlay').addEventListener('click', closeSheet);
+  document.getElementById('cds-close').addEventListener('click', closeSheet);
+  document.getElementById('cds-edit').addEventListener('click', () => {
+    closeSheet();
+    setTimeout(() => openCardSheet(card), 250);
+  });
+  document.getElementById('cds-delete').addEventListener('click', () => {
+    closeSheet();
+    setTimeout(() => confirmDeleteCard(card), 250);
+  });
+
+  // Expense rows → full detail modal
+  document.querySelectorAll('#cds-sheet .pill-item[data-expid]').forEach(row => {
+    row.addEventListener('click', () => {
+      const exp = _cardExpenses.find(e => e.expenseId === row.dataset.expid);
+      if (exp) openBillDetailModal(exp, null);
+    });
+  });
+}
+
 // ---- Sheet (Add / Edit Card) --------------------------------
 
 function openCardSheet(card) {
-  const editing = !!card;
+  const editing    = !!card;
+  const initSaving = editing && card.type === 'Savings';
 
   const bankOptions = `
     <option value="">— No bank —</option>
@@ -176,27 +683,30 @@ function openCardSheet(card) {
     <div id="card-sheet-overlay" class="sheet-overlay"></div>
     <div id="card-sheet" class="sheet">
       <div class="sheet__handle"></div>
-      <div class="sheet__title">${editing ? 'Edit Card' : 'New Card'}</div>
+      <div class="sheet__title" id="cs-title">${editing ? (initSaving ? 'Edit Account' : 'Edit Card') : (initSaving ? 'New Account' : 'New Card')}</div>
       <div class="stack--4">
         <div class="form-group">
-          <label class="form-label" for="cs-name">Card name</label>
-          <input class="form-input" id="cs-name" type="text" placeholder="e.g. Chase Sapphire"
+          <label class="form-label" id="cs-name-label" for="cs-name">${initSaving ? 'Account name' : 'Card name'}</label>
+          <input class="form-input" id="cs-name" type="text" placeholder="${initSaving ? 'e.g. High-Yield Savings' : 'e.g. Chase Sapphire'}"
             value="${editing ? esc(card.name) : ''}" />
         </div>
-        <div class="form-group">
-          <label class="form-label" for="cs-lastfour">Last 4 digits</label>
+        <div class="form-group" id="cs-lastfour-group">
+          <label class="form-label" id="cs-lastfour-label" for="cs-lastfour">${initSaving ? 'Last 4 of account # (optional)' : 'Last 4 digits'}</label>
           <input class="form-input" id="cs-lastfour" type="text" inputmode="numeric"
-            maxlength="4" placeholder="0000"
+            maxlength="4" placeholder="${initSaving ? '— optional —' : '0000'}"
             value="${editing ? esc(card.lastFour) : ''}" />
         </div>
         <div class="form-group">
           <label class="form-label">Type</label>
-          <div class="option-grid option-grid--2">
+          <div class="option-grid option-grid--3">
             <div class="option-card ${!editing || card.type === 'Debit' ? 'is-selected' : ''}" data-val="Debit">
               <div class="option-card__title">Debit</div>
             </div>
             <div class="option-card ${editing && card.type === 'Credit' ? 'is-selected' : ''}" data-val="Credit">
               <div class="option-card__title">Credit</div>
+            </div>
+            <div class="option-card ${editing && card.type === 'Savings' ? 'is-selected' : ''}" data-val="Savings">
+              <div class="option-card__title">Savings</div>
             </div>
           </div>
         </div>
@@ -220,7 +730,7 @@ function openCardSheet(card) {
         ${editing ? `
         <div class="form-group">
           <label class="form-label">Attach Expenses</label>
-          <div class="text-muted text-xs" style="margin-bottom:var(--space-2);">Select one or more expenses to assign to this card</div>
+          <div class="text-muted text-xs" style="margin-bottom:var(--space-2);">Select one or more expenses to assign to this card / account</div>
           <div id="cs-expense-list" style="max-height:200px;overflow-y:auto;border:1px solid var(--color-border);border-radius:var(--radius-sm);">
             ${_cardExpenses.length ? _cardExpenses.map(e => {
               const checked = e.cardId === card.cardId;
@@ -258,11 +768,23 @@ function openCardSheet(card) {
   let selectedType       = editing ? card.type : 'Debit';
   let selectedColorIndex = editing ? (card.colorIndex ?? 0) : 0;
 
+  const updateSavingsLabels = (isSavings) => {
+    document.getElementById('cs-name-label').textContent   = isSavings ? 'Account name' : 'Card name';
+    document.getElementById('cs-lastfour-label').textContent = isSavings ? 'Last 4 of account # (optional)' : 'Last 4 digits';
+    document.getElementById('cs-lastfour').placeholder     = isSavings ? '— optional —' : '0000';
+    document.getElementById('cs-name').placeholder         = isSavings ? 'e.g. High-Yield Savings' : 'e.g. Chase Sapphire';
+    if (!editing) {
+      document.getElementById('cs-title').textContent = isSavings ? 'New Account' : 'New Card';
+      document.getElementById('cs-save').textContent  = isSavings ? 'Add Account' : 'Add Card';
+    }
+  };
+
   document.querySelectorAll('#card-sheet .option-card').forEach(c => {
     c.addEventListener('click', () => {
       document.querySelectorAll('#card-sheet .option-card').forEach(x => x.classList.remove('is-selected'));
       c.classList.add('is-selected');
       selectedType = c.dataset.val;
+      updateSavingsLabels(selectedType === 'Savings');
     });
   });
 
@@ -295,15 +817,16 @@ function openCardSheet(card) {
     const name     = document.getElementById('cs-name').value.trim();
     const lastFour = document.getElementById('cs-lastfour').value.trim();
 
-    if (!name)                           { alert('Enter a card name.'); return; }
-    if (!/^\d{4}$/.test(lastFour))       { alert('Enter exactly 4 digits.'); return; }
+    if (!name)                                                        { alert('Enter a name.'); return; }
+    if (selectedType !== 'Savings' && !/^\d{4}$/.test(lastFour))    { alert('Enter exactly 4 digits.'); return; }
+    if (selectedType === 'Savings' && lastFour && !/^\d{4}$/.test(lastFour)) { alert('Account # last 4 must be 4 digits.'); return; }
 
     const btn    = document.getElementById('cs-save');
     const bankId = document.getElementById('cs-bank').value || null;
     btn.textContent = 'Saving…';
     btn.disabled = true;
 
-    const payload = { userId: userId(), name, type: selectedType, lastFour, colorIndex: selectedColorIndex, bankId };
+    const payload = { userId: userId(), scenarioId: activeScenario(), name, type: selectedType, lastFour, colorIndex: selectedColorIndex, bankId };
 
     try {
       if (editing) {
@@ -351,36 +874,81 @@ function openCardSheet(card) {
 
 // ---- Sheet (Bank Management) --------------------------------
 
-function openBankSheet() {
+function openBankSheet(editBank = null) {
+  const isEditing = !!editBank;
+
+  const buildColorSwatches = (selectedColor, prefix) => BANK_COLORS.map((c, i) => {
+    const sel = selectedColor ? c.value === selectedColor : i === 0;
+    return `<div class="${prefix}-color-swatch ${sel ? 'is-selected' : ''}"
+      data-color="${c.value}"
+      style="width:26px;height:26px;border-radius:50%;background:${c.value};cursor:pointer;
+             border:2px solid ${sel ? '#fff' : 'transparent'};
+             box-shadow:${sel ? '0 0 0 2px var(--color-accent)' : 'none'};
+             transition:all 150ms ease;">
+    </div>`;
+  }).join('');
+
   const bankListHtml = _banks.length
     ? _banks.map(b => `
-        <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--color-border);">
-          <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) 0;border-bottom:1px solid var(--color-border);">
+          <span style="width:10px;height:10px;border-radius:50%;background:${b.color || BANK_COLOR_DEFAULT};flex-shrink:0;display:inline-block;"></span>
+          <div style="flex:1;min-width:0;">
             <div style="font-size:var(--font-size-sm);font-weight:var(--font-weight-semi);">${esc(b.name)}</div>
-            ${b.note ? `<div class="text-muted text-xs">${esc(b.note)}</div>` : ''}
+            ${b.note ? `<div class="text-muted text-xs" style="margin-top:2px;">${esc(b.note)}</div>` : ''}
           </div>
-          <button class="btn btn--danger bs-del-btn" data-bankid="${b.bankId}" style="font-size:12px;padding:4px 10px;">Delete</button>
+          <button class="btn btn--ghost bs-edit-btn" data-bankid="${b.bankId}" style="font-size:12px;padding:6px 12px;">Edit</button>
+          <button class="btn btn--danger bs-del-btn" data-bankid="${b.bankId}" style="font-size:12px;padding:6px 12px;">Delete</button>
         </div>`).join('')
-    : `<div class="text-muted text-sm" style="padding:var(--space-2) 0;">No banks yet.</div>`;
+    : `<div class="text-muted text-sm" style="padding:var(--space-3) 0;">No banks yet.</div>`;
+
+  const addFormHtml = `
+    <div id="bs-add-form" style="border-top:1px solid var(--color-border);padding-top:var(--space-4);">
+      <div class="stack--3">
+        <div class="form-group">
+          <label class="form-label" for="bs-name">Bank name</label>
+          <input class="form-input" id="bs-name" type="text" placeholder="e.g. SoFi" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="bs-note">Note (optional)</label>
+          <input class="form-input" id="bs-note" type="text" placeholder="e.g. checking + savings" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Color</label>
+          <div style="display:flex;gap:8px;align-items:center;">${buildColorSwatches(null, 'bs')}</div>
+        </div>
+      </div>
+      <button class="btn btn--primary btn--full" style="margin-top:var(--space-4);" id="bs-add">Add Bank</button>
+    </div>`;
+
+  const editFormHtml = editBank ? `
+    <div id="bs-edit-form">
+      <div class="stack--3">
+        <div class="form-group">
+          <label class="form-label" for="bs-edit-name">Bank name</label>
+          <input class="form-input" id="bs-edit-name" type="text" value="${esc(editBank.name)}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="bs-edit-note">Note (optional)</label>
+          <input class="form-input" id="bs-edit-note" type="text" value="${esc(editBank.note || '')}" placeholder="e.g. checking + savings" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Color</label>
+          <div style="display:flex;gap:8px;align-items:center;">${buildColorSwatches(editBank.color || BANK_COLOR_DEFAULT, 'bse')}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:var(--space-4);">
+        <button class="btn btn--ghost btn--full" id="bs-edit-cancel">Cancel</button>
+        <button class="btn btn--primary btn--full" id="bs-edit-save">Save</button>
+      </div>
+    </div>` : '';
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="bank-sheet-overlay" class="sheet-overlay"></div>
     <div id="bank-sheet" class="sheet">
       <div class="sheet__handle"></div>
-      <div class="sheet__title">Banks</div>
+      <div class="sheet__title">${isEditing ? 'Edit Bank' : 'Banks'}</div>
       <div class="stack--4">
-        <div id="bs-bank-list">${bankListHtml}</div>
-        <div style="border-top:1px solid var(--color-border);padding-top:var(--space-3);">
-          <div class="form-group">
-            <label class="form-label" for="bs-name">Bank name</label>
-            <input class="form-input" id="bs-name" type="text" placeholder="e.g. SoFi" />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="bs-note">Note (optional)</label>
-            <input class="form-input" id="bs-note" type="text" placeholder="e.g. checking + savings" />
-          </div>
-          <button class="btn btn--primary btn--full" id="bs-add">Add Bank</button>
-        </div>
+        ${isEditing ? editFormHtml : `<div id="bs-bank-list">${bankListHtml}</div>${addFormHtml}`}
         <button class="btn btn--ghost btn--full" id="bs-cancel">Close</button>
       </div>
     </div>`);
@@ -390,18 +958,87 @@ function openBankSheet() {
     document.getElementById('bank-sheet').classList.add('is-open');
   });
 
-  const closeSheet = () => {
+  const closeSheet = (onDone) => {
     document.getElementById('bank-sheet-overlay').classList.remove('is-open');
     const s = document.getElementById('bank-sheet');
     s.classList.remove('is-open');
     s.addEventListener('transitionend', () => {
       document.getElementById('bank-sheet-overlay')?.remove();
       document.getElementById('bank-sheet')?.remove();
+      if (onDone) onDone();
     }, { once: true });
   };
 
-  document.getElementById('bank-sheet-overlay').addEventListener('click', closeSheet);
-  document.getElementById('bs-cancel').addEventListener('click', closeSheet);
+  document.getElementById('bank-sheet-overlay').addEventListener('click', () => closeSheet());
+  document.getElementById('bs-cancel').addEventListener('click', () => closeSheet());
+
+  if (isEditing) {
+    // Edit mode: wire color swatches + save/cancel
+    let selectedEditColor = editBank.color || BANK_COLOR_DEFAULT;
+    document.querySelectorAll('#bank-sheet .bse-color-swatch').forEach(sw => {
+      sw.addEventListener('click', () => {
+        document.querySelectorAll('#bank-sheet .bse-color-swatch').forEach(x => {
+          x.style.border = '2px solid transparent';
+          x.style.boxShadow = 'none';
+        });
+        sw.style.border = '2px solid #fff';
+        sw.style.boxShadow = '0 0 0 2px var(--color-accent)';
+        selectedEditColor = sw.dataset.color;
+      });
+    });
+
+    document.getElementById('bs-edit-cancel').addEventListener('click', () => {
+      closeSheet(() => openBankSheet());
+    });
+
+    document.getElementById('bs-edit-save').addEventListener('click', async () => {
+      const name = document.getElementById('bs-edit-name').value.trim();
+      const note = document.getElementById('bs-edit-note').value.trim();
+      if (!name) { alert('Enter a bank name.'); return; }
+      const btn = document.getElementById('bs-edit-save');
+      btn.textContent = 'Saving…';
+      btn.disabled = true;
+      try {
+        const res = await authFetch(`/api/banks/${userId()}/${editBank.bankId}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, note, color: selectedEditColor }),
+        });
+        if (!res.ok) throw new Error('Save failed');
+        Store.invalidate('banks');
+        _banks = await Store.get('banks');
+        closeSheet();
+        renderCardsPage();
+        document.getElementById('fab').onclick = () => openCardSheet(null);
+      } catch (err) {
+        console.error(err);
+        btn.textContent = 'Try Again';
+        btn.disabled = false;
+      }
+    });
+    return; // done wiring edit mode
+  }
+
+  // Add mode: color swatches + add + edit/delete buttons
+  let selectedBankColor = BANK_COLORS[0].value;
+  document.querySelectorAll('#bank-sheet .bs-color-swatch').forEach(sw => {
+    sw.addEventListener('click', () => {
+      document.querySelectorAll('#bank-sheet .bs-color-swatch').forEach(x => {
+        x.style.border = '2px solid transparent';
+        x.style.boxShadow = 'none';
+      });
+      sw.style.border = '2px solid #fff';
+      sw.style.boxShadow = '0 0 0 2px var(--color-accent)';
+      selectedBankColor = sw.dataset.color;
+    });
+  });
+
+  document.querySelectorAll('#bank-sheet .bs-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const bank = _banks.find(b => b.bankId === btn.dataset.bankid);
+      if (!bank) return;
+      closeSheet(() => openBankSheet(bank));
+    });
+  });
 
   document.querySelectorAll('#bank-sheet .bs-del-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -436,7 +1073,7 @@ function openBankSheet() {
     try {
       const res = await authFetch('/api/banks', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: userId(), name, note }),
+        body: JSON.stringify({ userId: userId(), scenarioId: activeScenario(), name, note, color: selectedBankColor }),
       });
       if (!res.ok) throw new Error('Add failed');
       Store.invalidate('banks');

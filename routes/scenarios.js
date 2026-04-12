@@ -317,7 +317,7 @@ router.post('/:userId/:scenarioId/notes', verifyOwner, async (req, res) => {
     const { userId, scenarioId } = req.params;
     const text = (req.body.text || '').trim();
     if (!text) return res.status(400).json({ error: 'text is required' });
-    if (text.length > 200) return res.status(400).json({ error: 'Note must be 200 characters or less' });
+    if (text.length > 500) return res.status(400).json({ error: 'Note must be 500 characters or less' });
 
     // Plan gate: notes are Pro-only
     const notesCheck = await canUseNotes(db, userId);
@@ -353,13 +353,20 @@ router.post('/:userId/:scenarioId/notes', verifyOwner, async (req, res) => {
   }
 });
 
-// PATCH /api/scenarios/:userId/:scenarioId/notes/:noteId — edit a note
+// PATCH /api/scenarios/:userId/:scenarioId/notes/:noteId — edit text and/or toggle pinned
 router.patch('/:userId/:scenarioId/notes/:noteId', verifyOwner, async (req, res) => {
   try {
     const { userId, scenarioId, noteId } = req.params;
-    const text = (req.body.text || '').trim();
-    if (!text) return res.status(400).json({ error: 'text is required' });
-    if (text.length > 200) return res.status(400).json({ error: 'Note must be 200 characters or less' });
+    const { text, pinned } = req.body;
+
+    if (text === undefined && pinned === undefined) {
+      return res.status(400).json({ error: 'text or pinned is required' });
+    }
+    if (text !== undefined) {
+      const trimmed = text.trim();
+      if (!trimmed) return res.status(400).json({ error: 'text cannot be empty' });
+      if (trimmed.length > 500) return res.status(400).json({ error: 'Note must be 500 characters or less' });
+    }
 
     const current = await db.send(new GetCommand({
       TableName: SCENARIOS_TABLE,
@@ -371,7 +378,9 @@ router.patch('/:userId/:scenarioId/notes/:noteId', verifyOwner, async (req, res)
     const idx = notes.findIndex(n => n.id === noteId);
     if (idx === -1) return res.status(404).json({ error: 'Note not found' });
 
-    notes[idx].text = text;
+    if (text !== undefined) notes[idx].text = text.trim();
+    if (pinned !== undefined) notes[idx].pinned = !!pinned;
+
     await db.send(new UpdateCommand({
       TableName: SCENARIOS_TABLE,
       Key: { userId, scenarioId },

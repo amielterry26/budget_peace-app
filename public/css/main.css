@@ -1746,28 +1746,31 @@ img  { display: block; max-width: 100%; }
     align-items: start;
   }
 
-  /* COL 1 — primary workspace */
+  /* COL 1 — primary workspace: slight left indent for better composition */
   .home-col-left {
     display: flex;
     flex-direction: column;
     gap: 16px;
     min-width: 0;
+    padding-left: 16px;
   }
 
-  /* COL 2 — active support (Monthly Expenses) */
+  /* COL 2 — active support (Monthly Expenses): stepped down slightly */
   .home-col-mid {
     display: flex;
     flex-direction: column;
     gap: 16px;
     min-width: 0;
+    padding-top: 32px;
   }
 
-  /* COL 3 — passive utility rail (Health, Structure) */
+  /* COL 3 — passive utility rail (Health, Structure): stepped down, more breathing room */
   .home-col-right {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 24px;
     min-width: 0;
+    padding-top: 48px;
   }
 
   /* Reset mobile order values — match specificity of mobile rules (2 classes) */

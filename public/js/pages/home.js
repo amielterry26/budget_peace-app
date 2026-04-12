@@ -221,6 +221,7 @@ function renderHealth(months) {
           </div>
 
           <div class="dash-section home-section-structure">
+            <div class="rail-title">Financial Structure</div>
             <div class="card home-card--center">
               <div class="health-card__toggle" id="structure-card-toggle">
                 <div class="card-header" style="margin:0;">Your Financial Structure</div>

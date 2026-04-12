@@ -139,17 +139,17 @@ function renderHealth(months) {
         <button class="home-mode-switch__btn" id="go-pay-period" type="button">Current Pay Period</button>
       </div>
 
-      <!-- Desktop 2-column shell: transparent on mobile via display:contents -->
+      <!-- Desktop 3-column shell: transparent on mobile via display:contents -->
       <div class="home-desktop-grid">
 
-        <!-- LEFT workspace: Notes + Current Pay Period -->
+        <!-- COL 1 workspace: Notes + Current Pay Period -->
         <div class="home-col-left">
           ${notesCardHtml('home')}
           ${currentPeriodCard}
         </div>
 
-        <!-- RIGHT utility rail: Bills → Health → Structure -->
-        <div class="home-col-right">
+        <!-- COL 2 support: Monthly Expenses / Recurring Bills -->
+        <div class="home-col-mid">
 
           <div class="dash-section home-section-bills">
             <div class="rail-title">Recurring Bills</div>
@@ -167,6 +167,11 @@ function renderHealth(months) {
               </div>
             </div>
           </div>
+
+        </div><!-- /.home-col-mid -->
+
+        <!-- COL 3 utility rail: Health → Structure -->
+        <div class="home-col-right">
 
           <div class="dash-section home-section-health">
             <div class="rail-title">Financial Health</div>

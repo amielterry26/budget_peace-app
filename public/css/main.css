@@ -1681,6 +1681,7 @@ img  { display: block; max-width: 100%; }
 /* Desktop grid wrappers transparent on mobile via display:contents */
 .home-desktop-grid,
 .home-col-left,
+.home-col-mid,
 .home-col-right {
   display: contents;
 }
@@ -1737,15 +1738,15 @@ img  { display: block; max-width: 100%; }
     display: none;
   }
 
-  /* Desktop grid: 2 truly independent columns */
+  /* Desktop grid: 3-zone layout */
   .home-desktop-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.65fr) minmax(300px, 0.78fr);
-    gap: 28px;
+    grid-template-columns: minmax(0, 1.7fr) minmax(260px, 0.8fr) minmax(220px, 0.62fr);
+    gap: 24px;
     align-items: start;
   }
 
-  /* LEFT workspace: independent flex column — Notes then Period */
+  /* COL 1 — primary workspace */
   .home-col-left {
     display: flex;
     flex-direction: column;
@@ -1753,7 +1754,15 @@ img  { display: block; max-width: 100%; }
     min-width: 0;
   }
 
-  /* RIGHT utility rail: independent flex column — Bills, Health, Structure */
+  /* COL 2 — active support (Monthly Expenses) */
+  .home-col-mid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+  }
+
+  /* COL 3 — passive utility rail (Health, Structure) */
   .home-col-right {
     display: flex;
     flex-direction: column;
@@ -1763,7 +1772,9 @@ img  { display: block; max-width: 100%; }
 
   /* Reset mobile order values inside desktop columns */
   .home-col-left > *,
+  .home-col-mid > *,
   .home-col-right > *,
+  .home-col-mid .dash-section,
   .home-col-right .dash-section {
     order: unset;
   }

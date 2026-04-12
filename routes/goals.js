@@ -1,6 +1,6 @@
 const express = require('express');
 const {
-  QueryCommand, PutCommand, DeleteCommand, GetCommand,
+  QueryCommand, PutCommand, DeleteCommand, GetCommand, UpdateCommand,
 } = require('@aws-sdk/lib-dynamodb');
 const { randomUUID } = require('crypto');
 const router = express.Router();
@@ -8,12 +8,6 @@ const db     = require('../config/dynamo');
 const { verifyOwner } = require('../middleware/auth');
 
 const TABLE = 'bp_goals';
-
-// Helper: recompute currentSaved from contributions array
-function sumContributions(contributions) {
-  if (!Array.isArray(contributions) || contributions.length === 0) return 0;
-  return Math.round(contributions.reduce((sum, c) => sum + (Number(c.amount) || 0), 0) * 100) / 100;
-}
 
 // GET /api/goals/:userId?scenario=main
 // Returns goals for the active scenario.
@@ -38,6 +32,7 @@ router.get('/:userId', verifyOwner, async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { userId, scenarioId, name, targetAmount, targetDate, plannedContribution } = req.body;
+    // Verify body userId matches authenticated user
     if (userId && userId !== req.userId) {
       return res.status(403).json({ error: 'Forbidden' });
     }
@@ -61,7 +56,6 @@ router.post('/', async (req, res) => {
       targetAmount:  parsedAmount,
       targetDate,
       currentSaved:  0,
-      contributions: [],
       createdAt:     new Date().toISOString(),
       ...(plannedContribution && { plannedContribution: Number(plannedContribution) }),
     };
@@ -113,129 +107,30 @@ router.put('/:userId/:goalId', verifyOwner, async (req, res) => {
   }
 });
 
-// ---- Contribution ledger endpoints ----------------------------------------
-
-// POST /api/goals/:userId/:goalId/contributions
-// Add a contribution entry. Auto-migrates legacy flat currentSaved to a ledger entry.
-router.post('/:userId/:goalId/contributions', verifyOwner, async (req, res) => {
+// POST /api/goals/:userId/:goalId/contribute
+router.post('/:userId/:goalId/contribute', verifyOwner, async (req, res) => {
   try {
-    const { amount, date, note } = req.body;
+    const { amount } = req.body;
     const parsedAmount = Number(amount);
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       return res.status(400).json({ error: 'amount must be a positive number' });
     }
-    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
-    }
 
-    const existing = await db.send(new GetCommand({
+    const result = await db.send(new UpdateCommand({
       TableName: TABLE,
       Key: { userId: req.params.userId, goalId: req.params.goalId },
+      UpdateExpression: 'SET currentSaved = if_not_exists(currentSaved, :zero) + :amt, updatedAt = :now',
+      ExpressionAttributeValues: {
+        ':amt':  parsedAmount,
+        ':zero': 0,
+        ':now':  new Date().toISOString(),
+      },
+      ReturnValues: 'ALL_NEW',
     }));
-    if (!existing.Item) return res.status(404).json({ error: 'Goal not found' });
-
-    const g = existing.Item;
-    let contributions = Array.isArray(g.contributions) ? [...g.contributions] : [];
-
-    // Migrate legacy flat currentSaved into a ledger entry (one-time)
-    if (contributions.length === 0 && (g.currentSaved || 0) > 0) {
-      contributions.push({
-        id:     'legacy',
-        amount: g.currentSaved,
-        date:   (g.createdAt || new Date().toISOString()).slice(0, 10),
-        note:   'Previous balance',
-      });
-    }
-
-    const newEntry = { id: randomUUID(), amount: parsedAmount, date };
-    if (note && note.trim()) newEntry.note = note.trim();
-    contributions.push(newEntry);
-
-    const item = { ...g, contributions, currentSaved: sumContributions(contributions), updatedAt: new Date().toISOString() };
-    await db.send(new PutCommand({ TableName: TABLE, Item: item }));
-    res.json(item);
+    res.json(result.Attributes);
   } catch (err) {
-    console.error('POST /contributions error:', err);
-    res.status(500).json({ error: 'Failed to add contribution' });
-  }
-});
-
-// PUT /api/goals/:userId/:goalId/contributions/:contribId
-// Edit a contribution entry.
-router.put('/:userId/:goalId/contributions/:contribId', verifyOwner, async (req, res) => {
-  try {
-    const { amount, date, note } = req.body;
-    const parsedAmount = Number(amount);
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      return res.status(400).json({ error: 'amount must be a positive number' });
-    }
-    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
-    }
-
-    const existing = await db.send(new GetCommand({
-      TableName: TABLE,
-      Key: { userId: req.params.userId, goalId: req.params.goalId },
-    }));
-    if (!existing.Item) return res.status(404).json({ error: 'Goal not found' });
-
-    const g = existing.Item;
-    const contributions = (Array.isArray(g.contributions) ? [...g.contributions] : []).map(c => {
-      if (c.id !== req.params.contribId) return c;
-      const updated = { ...c, amount: parsedAmount, date };
-      if (note && note.trim()) updated.note = note.trim();
-      else delete updated.note;
-      return updated;
-    });
-
-    const item = { ...g, contributions, currentSaved: sumContributions(contributions), updatedAt: new Date().toISOString() };
-    await db.send(new PutCommand({ TableName: TABLE, Item: item }));
-    res.json(item);
-  } catch (err) {
-    console.error('PUT /contributions/:id error:', err);
-    res.status(500).json({ error: 'Failed to update contribution' });
-  }
-});
-
-// DELETE /api/goals/:userId/:goalId/contributions/:contribId
-// Delete a single contribution entry.
-router.delete('/:userId/:goalId/contributions/:contribId', verifyOwner, async (req, res) => {
-  try {
-    const existing = await db.send(new GetCommand({
-      TableName: TABLE,
-      Key: { userId: req.params.userId, goalId: req.params.goalId },
-    }));
-    if (!existing.Item) return res.status(404).json({ error: 'Goal not found' });
-
-    const g = existing.Item;
-    const contributions = (Array.isArray(g.contributions) ? g.contributions : [])
-      .filter(c => c.id !== req.params.contribId);
-
-    const item = { ...g, contributions, currentSaved: sumContributions(contributions), updatedAt: new Date().toISOString() };
-    await db.send(new PutCommand({ TableName: TABLE, Item: item }));
-    res.json(item);
-  } catch (err) {
-    console.error('DELETE /contributions/:id error:', err);
-    res.status(500).json({ error: 'Failed to delete contribution' });
-  }
-});
-
-// DELETE /api/goals/:userId/:goalId/contributions
-// Reset — delete all contribution entries and set currentSaved to 0.
-router.delete('/:userId/:goalId/contributions', verifyOwner, async (req, res) => {
-  try {
-    const existing = await db.send(new GetCommand({
-      TableName: TABLE,
-      Key: { userId: req.params.userId, goalId: req.params.goalId },
-    }));
-    if (!existing.Item) return res.status(404).json({ error: 'Goal not found' });
-
-    const item = { ...existing.Item, contributions: [], currentSaved: 0, updatedAt: new Date().toISOString() };
-    await db.send(new PutCommand({ TableName: TABLE, Item: item }));
-    res.json(item);
-  } catch (err) {
-    console.error('DELETE /contributions error:', err);
-    res.status(500).json({ error: 'Failed to reset contributions' });
+    console.error('POST /api/goals/contribute error:', err);
+    res.status(500).json({ error: 'Failed to log contribution' });
   }
 });
 

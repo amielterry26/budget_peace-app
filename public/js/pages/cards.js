@@ -164,12 +164,19 @@ function renderCardsPage() {
       </div>
     </div>`;
 
-  // Wire bank chips
+  // Wire bank chips — first tap selects, second tap on same chip opens edit
   document.querySelectorAll('.bank-tabs__chips .cmp-chip').forEach(chip => {
     chip.addEventListener('click', () => {
-      _selectedBank = chip.dataset.bankid || null;
-      renderCardsPage();
-      document.getElementById('fab').onclick = () => openCardSheet(null);
+      const clickedId = chip.dataset.bankid || null;
+      if (clickedId && clickedId === _selectedBank) {
+        // Already selected → open edit sheet for this bank
+        const bank = _banks.find(b => b.bankId === clickedId);
+        if (bank) openBankSheet(bank);
+      } else {
+        _selectedBank = clickedId;
+        renderCardsPage();
+        document.getElementById('fab').onclick = () => openCardSheet(null);
+      }
     });
   });
 

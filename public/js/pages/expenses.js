@@ -362,12 +362,16 @@ async function openSheet(expense, onSave) {
     ),
   ].join('');
 
-  const cardOpts = [
-    `<option value="">— None —</option>`,
-    ...sheetCards.map(c =>
-      `<option value="${c.cardId}" ${expense?.cardId === c.cardId ? 'selected' : ''}>${esc(c.name)}${c.lastFour ? ` ••${esc(c.lastFour)}` : ''}</option>`
-    ),
-  ].join('');
+  const makeCardOption = c =>
+    `<option value="${c.cardId}" ${expense?.cardId === c.cardId ? 'selected' : ''}>${esc(c.name)}${c.lastFour ? ` ••${esc(c.lastFour)}` : ''}</option>`;
+  const makeOptGroup = (label, items) => items.length
+    ? `<optgroup label="${label}">${items.map(makeCardOption).join('')}</optgroup>`
+    : '';
+  const cardOpts = `<option value="">— None —</option>` +
+    makeOptGroup('Debit',   sheetCards.filter(c => c.type === 'Debit')) +
+    makeOptGroup('Credit',  sheetCards.filter(c => c.type === 'Credit')) +
+    makeOptGroup('Savings', sheetCards.filter(c => c.type === 'Savings')) +
+    makeOptGroup('Other',   sheetCards.filter(c => !['Debit','Credit','Savings'].includes(c.type)));
 
   const isRecurring = !editing || expense.recurrence === 'recurring';
   const initFreq    = editing ? (expense.recurrenceFrequency || 'monthly') : 'monthly';

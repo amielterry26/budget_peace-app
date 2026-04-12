@@ -1581,8 +1581,62 @@ img  { display: block; max-width: 100%; }
 .wallet-mobile-empty:active { border-color: var(--color-accent); color: var(--color-accent); }
 .wallet-mobile-empty__label { font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); }
 
-/* Wallet: always show vertical stack, never the old carousel */
-.wallet-row, .card-detail { display: none !important; }
+/* Wallet: always show vertical stack, never the old carousel/detail */
+.wallet-row, .card-detail, #card-detail-area { display: none !important; }
+
+/* --- Savings Account Pill ---------------------------------- */
+.wallet-savings-pill {
+  display:     flex;
+  align-items: center;
+  gap:         var(--space-3);
+  padding:     var(--space-3) var(--space-4);
+  background:  var(--color-surface);
+  border:      1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  cursor:      pointer;
+  transition:  background var(--transition-fast);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.wallet-savings-pill:hover  { background: var(--color-surface-alt); }
+.wallet-savings-pill:active { background: var(--color-accent-light); }
+
+.wallet-savings-pill__name {
+  flex:        1;
+  font-size:   var(--font-size-sm);
+  font-weight: var(--font-weight-semi);
+  min-width:   0;
+  white-space: nowrap;
+  overflow:    hidden;
+  text-overflow: ellipsis;
+}
+.wallet-savings-pill__badge {
+  font-size:      10px;
+  font-weight:    var(--font-weight-semi);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color:          var(--color-accent);
+  background:     var(--color-accent-light);
+  padding:        2px 7px;
+  border-radius:  var(--radius-pill);
+  flex-shrink:    0;
+}
+.wallet-savings-pill__sub {
+  font-size:  var(--font-size-xs);
+  color:      var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+/* --- Wallet Section Label ---------------------------------- */
+.wallet-section-label {
+  font-size:      var(--font-size-xs);
+  font-weight:    var(--font-weight-semi);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color:          var(--color-text-secondary);
+  padding:        var(--space-3) 0 var(--space-1);
+}
 
 .card-detail {
   background:    var(--color-surface);

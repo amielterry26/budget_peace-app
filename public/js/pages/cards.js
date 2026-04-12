@@ -110,36 +110,58 @@ function renderCardsPage() {
       <div class="wallet-empty__label">Add a card</div>
     </div>`;
 
-  // --- Mobile: vertical Apple Wallet stack ---
-  const mobileCards = visibleCards.map(c => {
+  // --- Vertical stack: savings pills + debit/credit cards ---
+  const savingsItems = visibleCards.filter(c => c.type === 'Savings');
+  const cardItems    = visibleCards.filter(c => c.type !== 'Savings');
+  const showLabels   = savingsItems.length > 0 && cardItems.length > 0;
+
+  const savingsPillsHtml = savingsItems.map(c => {
     const bank = _banks.find(b => b.bankId === c.bankId);
-    const isSavings = c.type === 'Savings';
-    const bottomSection = isSavings
-      ? `<div class="wallet-card__name" style="font-size:var(--font-size-lg);font-weight:700;">${esc(c.name)}</div>`
-      : `<div>
-          <div class="wallet-card__number">•••• •••• •••• ${esc(c.lastFour)}</div>
-          <div class="wallet-card__name">${esc(c.name)}</div>
-        </div>`;
+    return `
+      <div class="wallet-savings-pill" data-cardid="${c.cardId}">
+        <div style="width:10px;height:10px;border-radius:50%;background:${bank?.color || BANK_COLOR_DEFAULT};flex-shrink:0;"></div>
+        <span class="wallet-savings-pill__name">${esc(c.name)}${c.lastFour ? `<span class="wallet-savings-pill__sub" style="margin-left:4px;">••${esc(c.lastFour)}</span>` : ''}</span>
+        ${bank ? `<span class="wallet-savings-pill__sub">${esc(bank.name)}</span>` : ''}
+        <span class="wallet-savings-pill__badge">Savings</span>
+      </div>`;
+  }).join('');
+
+  const mobileCardsHtml = cardItems.map(c => {
+    const bank = _banks.find(b => b.bankId === c.bankId);
     return `
       <div class="wallet-mobile-card"
         data-cardid="${c.cardId}"
         style="background:${CARD_PALETTES[c.colorIndex % CARD_PALETTES.length]}">
         <div class="wallet-card__type">${c.type}${bank ? `<span class="wallet-mobile-card__bank" style="float:right;">${esc(bank.name)}</span>` : ''}</div>
-        ${bottomSection}
+        <div>
+          <div class="wallet-card__number">•••• •••• •••• ${esc(c.lastFour)}</div>
+          <div class="wallet-card__name">${esc(c.name)}</div>
+        </div>
       </div>`;
   }).join('');
 
   const mobileEmpty = `
     <div class="wallet-mobile-empty" id="add-card-tile-mobile">
-      <div class="wallet-mobile-empty__label">＋ Add a card</div>
+      <div class="wallet-mobile-empty__label">＋ Add a card or account</div>
     </div>`;
+
+  const accountsSection = savingsItems.length
+    ? `${showLabels ? '<div class="wallet-section-label">Accounts</div>' : ''}${savingsPillsHtml}`
+    : '';
+  const cardsSection = cardItems.length
+    ? `${showLabels ? '<div class="wallet-section-label">Cards</div>' : ''}${mobileCardsHtml}`
+    : '';
 
   content.innerHTML = `
     <div class="page">
       ${bankChipsHtml}
       <div class="wallet-row">${walletItems}${emptySlot}</div>
       <div id="card-detail-area"></div>
-      <div class="wallet-mobile-stack">${mobileCards}${mobileEmpty}</div>
+      <div class="wallet-mobile-stack">
+        ${accountsSection}
+        ${cardsSection}
+        ${mobileEmpty}
+      </div>
     </div>`;
 
   // Wire bank chips
@@ -162,13 +184,11 @@ function renderCardsPage() {
   });
   document.getElementById('add-card-tile-desktop')?.addEventListener('click', () => openCardSheet(null));
 
-  // Mobile card clicks → detail sheet
-  document.querySelectorAll('.wallet-mobile-card').forEach(el => {
+  // Mobile card + savings pill clicks → detail sheet
+  document.querySelectorAll('.wallet-mobile-card, .wallet-savings-pill').forEach(el => {
     el.addEventListener('click', () => openCardDetailSheet(el.dataset.cardid));
   });
   document.getElementById('add-card-tile-mobile')?.addEventListener('click', () => openCardSheet(null));
-
-  if (_selectedCard) renderCardDetail(_selectedCard);
 }
 
 function renderCardDetail(cardId) {

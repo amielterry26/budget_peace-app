@@ -2379,6 +2379,33 @@ img  { display: block; max-width: 100%; }
   padding:   8px 14px;
 }
 
+/* Contribution history sheet */
+.history-list {
+  display:        flex;
+  flex-direction: column;
+  gap:            4px;
+  max-height:     320px;
+  overflow-y:     auto;
+}
+.history-entry {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+  padding:        var(--space-2);
+  background:     var(--color-surface-alt);
+  border-radius:  var(--radius-sm);
+}
+.history-entry__left {
+  display:     flex;
+  align-items: baseline;
+  gap:         var(--space-2);
+}
+.history-entry__amount {
+  font-weight: var(--font-weight-semi);
+  font-size:   var(--font-size-sm);
+}
+.history-entry__note { font-style: italic; }
+
 /* --- Settings page ---------------------------------------- */
 
 /* Profile card */

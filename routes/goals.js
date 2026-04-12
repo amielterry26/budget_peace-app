@@ -1,6 +1,6 @@
 const express = require('express');
 const {
-  QueryCommand, PutCommand, DeleteCommand, GetCommand, UpdateCommand,
+  QueryCommand, PutCommand, DeleteCommand, GetCommand,
 } = require('@aws-sdk/lib-dynamodb');
 const { randomUUID } = require('crypto');
 const router = express.Router();
@@ -51,12 +51,13 @@ router.post('/', async (req, res) => {
     const goalId = randomUUID();
     const item = {
       userId, goalId,
-      scenarioId: scenarioId || 'main',
+      scenarioId:          scenarioId || 'main',
       name,
-      targetAmount:  parsedAmount,
+      targetAmount:        parsedAmount,
       targetDate,
-      currentSaved:  0,
-      createdAt:     new Date().toISOString(),
+      currentSaved:        0,
+      contributionEntries: [],
+      createdAt:           new Date().toISOString(),
       ...(plannedContribution && { plannedContribution: Number(plannedContribution) }),
     };
     await db.send(new PutCommand({ TableName: TABLE, Item: item }));
@@ -70,7 +71,7 @@ router.post('/', async (req, res) => {
 // PUT /api/goals/:userId/:goalId
 router.put('/:userId/:goalId', verifyOwner, async (req, res) => {
   try {
-    const { name, targetAmount, targetDate, plannedContribution } = req.body;
+    const { name, targetAmount, targetDate, plannedContribution, currentSaved } = req.body;
     if (!name || !targetAmount || !targetDate) {
       return res.status(400).json({ error: 'Missing required fields (name, targetAmount, targetDate)' });
     }
@@ -81,6 +82,15 @@ router.put('/:userId/:goalId', verifyOwner, async (req, res) => {
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate) || isNaN(Date.parse(targetDate))) {
       return res.status(400).json({ error: 'targetDate must be a valid date (YYYY-MM-DD)' });
+    }
+
+    // currentSaved is optional — only updated when explicitly sent
+    let parsedSaved;
+    if (currentSaved !== undefined && currentSaved !== null && currentSaved !== '') {
+      parsedSaved = Number(currentSaved);
+      if (!Number.isFinite(parsedSaved) || parsedSaved < 0) {
+        return res.status(400).json({ error: 'currentSaved must be a non-negative number' });
+      }
     }
 
     const existing = await db.send(new GetCommand({
@@ -97,6 +107,7 @@ router.put('/:userId/:goalId', verifyOwner, async (req, res) => {
       targetAmount:  parsedAmount,
       targetDate,
       updatedAt:     new Date().toISOString(),
+      ...(parsedSaved !== undefined && { currentSaved: parsedSaved }),
       plannedContribution: plannedContribution ? Number(plannedContribution) : undefined,
     };
     await db.send(new PutCommand({ TableName: TABLE, Item: item }));
@@ -108,26 +119,36 @@ router.put('/:userId/:goalId', verifyOwner, async (req, res) => {
 });
 
 // POST /api/goals/:userId/:goalId/contribute
+// Logs a contribution entry and increments currentSaved.
 router.post('/:userId/:goalId/contribute', verifyOwner, async (req, res) => {
   try {
-    const { amount } = req.body;
+    const { amount, date, note } = req.body;
     const parsedAmount = Number(amount);
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       return res.status(400).json({ error: 'amount must be a positive number' });
     }
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
+    }
 
-    const result = await db.send(new UpdateCommand({
+    const existing = await db.send(new GetCommand({
       TableName: TABLE,
       Key: { userId: req.params.userId, goalId: req.params.goalId },
-      UpdateExpression: 'SET currentSaved = if_not_exists(currentSaved, :zero) + :amt, updatedAt = :now',
-      ExpressionAttributeValues: {
-        ':amt':  parsedAmount,
-        ':zero': 0,
-        ':now':  new Date().toISOString(),
-      },
-      ReturnValues: 'ALL_NEW',
     }));
-    res.json(result.Attributes);
+    if (!existing.Item) return res.status(404).json({ error: 'Goal not found' });
+
+    const g = existing.Item;
+    const entry = { id: randomUUID(), amount: parsedAmount, date };
+    if (note && note.trim()) entry.note = note.trim();
+
+    const contributionEntries = Array.isArray(g.contributionEntries)
+      ? [...g.contributionEntries, entry]
+      : [entry];
+    const currentSaved = Math.round(((g.currentSaved || 0) + parsedAmount) * 100) / 100;
+
+    const item = { ...g, contributionEntries, currentSaved, updatedAt: new Date().toISOString() };
+    await db.send(new PutCommand({ TableName: TABLE, Item: item }));
+    res.json(item);
   } catch (err) {
     console.error('POST /api/goals/contribute error:', err);
     res.status(500).json({ error: 'Failed to log contribution' });

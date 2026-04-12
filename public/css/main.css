@@ -1709,9 +1709,9 @@ img  { display: block; max-width: 100%; }
   /* Override mobile flex: home-page is a plain block container */
   .home-page {
     display: block;
-    max-width: 1440px;
+    max-width: 1360px;
     margin: 0 auto;
-    padding: var(--space-6) 40px 0;
+    padding: var(--space-5) 32px 0;
   }
 
   /* Welcome header: block, above the grid */
@@ -1741,8 +1741,8 @@ img  { display: block; max-width: 100%; }
   /* Desktop grid: 3-zone layout */
   .home-desktop-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.7fr) minmax(260px, 0.8fr) minmax(220px, 0.62fr);
-    gap: 24px;
+    grid-template-columns: minmax(0, 1.7fr) minmax(240px, 0.75fr) minmax(200px, 0.58fr);
+    gap: 28px;
     align-items: start;
   }
 
@@ -1750,7 +1750,7 @@ img  { display: block; max-width: 100%; }
   .home-col-left {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
     min-width: 0;
   }
 
@@ -1758,7 +1758,7 @@ img  { display: block; max-width: 100%; }
   .home-col-mid {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
     min-width: 0;
   }
 
@@ -1766,18 +1766,16 @@ img  { display: block; max-width: 100%; }
   .home-col-right {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
     min-width: 0;
   }
 
-  /* Reset mobile order values inside desktop columns */
-  .home-col-left > *,
-  .home-col-mid > *,
-  .home-col-right > *,
-  .home-col-mid .dash-section,
-  .home-col-right .dash-section {
-    order: unset;
-  }
+  /* Reset mobile order values — match specificity of mobile rules (2 classes) */
+  .home-col-left .notes-card,
+  .home-col-left .home-section-period { order: 0; }
+  .home-col-mid .home-section-bills   { order: 0; }
+  .home-col-right .home-section-health,
+  .home-col-right .home-section-structure { order: 0; }
 
   /* ========================================================= */
   /* CENTER — dominant workspace                               */
@@ -1785,7 +1783,7 @@ img  { display: block; max-width: 100%; }
 
   /* Period card — THE hero. Eye lands here first. */
   .period-shortcut-card {
-    padding: 28px 32px !important;
+    padding: 22px 24px !important;
     border-radius: var(--radius-lg);
     box-shadow: 0 12px 40px rgba(15,23,42,0.12), 0 4px 12px rgba(15,23,42,0.06);
     border: 1px solid rgba(74,124,89,0.22);
@@ -1889,41 +1887,51 @@ img  { display: block; max-width: 100%; }
     margin-top: 2px;
   }
 
-  /* Structure card — main analytical workspace */
+  /* Structure card — compact utility card in right rail */
   .home-card--center {
-    padding: 28px 32px;
-    border-radius: var(--radius-lg);
-    box-shadow: 0 12px 40px rgba(15,23,42,0.10), 0 4px 12px rgba(15,23,42,0.05);
-    border-color: rgba(15,23,42,0.08);
+    padding: 16px 16px;
+    border-radius: var(--radius-md);
+    box-shadow: 0 1px 4px rgba(15,23,42,0.07);
+    border-color: var(--color-border);
   }
   .home-section-structure .home-card--center {
     background: var(--color-surface);
-    border-color: rgba(74,124,89,0.20);
+    border-color: var(--color-border);
   }
   .home-card--center .card-header {
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-bold);
-    letter-spacing: -0.01em;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semi);
+    letter-spacing: 0.01em;
     margin-bottom: var(--space-1);
   }
   .home-card--center .home-supporting-copy {
-    margin-bottom: var(--space-4);
+    font-size: var(--font-size-xs);
+    margin-bottom: var(--space-3);
   }
 
-  /* Metric tiles — Tier 2 numbers, 3-col layout */
+  /* Metric tiles — single column stack for narrow right rail */
   .home-metric-grid {
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: var(--space-4);
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
   }
   .home-metric-grid .metric-tile {
-    padding: var(--space-3);
+    padding: 8px 10px;
     background: var(--color-surface-alt);
     border-radius: var(--radius-sm);
-    border: 1px solid rgba(15,23,42,0.06);
+    border: 1px solid rgba(15,23,42,0.05);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+  .home-metric-grid .metric-tile__label {
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
   }
   .home-metric-grid .metric-tile__value {
-    font-size: var(--font-size-xl);
-    letter-spacing: -0.02em;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semi);
+    letter-spacing: -0.01em;
   }
 
   /* ========================================================= */

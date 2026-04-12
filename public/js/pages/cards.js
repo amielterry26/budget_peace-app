@@ -164,12 +164,15 @@ function renderCardsPage() {
       </div>
     </div>`;
 
-  // Wire bank chips — first tap selects, second tap on same chip opens edit
+  // Wire bank chips — first tap selects, second tap on same chip opens manage/edit
   document.querySelectorAll('.bank-tabs__chips .cmp-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       const clickedId = chip.dataset.bankid || null;
-      if (clickedId && clickedId === _selectedBank) {
-        // Already selected → open edit sheet for this bank
+      if (clickedId === null && _selectedBank === null) {
+        // All Banks tapped while already on All Banks → open bank management
+        openBankSheet();
+      } else if (clickedId && clickedId === _selectedBank) {
+        // Named bank tapped while already selected → open edit
         const bank = _banks.find(b => b.bankId === clickedId);
         if (bank) openBankSheet(bank);
       } else {
@@ -526,50 +529,53 @@ function openBankSheet(editBank = null) {
 
   const bankListHtml = _banks.length
     ? _banks.map(b => `
-        <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--color-border);">
+        <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) 0;border-bottom:1px solid var(--color-border);">
           <span style="width:10px;height:10px;border-radius:50%;background:${b.color || BANK_COLOR_DEFAULT};flex-shrink:0;display:inline-block;"></span>
           <div style="flex:1;min-width:0;">
             <div style="font-size:var(--font-size-sm);font-weight:var(--font-weight-semi);">${esc(b.name)}</div>
-            ${b.note ? `<div class="text-muted text-xs">${esc(b.note)}</div>` : ''}
+            ${b.note ? `<div class="text-muted text-xs" style="margin-top:2px;">${esc(b.note)}</div>` : ''}
           </div>
-          <button class="btn btn--ghost bs-edit-btn" data-bankid="${b.bankId}" style="font-size:12px;padding:4px 10px;">Edit</button>
-          <button class="btn btn--danger bs-del-btn" data-bankid="${b.bankId}" style="font-size:12px;padding:4px 10px;">Delete</button>
+          <button class="btn btn--ghost bs-edit-btn" data-bankid="${b.bankId}" style="font-size:12px;padding:6px 12px;">Edit</button>
+          <button class="btn btn--danger bs-del-btn" data-bankid="${b.bankId}" style="font-size:12px;padding:6px 12px;">Delete</button>
         </div>`).join('')
-    : `<div class="text-muted text-sm" style="padding:var(--space-2) 0;">No banks yet.</div>`;
+    : `<div class="text-muted text-sm" style="padding:var(--space-3) 0;">No banks yet.</div>`;
 
   const addFormHtml = `
-    <div id="bs-add-form" style="border-top:1px solid var(--color-border);padding-top:var(--space-3);">
-      <div class="form-group">
-        <label class="form-label" for="bs-name">Bank name</label>
-        <input class="form-input" id="bs-name" type="text" placeholder="e.g. SoFi" />
+    <div id="bs-add-form" style="border-top:1px solid var(--color-border);padding-top:var(--space-4);">
+      <div class="stack--3">
+        <div class="form-group">
+          <label class="form-label" for="bs-name">Bank name</label>
+          <input class="form-input" id="bs-name" type="text" placeholder="e.g. SoFi" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="bs-note">Note (optional)</label>
+          <input class="form-input" id="bs-note" type="text" placeholder="e.g. checking + savings" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Color</label>
+          <div style="display:flex;gap:8px;align-items:center;">${buildColorSwatches(null, 'bs')}</div>
+        </div>
       </div>
-      <div class="form-group">
-        <label class="form-label" for="bs-note">Note (optional)</label>
-        <input class="form-input" id="bs-note" type="text" placeholder="e.g. checking + savings" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Color</label>
-        <div style="display:flex;gap:8px;align-items:center;">${buildColorSwatches(null, 'bs')}</div>
-      </div>
-      <button class="btn btn--primary btn--full" id="bs-add">Add Bank</button>
+      <button class="btn btn--primary btn--full" style="margin-top:var(--space-4);" id="bs-add">Add Bank</button>
     </div>`;
 
   const editFormHtml = editBank ? `
-    <div id="bs-edit-form" style="border-top:1px solid var(--color-border);padding-top:var(--space-3);">
-      <div class="form-group" style="font-weight:var(--font-weight-semi);margin-bottom:var(--space-2);">Editing: ${esc(editBank.name)}</div>
-      <div class="form-group">
-        <label class="form-label" for="bs-edit-name">Bank name</label>
-        <input class="form-input" id="bs-edit-name" type="text" value="${esc(editBank.name)}" />
+    <div id="bs-edit-form">
+      <div class="stack--3">
+        <div class="form-group">
+          <label class="form-label" for="bs-edit-name">Bank name</label>
+          <input class="form-input" id="bs-edit-name" type="text" value="${esc(editBank.name)}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="bs-edit-note">Note (optional)</label>
+          <input class="form-input" id="bs-edit-note" type="text" value="${esc(editBank.note || '')}" placeholder="e.g. checking + savings" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Color</label>
+          <div style="display:flex;gap:8px;align-items:center;">${buildColorSwatches(editBank.color || BANK_COLOR_DEFAULT, 'bse')}</div>
+        </div>
       </div>
-      <div class="form-group">
-        <label class="form-label" for="bs-edit-note">Note (optional)</label>
-        <input class="form-input" id="bs-edit-note" type="text" value="${esc(editBank.note || '')}" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Color</label>
-        <div style="display:flex;gap:8px;align-items:center;">${buildColorSwatches(editBank.color || BANK_COLOR_DEFAULT, 'bse')}</div>
-      </div>
-      <div style="display:flex;gap:12px;">
+      <div style="display:flex;gap:12px;margin-top:var(--space-4);">
         <button class="btn btn--ghost btn--full" id="bs-edit-cancel">Cancel</button>
         <button class="btn btn--primary btn--full" id="bs-edit-save">Save</button>
       </div>

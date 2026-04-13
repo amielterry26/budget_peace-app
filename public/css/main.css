@@ -4379,9 +4379,10 @@ body.has-demo-banner .scenario-selector:not(.is-hidden) ~ .time-travel-strip:not
   margin-bottom: var(--space-2);
 }
 .exp-search-wrap {
-  position: relative;
-  display: inline-flex;
+  position:    relative;
+  display:     inline-flex;
   align-items: center;
+  margin-left: auto;
 }
 .exp-search-icon {
   position: absolute;

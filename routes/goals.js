@@ -6,6 +6,7 @@ const { randomUUID } = require('crypto');
 const router = express.Router();
 const db     = require('../config/dynamo');
 const { verifyOwner } = require('../middleware/auth');
+const { canAddGoal }  = require('../lib/planLimits');
 
 const TABLE = 'bp_goals';
 
@@ -35,6 +36,17 @@ router.post('/', async (req, res) => {
     }
     if (!userId || !name || !targetAmount || !targetDate) {
       return res.status(400).json({ error: 'Missing required fields (userId, name, targetAmount, targetDate)' });
+    }
+
+    // Plan gate: enforce maxGoals
+    const goalCheck = await canAddGoal(db, userId, scenarioId || 'main');
+    if (!goalCheck.allowed) {
+      return res.status(403).json({
+        error: 'Goal limit reached. Upgrade to Pro for unlimited goals.',
+        code: 'PLAN_LIMIT_GOALS',
+        current: goalCheck.current,
+        max: goalCheck.max,
+      });
     }
 
     const parsedAmount = Number(targetAmount);

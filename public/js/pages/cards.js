@@ -282,13 +282,19 @@ function renderCardsPage() {
   }
 
   // Bank filter chips
+  const maxBanks      = Plans.getLimit('maxBanks');
+  const bankLimited   = typeof maxBanks === 'number' && maxBanks !== Infinity;
+  const bankAtLimit   = bankLimited && _banks.length >= maxBanks;
+  const addBankLabel  = bankLimited
+    ? `+ Add Bank <span style="opacity:0.6;font-size:10px;">(${_banks.length}/${maxBanks})</span>`
+    : '+ Add Bank';
   const bankChipsHtml = `
     <div class="bank-tabs">
       <div class="bank-tabs__chips">
         <button class="cmp-chip ${!_selectedBank ? 'is-selected' : ''}" data-bankid="">All Banks</button>
         ${_banks.map(b => `<button class="cmp-chip ${_selectedBank === b.bankId ? 'is-selected' : ''}" data-bankid="${esc(b.bankId)}">${esc(b.name)}</button>`).join('')}
       </div>
-      <button class="btn btn--ghost" id="manage-banks-btn" style="font-size:12px;padding:5px 12px;flex-shrink:0;white-space:nowrap;">+ Add Bank</button>
+      <button class="btn btn--ghost" id="manage-banks-btn" style="font-size:12px;padding:5px 12px;flex-shrink:0;white-space:nowrap;">${addBankLabel}</button>
     </div>`;
 
   // Old carousel (hidden by CSS — kept for routing compatibility)
@@ -321,6 +327,16 @@ function renderCardsPage() {
       </div>`;
   }).join('');
 
+  // Cards section header with compact + reorder controls
+  const canCompact  = Plans.canUse('walletCompact');
+  const canReorder  = Plans.canUse('walletReorder');
+
+  // Reset stale compact state for users who lost the feature
+  if (!canCompact && _walletCompact) {
+    _walletCompact = false;
+    localStorage.setItem('bp_wallet_compact', '');
+  }
+
   const accountsHeaderHtml = savingsItems.length ? `
     <div class="wallet-section-header">
       <div class="wallet-section-label" style="padding:0;">
@@ -329,7 +345,7 @@ function renderCardsPage() {
       <div class="wallet-section-controls">
         ${_accountsReorder
           ? `<button class="btn btn--primary" id="accounts-reorder-done" style="font-size:11px;padding:5px 12px;">Done Reordering</button>`
-          : (savingsItems.length > 1
+          : (canReorder && savingsItems.length > 1
               ? `<button class="btn btn--ghost" id="accounts-reorder-btn" style="font-size:11px;padding:4px 10px;">Reorder</button>`
               : '')
         }
@@ -340,7 +356,6 @@ function renderCardsPage() {
     ? `${accountsHeaderHtml}<div id="wallet-savings-list">${savingsPillsHtml}</div>`
     : '';
 
-  // Cards section header with compact + reorder controls
   const cardsHeaderHtml = cardItems.length ? `
     <div class="wallet-section-header">
       <div class="wallet-section-label" style="padding:0;">
@@ -349,8 +364,14 @@ function renderCardsPage() {
       <div class="wallet-section-controls">
         ${_walletReorder
           ? `<button class="btn btn--primary" id="wallet-reorder-done" style="font-size:11px;padding:5px 12px;">Done Reordering</button>`
-          : `<button class="btn btn--ghost wallet-icon-btn" id="wallet-compact-toggle" title="${_walletCompact ? 'Expand' : 'Compact'}">${_walletCompact ? CHEVRON_RIGHT : CHEVRON_DOWN}</button>
-             <button class="btn btn--ghost" id="wallet-reorder-btn" style="font-size:11px;padding:4px 10px;">Reorder</button>`
+          : `${canCompact
+              ? `<button class="btn btn--ghost wallet-icon-btn" id="wallet-compact-toggle" title="${_walletCompact ? 'Expand' : 'Compact'}">${_walletCompact ? CHEVRON_RIGHT : CHEVRON_DOWN}</button>`
+              : `<button class="btn btn--ghost wallet-icon-btn" id="wallet-compact-toggle-locked" title="Pro feature" style="opacity:0.45;cursor:default;">🔒</button>`
+            }
+             ${canReorder
+              ? `<button class="btn btn--ghost" id="wallet-reorder-btn" style="font-size:11px;padding:4px 10px;">Reorder</button>`
+              : ''
+            }`
         }
       </div>
     </div>` : '';
@@ -428,10 +449,21 @@ function renderCardsPage() {
     });
   });
 
-  document.getElementById('manage-banks-btn').addEventListener('click', () => openBankSheet());
+  document.getElementById('manage-banks-btn').addEventListener('click', () => {
+    const maxBanks = Plans.getLimit('maxBanks');
+    if (typeof maxBanks === 'number' && maxBanks !== Infinity && _banks.length >= maxBanks) {
+      Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.banks);
+      return;
+    }
+    openBankSheet();
+  });
 
   // Compact toggle
   document.getElementById('wallet-compact-toggle')?.addEventListener('click', () => {
+    if (!Plans.canUse('walletCompact')) {
+      Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.walletCompact);
+      return;
+    }
     _walletCompact = !_walletCompact;
     localStorage.setItem('bp_wallet_compact', _walletCompact ? '1' : '');
     renderCardsPage();

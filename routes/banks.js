@@ -6,6 +6,7 @@ const { randomUUID } = require('crypto');
 const router = express.Router();
 const db     = require('../config/dynamo');
 const { verifyOwner } = require('../middleware/auth');
+const { canAddBank }  = require('../lib/planLimits');
 
 const TABLE = 'bp_banks';
 
@@ -34,6 +35,18 @@ router.post('/', async (req, res) => {
     const { userId, scenarioId, name, note, color } = req.body;
     if (userId && userId !== req.userId) return res.status(403).json({ error: 'Forbidden' });
     if (!userId || !name) return res.status(400).json({ error: 'Missing required fields' });
+
+    // Plan gate: enforce maxBanks
+    const bankCheck = await canAddBank(db, userId, scenarioId || 'main');
+    if (!bankCheck.allowed) {
+      return res.status(403).json({
+        error: 'Bank limit reached. Upgrade to Pro for unlimited banks.',
+        code: 'PLAN_LIMIT_BANKS',
+        current: bankCheck.current,
+        max: bankCheck.max,
+      });
+    }
+
     const item = {
       userId, bankId: randomUUID(),
       scenarioId: scenarioId || 'main',

@@ -25,8 +25,12 @@ const Plans = (() => {
   const TIERS = {
     budget: {
       maxScenarios: 1,
-      maxExpensesPerScenario: 8,
+      maxExpensesPerScenario: 10,
       maxProjectionMonths: 3,
+      maxGoals: 3,
+      maxBanks: 2,
+      walletCompact: false,
+      walletReorder: false,
       scenarioComparison: false,
       financialHealth: false,
       scenarioNotes: false,
@@ -38,6 +42,10 @@ const Plans = (() => {
       maxScenarios: Infinity,
       maxExpensesPerScenario: Infinity,
       maxProjectionMonths: Infinity,
+      maxGoals: Infinity,
+      maxBanks: Infinity,
+      walletCompact: true,
+      walletReorder: true,
       scenarioComparison: true,
       financialHealth: true,
       scenarioNotes: true,
@@ -52,10 +60,12 @@ const Plans = (() => {
   const PRO_FEATURES = [
     { icon: '\u25EB', title: 'Unlimited scenarios',        description: 'Create as many what-if scenarios as you need.' },
     { icon: '\u2261', title: 'Unlimited expenses',          description: 'No cap on expenses per scenario.' },
+    { icon: '\u2665', title: 'Unlimited goals',             description: 'Track as many savings goals as you have.' },
     { icon: '\u25F7', title: 'Extended projections',        description: 'See 6+ months ahead with longer projection windows.' },
     { icon: '\u21C4', title: 'Scenario comparison',         description: 'Compare scenarios side by side to find the best path.' },
     { icon: '\u2661', title: 'Financial health projection', description: 'Track your financial trajectory over time.' },
     { icon: '\u270E', title: 'Scenario notes',              description: 'Annotate scenarios with context and reminders.' },
+    { icon: '\u2302', title: 'Unlimited banks + full wallet', description: 'Group unlimited banks and unlock compact view & reordering.' },
   ];
 
   const COMING_SOON = [
@@ -72,6 +82,10 @@ const Plans = (() => {
   const UPGRADE_CONTEXT = {
     scenarios:       { message: 'Multiple scenarios are available on the Pro plan.' },
     expenses:        { message: 'Unlimited expenses are available on the Pro plan.' },
+    goals:           { message: 'More than 3 goals requires a Pro plan.' },
+    banks:           { message: 'More than 2 banks requires a Pro plan.' },
+    walletCompact:   { message: 'Compact wallet view is a Pro feature.' },
+    walletReorder:   { message: 'Card reordering is a Pro feature.' },
     duration:        { message: 'Longer projection windows are part of Pro.' },
     comparison:      { message: 'Comparison is a Pro feature for side-by-side decision making.' },
     notes:           { message: 'Notes are available on Pro for deeper planning.' },

@@ -50,8 +50,15 @@ function renderGoals() {
 
   const sorted = _goals.slice().sort((a, b) => a.targetDate.localeCompare(b.targetDate));
 
+  const maxGoals  = Plans.getLimit('maxGoals');
+  const isLimited = typeof maxGoals === 'number' && maxGoals !== Infinity;
+  const limitBadge = isLimited
+    ? `<div class="text-muted text-xs text-center" style="padding-bottom:var(--space-2);">${_goals.length} of ${maxGoals} goals used &mdash; <a href="/pro" style="color:var(--color-accent);font-weight:600;text-decoration:none;">Go Pro</a> for unlimited</div>`
+    : '';
+
   content.innerHTML = `
     <div class="page goals-page">
+      ${limitBadge}
       <div class="stack--3">${sorted.map(buildGoalCard).join('')}</div>
     </div>`;
 
@@ -111,7 +118,16 @@ function buildGoalCard(g) {
 
 function openGoalSheet(goal) {
   const editing = !!goal;
-  const today   = effectiveToday();
+
+  if (!editing) {
+    const maxGoals = Plans.getLimit('maxGoals');
+    if (typeof maxGoals === 'number' && maxGoals !== Infinity && _goals.length >= maxGoals) {
+      Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.goals);
+      return;
+    }
+  }
+
+  const today = effectiveToday();
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="goal-sheet-overlay" class="sheet-overlay"></div>

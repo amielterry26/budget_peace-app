@@ -175,10 +175,14 @@ function isExpenseActive(expense, today) {
     const start = expense.recurrenceStartDate || '1970-01-01';
     return start <= today;
   }
-  // One-time: active if its period hasn't ended, or no period assigned
+  // One-time: active if its assigned period hasn't ended
   if (expense.periodStart) {
     const period = _periods.find(p => p.startDate === expense.periodStart);
     return period ? period.endDate >= today : true;
+  }
+  // One-time with only a dueDate: current if dueDate is today or in the past; upcoming if future
+  if (expense.dueDate) {
+    return expense.dueDate <= today;
   }
   return true;
 }
@@ -629,7 +633,8 @@ async function openSheet(expense, onSave) {
         if (isLegacyDueDate && !hasChangedAlloc) {
           // Preserve legacy due-date behavior — user did not explicitly change allocation
           payload.allocationMethod = 'due-date';
-          if (expense.dueDay) payload.dueDay = expense.dueDay;
+          const legacyDueDay = document.getElementById('sh-due-day').value;
+          if (legacyDueDay) payload.dueDay = Number(legacyDueDay);
         } else {
           payload.allocationMethod = selectedAlloc;
           const dueDay = document.getElementById('sh-due-day').value;

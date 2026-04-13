@@ -71,6 +71,13 @@ async function loadCards() {
   if (_cards.length && !_selectedCard) _selectedCard = _cards[0].cardId;
 }
 
+async function cardsExpenseRefresh() {
+  _cardExpenses = await Store.get('expenses');
+  if (_currentPage !== 'cards') return;
+  renderCardsPage();
+  document.getElementById('fab').onclick = () => openCardSheet(null);
+}
+
 // ---- Render ------------------------------------------------
 
 function sortedCards(cards) {
@@ -224,7 +231,7 @@ function wireItemExpand(cardId) {
   expand.querySelectorAll('.wallet-expand__expense').forEach(row => {
     row.addEventListener('click', () => {
       const exp = _cardExpenses.find(e => e.expenseId === row.dataset.expid);
-      if (exp) openBillDetailModal(exp, null);
+      if (exp) openBillDetailModal(exp, cardsExpenseRefresh);
     });
   });
 
@@ -664,7 +671,7 @@ function openCardDetailSheet(cardId) {
   document.querySelectorAll('#cds-sheet .pill-item[data-expid]').forEach(row => {
     row.addEventListener('click', () => {
       const exp = _cardExpenses.find(e => e.expenseId === row.dataset.expid);
-      if (exp) openBillDetailModal(exp, null);
+      if (exp) openBillDetailModal(exp, cardsExpenseRefresh);
     });
   });
 }

@@ -213,19 +213,23 @@ router.post('/', async (req, res) => {
     if (!skipExpenses) {
       const sourceExpenses = await queryByScenario(EXPENSES_TABLE, userId, sourceId);
       if (sourceExpenses.length) {
-        const expensePuts = sourceExpenses.map(e => ({
-          PutRequest: {
-            Item: {
-              ...e,
-              expenseId: randomUUID(),
-              scenarioId,
-              createdAt: now,
-              updatedAt: undefined,
-            },
-          },
-        }));
+        // Plan gate: enforce maxExpensesPerScenario on the new scenario
+        const { canAddExpense } = require('../lib/planLimits');
+        const expCheck = await canAddExpense(db, userId, scenarioId);
+        // canAddExpense checks current count in that scenario; it's 0 for new scenario,
+        // so we check against the limit directly
+        const plan = await require('../lib/planLimits').getUserPlan(db, userId);
+        const maxExp = plan.limits.maxExpensesPerScenario;
+        const toClone = (typeof maxExp === 'number')
+          ? sourceExpenses.slice(0, maxExp)
+          : sourceExpenses;
+        const expensePuts = toClone.map(e => {
+          const cloned = { ...e, expenseId: randomUUID(), scenarioId, createdAt: now };
+          delete cloned.updatedAt;
+          return { PutRequest: { Item: cloned } };
+        });
         await batchWrite(EXPENSES_TABLE, expensePuts);
-        expenseCount = sourceExpenses.length;
+        expenseCount = toClone.length;
       }
     }
 

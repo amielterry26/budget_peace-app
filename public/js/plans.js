@@ -135,6 +135,23 @@ const Plans = (() => {
       ? context.message
       : 'See your full financial picture &mdash; no limits.';
 
+    // Basic lifetime users get a special upgrade path ($20 to upgrade to Pro lifetime)
+    const isBasicLifetime = Auth.getUser()?.planName === 'budget-lifetime';
+
+    const ctaHtml = isBasicLifetime
+      ? `<button class="btn btn--primary btn--full" id="upgrade-pro-lifetime-upgrade">
+           Upgrade to Pro &mdash; $20
+         </button>
+         <div class="text-muted text-center" style="font-size:var(--font-size-xs);line-height:1.4;">
+           One-time. You already paid $59.99 &mdash; just the $20 difference.
+         </div>`
+      : `<button class="btn btn--primary btn--full" id="upgrade-pro-monthly">
+           Go Pro &mdash; $7.99/mo
+         </button>
+         <div class="text-muted text-center" style="font-size:var(--font-size-xs);line-height:1.4;">
+           Or get <a href="/pro" style="color:var(--color-accent);">Pro Lifetime for $79.99</a>
+         </div>`;
+
     document.body.insertAdjacentHTML('beforeend', `
       <div id="upgrade-overlay" class="sheet-overlay"></div>
       <div id="upgrade-modal" class="sheet" style="max-width:420px;">
@@ -159,12 +176,7 @@ const Plans = (() => {
         </div>
 
         <div style="display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) 0 var(--space-2);">
-          <button class="btn btn--primary btn--full" id="upgrade-pro-monthly">
-            Go Pro &mdash; $7.99/mo
-          </button>
-          <div class="text-muted text-center" style="font-size:var(--font-size-xs);line-height:1.4;">
-            Lifetime option coming soon
-          </div>
+          ${ctaHtml}
         </div>
 
         <div style="padding:var(--space-1) 0 var(--space-3);text-align:center;">
@@ -185,29 +197,36 @@ const Plans = (() => {
     document.getElementById('upgrade-close').addEventListener('click', close);
     document.getElementById('upgrade-overlay').addEventListener('click', close);
 
-    // "Learn more" link — navigates to /pro (standard link, no JS needed)
+    // Helper: kick off Stripe checkout for a given plan key
+    async function startCheckout(btnId, plan, defaultLabel) {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = 'Redirecting\u2026';
+        try {
+          const res = await authFetch('/api/stripe/create-checkout-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plan }),
+          });
+          if (!res.ok) throw new Error('Checkout session failed');
+          const data = await res.json();
+          if (data.url) window.location.href = data.url;
+        } catch (err) {
+          console.error('[Plans] Checkout error:', err);
+          btn.disabled = false;
+          btn.textContent = defaultLabel;
+          alert('Unable to start checkout. Please try again.');
+        }
+      });
+    }
 
-    // Upgrade CTA — triggers Stripe checkout
-    document.getElementById('upgrade-pro-monthly').addEventListener('click', async () => {
-      const btn = document.getElementById('upgrade-pro-monthly');
-      btn.disabled = true;
-      btn.textContent = 'Redirecting…';
-      try {
-        const res = await authFetch('/api/stripe/create-checkout-session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ plan: 'pro-monthly' }),
-        });
-        if (!res.ok) throw new Error('Checkout session failed');
-        const data = await res.json();
-        if (data.url) window.location.href = data.url;
-      } catch (err) {
-        console.error('[Plans] Checkout error:', err);
-        btn.disabled = false;
-        btn.textContent = 'Go Pro \u2014 $7.99/mo';
-        alert('Unable to start checkout. Please try again.');
-      }
-    });
+    if (isBasicLifetime) {
+      startCheckout('upgrade-pro-lifetime-upgrade', 'pro-lifetime', 'Upgrade to Pro \u2014 $20');
+    } else {
+      startCheckout('upgrade-pro-monthly', 'pro-monthly', 'Go Pro \u2014 $7.99/mo');
+    }
   }
 
   function hideUpgradeModal() {

@@ -7,10 +7,13 @@ const PENDING_TABLE = 'bp_pending_entitlements';
 
 // Valid plan keys → { envVar, mode, tier }
 const PLAN_MAP = {
-  'budget-monthly':  { env: 'STRIPE_BUDGET_MONTHLY_PRICE_ID',  mode: 'subscription', tier: 'budget' },
-  'budget-lifetime': { env: 'STRIPE_BUDGET_LIFETIME_PRICE_ID', mode: 'payment',      tier: 'budget' },
-  'pro-monthly':     { env: 'STRIPE_PRO_MONTHLY_PRICE_ID',     mode: 'subscription', tier: 'pro' },
-  'pro-lifetime':    { env: 'STRIPE_PRO_LIFETIME_PRICE_ID',    mode: 'payment',      tier: 'pro' },
+  'budget-monthly':        { env: 'STRIPE_BUDGET_MONTHLY_PRICE_ID',        mode: 'subscription', tier: 'budget' },
+  'budget-lifetime':       { env: 'STRIPE_BUDGET_LIFETIME_PRICE_ID',       mode: 'payment',      tier: 'budget' },
+  'pro-monthly':           { env: 'STRIPE_PRO_MONTHLY_PRICE_ID',           mode: 'subscription', tier: 'pro' },
+  'pro-lifetime':          { env: 'STRIPE_PRO_LIFETIME_PRICE_ID',          mode: 'payment',      tier: 'pro' },
+  // Internal only — never sent from the client. Used when a Basic lifetime
+  // user upgrades to Pro lifetime; charges $20 (the difference).
+  'pro-lifetime-upgrade':  { env: 'STRIPE_PRO_LIFETIME_UPGRADE_PRICE_ID',  mode: 'payment',      tier: 'pro' },
 };
 
 // Lazy-init Stripe (only when keys are configured)
@@ -34,14 +37,19 @@ router.post('/create-checkout-session', async (req, res) => {
     const stripe = getStripe();
     const { plan } = req.body;
 
+    // Block direct access to internal upgrade SKU
+    if (plan === 'pro-lifetime-upgrade') {
+      return res.status(400).json({ error: 'Invalid plan' });
+    }
+
     const planDef = PLAN_MAP[plan];
     if (!planDef) {
       return res.status(400).json({
-        error: `plan must be one of: ${Object.keys(PLAN_MAP).join(', ')}`,
+        error: `plan must be one of: budget-monthly, budget-lifetime, pro-monthly, pro-lifetime`,
       });
     }
 
-    const priceId = process.env[planDef.env];
+    let priceId = process.env[planDef.env];
     if (!priceId) {
       return res.status(500).json({ error: `Price ID not configured for ${plan}` });
     }
@@ -55,8 +63,23 @@ router.post('/create-checkout-session', async (req, res) => {
     const existingCustomerId = user.stripeCustomerId || null;
     const existingSubId = user.stripeSubscriptionId || null;
 
+    // Basic lifetime → Pro lifetime upgrade: charge only the $20 difference.
+    // The billing price swaps to the upgrade SKU, but metadata records
+    // 'pro-lifetime' so the webhook normalizes the DB correctly.
+    let billingPlan = plan;
+    if (plan === 'pro-lifetime' && user.planName === 'budget-lifetime') {
+      billingPlan = 'pro-lifetime-upgrade';
+      const upgradePriceId = process.env[PLAN_MAP['pro-lifetime-upgrade'].env];
+      if (!upgradePriceId) {
+        return res.status(500).json({ error: 'Upgrade price not configured' });
+      }
+      priceId = upgradePriceId;
+    }
+
     const origin = `${req.protocol}://${req.get('host')}`;
 
+    // metadata always records the canonical plan name ('pro-lifetime'),
+    // not the billing SKU, so the webhook sets the right DB values.
     const metadata = { userId: req.userId, plan, tier: planDef.tier };
     // If the user has an active recurring subscription, mark it for
     // cancellation so the webhook can clean it up after the new
@@ -68,7 +91,7 @@ router.post('/create-checkout-session', async (req, res) => {
     const sessionParams = {
       mode: planDef.mode,
       line_items: [{ price: priceId, quantity: 1 }],
-      allow_promotion_codes: true,
+      allow_promotion_codes: billingPlan !== 'pro-lifetime-upgrade', // no stacking on upgrade
       metadata,
       success_url: `${origin}/?checkout=success`,
       cancel_url: `${origin}/?checkout=cancel`,
@@ -76,6 +99,7 @@ router.post('/create-checkout-session', async (req, res) => {
 
     // Reuse existing Stripe Customer to avoid duplicates;
     // fall back to customer_email for first-time purchasers.
+    // Passing customer (not customer_email) locks the email field at checkout.
     if (existingCustomerId) {
       sessionParams.customer = existingCustomerId;
     } else {

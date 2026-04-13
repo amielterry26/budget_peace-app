@@ -109,31 +109,34 @@
       position:   sticky;
       top:        0;
       z-index:    100;
-      background: rgba(245,247,244,.88);
+      background: rgba(239,238,232,.92);
       backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border);
       transition: background 0.2s;
     }
     [data-theme="dark"] .lp-nav {
-      background: rgba(24,24,26,.88);
+      background: rgba(24,24,26,.92);
     }
     .lp-nav__inner {
       display:         flex;
       align-items:     center;
       justify-content: space-between;
-      height:          60px;
+      height:          56px;
     }
     .lp-nav__brand {
       font-size:      18px;
       font-weight:    800;
       letter-spacing: -0.04em;
       color:          var(--text);
+      flex-shrink:    0;
     }
     .lp-nav__brand span { color: var(--accent); }
+    /* Desktop links — hidden on mobile */
     .lp-nav__links {
       display:     flex;
       align-items: center;
-      gap:         8px;
+      gap:         6px;
     }
     .lp-nav__link {
       font-size:   14px;
@@ -145,37 +148,42 @@
     }
     .lp-nav__link:hover { color: var(--text); background: var(--surface-alt); }
     .lp-nav__theme {
-      width:         34px;
-      height:        34px;
+      width:         32px;
+      height:        32px;
       border-radius: 50%;
       border:        1.5px solid var(--border);
       display:       flex;
       align-items:   center;
       justify-content: center;
       color:         var(--text-2);
-      font-size:     15px;
+      font-size:     14px;
       transition:    background 0.15s;
+      flex-shrink:   0;
     }
     .lp-nav__theme:hover { background: var(--surface-alt); }
+    /* Mobile: only show logo + CTA */
+    @media (max-width: 640px) {
+      .lp-nav__links { display: none; }
+      .lp-nav__mobile-cta {
+        display:       inline-flex;
+        align-items:   center;
+        padding:       8px 18px;
+        background:    var(--accent);
+        color:         #fff;
+        font-size:     13px;
+        font-weight:   600;
+        border-radius: var(--r-md);
+        letter-spacing: -0.01em;
+      }
+    }
+    @media (min-width: 641px) {
+      .lp-nav__mobile-cta { display: none; }
+    }
 
     /* ── Hero ── */
     .hero {
       padding:    80px 0 60px;
       text-align: center;
-      position:   relative;
-      overflow:   hidden;
-    }
-    .hero::before {
-      content:        '';
-      position:       absolute;
-      top:            -120px;
-      left:           50%;
-      transform:      translateX(-50%);
-      width:          700px;
-      height:         700px;
-      border-radius:  50%;
-      background:     radial-gradient(circle, var(--color-accent-light) 0%, transparent 70%);
-      pointer-events: none;
     }
     .hero__eyebrow {
       display:         inline-flex;
@@ -183,26 +191,26 @@
       gap:             6px;
       background:      var(--accent-lt);
       color:           var(--accent);
-      font-size:       13px;
-      font-weight:     600;
-      letter-spacing:  0.02em;
-      padding:         5px 14px;
+      font-size:       12px;
+      font-weight:     700;
+      letter-spacing:  0.08em;
+      padding:         4px 14px;
       border-radius:   var(--r-xl);
-      margin-bottom:   24px;
+      margin-bottom:   28px;
       text-transform:  uppercase;
     }
     .hero__headline {
-      font-size:      clamp(2.4rem, 6vw, 4rem);
+      font-size:      clamp(2.6rem, 6.5vw, 4.2rem);
       font-weight:    900;
       letter-spacing: -0.04em;
-      line-height:    1.08;
+      line-height:    1.06;
       color:          var(--text);
       max-width:      760px;
-      margin:         0 auto 20px;
+      margin:         0 auto 24px;
     }
     .hero__headline em {
-      font-style:  normal;
-      color:        var(--accent);
+      font-style: normal;
+      color:      var(--accent);
     }
     .hero__sub {
       font-size:   clamp(1rem, 2.5vw, 1.2rem);
@@ -490,12 +498,14 @@
 
     .pricing-grid {
       display:               grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: 1fr 1fr;
       gap:                   20px;
       align-items:           start;
+      max-width:             720px;
+      margin:                0 auto;
     }
-    @media (max-width: 800px) {
-      .pricing-grid { grid-template-columns: 1fr; max-width: 440px; margin: 0 auto; }
+    @media (max-width: 600px) {
+      .pricing-grid { grid-template-columns: 1fr; max-width: 420px; }
     }
 
     .pricing-card {
@@ -601,14 +611,11 @@
 
     /* ── Notricks callout ── */
     .notricks {
-      background:    linear-gradient(135deg, #F0F7F2, #E8F2EB);
+      background:    var(--surface);
       border-top:    1px solid var(--border);
       border-bottom: 1px solid var(--border);
       padding:       60px 0;
       text-align:    center;
-    }
-    [data-theme="dark"] .notricks {
-      background: linear-gradient(135deg, var(--color-surface), var(--color-surface-alt));
     }
     .notricks__eyebrow {
       font-size:      11px;
@@ -862,6 +869,7 @@
     <div class="container">
       <div class="lp-nav__inner">
         <a href="/landing-v2" class="lp-nav__brand">Budget<span> Peace</span></a>
+        <!-- Desktop nav -->
         <div class="lp-nav__links">
           <a href="#features" class="lp-nav__link">Features</a>
           <a href="#pricing"  class="lp-nav__link">Pricing</a>
@@ -869,6 +877,8 @@
           <a href="/"         class="btn btn-primary" style="padding:8px 18px;font-size:13px;">Open App</a>
           <button id="theme-toggle" class="lp-nav__theme" aria-label="Toggle dark mode">☀</button>
         </div>
+        <!-- Mobile: just CTA -->
+        <a href="/" class="lp-nav__mobile-cta">Open App</a>
       </div>
     </div>
   </nav>
@@ -879,7 +889,7 @@
       <div class="hero__eyebrow">✦ Personal finance, simplified</div>
       <h1 class="hero__headline">
         Stop guessing.<br>
-        <em>Start knowing</em> what's left.
+        Start <em>knowing</em> what's left.
       </h1>
       <p class="hero__sub">
         Budget Peace shows you exactly what remains after every bill — before you spend it.
@@ -1049,14 +1059,14 @@
 
       <div class="pricing-grid">
 
-        <!-- Basic Monthly -->
+        <!-- Monthly -->
         <div class="pricing-card">
-          <div class="pricing-card__name">Basic</div>
+          <div class="pricing-card__name">Monthly</div>
           <div class="pricing-card__price">
             <span class="price-amount">$4.99</span>
             <span class="price-period">/mo</span>
           </div>
-          <p class="pricing-card__tagline">Good for getting started. Cancel anytime.</p>
+          <p class="pricing-card__tagline">Try it out. Cancel anytime — no questions asked.</p>
           <div class="pricing-card__divider"></div>
           <ul class="pricing-features">
             <li>1 budget scenario</li>
@@ -1071,15 +1081,15 @@
           <a href="/#pricing?intent=budget-monthly" class="btn btn-ghost pricing-cta">Get started</a>
         </div>
 
-        <!-- Pro Lifetime (featured) -->
+        <!-- Lifetime (featured) -->
         <div class="pricing-card pricing-card--featured">
-          <div class="pricing-card__badge">Most popular</div>
-          <div class="pricing-card__name">Pro — Lifetime</div>
+          <div class="pricing-card__badge">Best value</div>
+          <div class="pricing-card__name">Lifetime</div>
           <div class="pricing-card__price">
             <span class="price-amount">$79.99</span>
-            <span class="price-period">one time</span>
+            <span class="price-period">once</span>
           </div>
-          <p class="pricing-card__tagline">Pay once. Use forever. No further charges.</p>
+          <p class="pricing-card__tagline">Pay once. Everything included, forever.</p>
           <div class="pricing-card__divider"></div>
           <ul class="pricing-features">
             <li>Unlimited scenarios</li>
@@ -1088,32 +1098,10 @@
             <li>Scenario comparison</li>
             <li>Financial health view</li>
             <li>12-month planning horizon</li>
-            <li>All future features included</li>
+            <li>All future features</li>
             <li>Priority support</li>
           </ul>
           <a href="/#pricing?intent=pro-lifetime" class="btn btn-white pricing-cta">Get lifetime access</a>
-        </div>
-
-        <!-- Pro Monthly -->
-        <div class="pricing-card">
-          <div class="pricing-card__name">Pro — Monthly</div>
-          <div class="pricing-card__price">
-            <span class="price-amount">$7.99</span>
-            <span class="price-period">/mo</span>
-          </div>
-          <p class="pricing-card__tagline">All Pro features, month to month. Cancel anytime.</p>
-          <div class="pricing-card__divider"></div>
-          <ul class="pricing-features">
-            <li>Unlimited scenarios</li>
-            <li>Unlimited expenses</li>
-            <li>Unlimited goals + banks</li>
-            <li>Scenario comparison</li>
-            <li>Financial health view</li>
-            <li>12-month planning horizon</li>
-            <li>All future features included</li>
-            <li>Cancel anytime</li>
-          </ul>
-          <a href="/#pricing?intent=pro-monthly" class="btn btn-ghost pricing-cta">Get Pro monthly</a>
         </div>
 
       </div>

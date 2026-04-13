@@ -101,6 +101,28 @@ router.post('/', async (req, res) => {
   }
 });
 
+// PUT /api/expenses/:userId/order  — batch-update sortOrder (must be before /:expenseId)
+router.put('/:userId/order', verifyOwner, async (req, res) => {
+  try {
+    const { items } = req.body; // [{ expenseId, sortOrder }]
+    if (!Array.isArray(items) || !items.length) {
+      return res.status(400).json({ error: 'items array required' });
+    }
+    await Promise.all(items.map(({ expenseId, sortOrder }) =>
+      db.send(new UpdateCommand({
+        TableName: TABLE,
+        Key: { userId: req.params.userId, expenseId },
+        UpdateExpression: 'SET sortOrder = :s',
+        ExpressionAttributeValues: { ':s': sortOrder },
+      }))
+    ));
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('PUT /order error:', err);
+    res.status(500).json({ error: 'Failed to save order' });
+  }
+});
+
 // PUT /api/expenses/:userId/:expenseId
 router.put('/:userId/:expenseId', verifyOwner, async (req, res) => {
   try {
@@ -170,28 +192,6 @@ router.put('/:userId/:expenseId', verifyOwner, async (req, res) => {
   } catch (err) {
     console.error('PUT /api/expenses error:', err);
     res.status(500).json({ error: 'Failed to update expense' });
-  }
-});
-
-// PUT /api/expenses/:userId/order  — batch-update sortOrder
-router.put('/:userId/order', verifyOwner, async (req, res) => {
-  try {
-    const { items } = req.body; // [{ expenseId, sortOrder }]
-    if (!Array.isArray(items) || !items.length) {
-      return res.status(400).json({ error: 'items array required' });
-    }
-    await Promise.all(items.map(({ expenseId, sortOrder }) =>
-      db.send(new UpdateCommand({
-        TableName: TABLE,
-        Key: { userId: req.params.userId, expenseId },
-        UpdateExpression: 'SET sortOrder = :s',
-        ExpressionAttributeValues: { ':s': sortOrder },
-      }))
-    ));
-    res.json({ ok: true });
-  } catch (err) {
-    console.error('PUT /order error:', err);
-    res.status(500).json({ error: 'Failed to save order' });
   }
 });
 

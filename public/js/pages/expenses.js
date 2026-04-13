@@ -173,7 +173,6 @@ function renderExpensesList() {
         animation:   150,
         ghostClass:  'sortable-ghost',
         chosenClass: 'sortable-chosen',
-        handle:      '.expense-pill__drag-handle',
       });
     }
   });

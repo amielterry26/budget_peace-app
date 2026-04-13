@@ -10,6 +10,7 @@ let _expCards    = [];
 let _expBanks    = [];
 let _expSort     = 'amount-desc'; // persists across filter toggles
 let _expSearch   = '';            // persists across tab switches
+let _expReorder  = false;         // drag-to-reorder mode active
 
 Router.register('expenses', async () => {
   document.getElementById('page-title').textContent = 'Expenses';
@@ -35,6 +36,7 @@ Router.register('expenses', async () => {
     _expScenario = scenario;
     _expCards    = expCards;
     _expBanks    = expBanks;
+    _expReorder  = false;
     renderExpensesList();
     bindExpensesFab();
   } catch (err) {
@@ -75,7 +77,10 @@ function renderExpensesList() {
                  : _expFilter === 'upcoming' ? upcoming
                  : expired;
   const isExpiredTab = _expFilter === 'expired';
-  const displayed    = applyExpSearch(sortExpenses(filtered));
+  // Reorder mode: show all current expenses sorted by manual order, ignore search
+  const displayed = _expReorder
+    ? sortExpenses(current)
+    : applyExpSearch(sortExpenses(filtered));
 
   const hasUpcoming = upcoming.length > 0;
   const hasExpired  = expired.length > 0;
@@ -87,7 +92,10 @@ function renderExpensesList() {
       ${hasExpired  || _expFilter === 'expired'  ? `<button class="home-mode-switch__btn ${_expFilter === 'expired'  ? 'is-active' : ''}" id="exp-filter-expired"  type="button">Expired (${expired.length})</button>`  : ''}
     </div>`;
 
-  const toggleHtml = `
+  const toggleHtml = _expReorder ? `
+    <div class="exp-header-row">
+      ${tabsHtml}
+    </div>` : `
     <div class="exp-header-row">
       ${tabsHtml}
       <div class="exp-search-wrap">
@@ -102,7 +110,11 @@ function renderExpensesList() {
   const expUsage = isExpLimited
     ? `${_expenses.length} of ${maxExp} expenses used · ${money(displayedTotal)}/mo`
     : `${displayed.length} expense${displayed.length !== 1 ? 's' : ''} · ${money(displayedTotal)}/mo`;
-  const summaryHtml = `
+  const summaryHtml = _expReorder ? `
+    <div class="exp-sort-bar">
+      <span class="text-muted text-sm">Drag to reorder. Tap Done to save.</span>
+      <button class="btn btn--primary" id="exp-reorder-done" style="font-size:12px;padding:5px 14px;">Done</button>
+    </div>` : `
     <div class="exp-sort-bar">
       <span class="text-muted text-sm">${expUsage}${isExpLimited && _expenses.length >= maxExp ? ' · <a href="javascript:void(0)" class="exp-usage-upgrade" style="color:var(--color-accent);font-weight:600;">Upgrade for more</a>' : ''}</span>
       <div class="exp-sort-ctrl">
@@ -111,7 +123,9 @@ function renderExpensesList() {
           <option value="amount-asc"  ${_expSort === 'amount-asc'  ? 'selected' : ''}>Lowest</option>
           <option value="by-bank"     ${_expSort === 'by-bank'     ? 'selected' : ''}>By Bank</option>
           <option value="by-card"     ${_expSort === 'by-card'     ? 'selected' : ''}>By Card</option>
+          <option value="manual"      ${_expSort === 'manual'      ? 'selected' : ''}>My Order</option>
         </select>
+        ${_expFilter === 'current' ? `<button class="exp-reorder-btn" id="exp-reorder-btn" type="button">≡ Reorder</button>` : ''}
       </div>
     </div>`;
 
@@ -141,11 +155,60 @@ function renderExpensesList() {
       ${notesHtml}
       ${toggleHtml}
       ${summaryHtml}
-      <div class="stack--3">${displayed.map(e => buildPill(e, isExpiredTab)).join('')}</div>
+      <div class="stack--3${_expReorder ? ' is-reorder' : ''}" id="exp-reorder-list">${displayed.map(e => buildPill(e, isExpiredTab, _expReorder)).join('')}</div>
     </div>`;
 
   if (_expScenario) mountNotesWidget('exp', _expScenario.scenarioId, _expScenario.notes);
   bindFilterToggle();
+
+  // Enter reorder mode
+  document.getElementById('exp-reorder-btn')?.addEventListener('click', () => {
+    _expReorder = true;
+    _expSort = 'manual';
+    renderExpensesList();
+    bindExpensesFab();
+    const list = document.getElementById('exp-reorder-list');
+    if (list && typeof Sortable !== 'undefined') {
+      new Sortable(list, {
+        animation:   150,
+        ghostClass:  'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        handle:      '.expense-pill__drag-handle',
+      });
+    }
+  });
+
+  // Done reordering — capture DOM order, update cache, save to server
+  document.getElementById('exp-reorder-done')?.addEventListener('click', async () => {
+    const list = document.getElementById('exp-reorder-list');
+    const items = list
+      ? Array.from(list.querySelectorAll('[data-expense-id]')).map((el, i) => ({
+          expenseId: el.dataset.expenseId,
+          sortOrder: (i + 1) * 1000,
+        }))
+      : [];
+    items.forEach(({ expenseId, sortOrder }) => {
+      const e = _expenses.find(x => x.expenseId === expenseId);
+      if (e) e.sortOrder = sortOrder;
+    });
+    _expReorder = false;
+    renderExpensesList();
+    bindExpensesFab();
+    if (!items.length) return;
+    try {
+      await authFetch(`/api/expenses/${userId()}/order`, {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ items }),
+      });
+      Store.invalidate('expenses');
+      _expenses = await Store.get('expenses');
+      renderExpensesList();
+      bindExpensesFab();
+    } catch (err) {
+      console.error('Failed to save expense order:', err);
+    }
+  });
 
   // Wire search input — restore focus/cursor after re-render
   document.getElementById('exp-search')?.addEventListener('input', ev => {
@@ -173,6 +236,7 @@ function renderExpensesList() {
     const el = document.getElementById(`pill-${e.expenseId}`);
     if (!el) return;
     el.querySelector('.expense-pill__header').addEventListener('click', () => {
+      if (_expReorder) return;
       el.classList.toggle('is-expanded');
     });
     el.querySelector('.btn-edit').addEventListener('click', ev => {
@@ -192,11 +256,13 @@ function bindFilterToggle() {
   });
   document.getElementById('exp-filter-upcoming')?.addEventListener('click', () => {
     _expFilter = 'upcoming';
+    _expReorder = false;
     renderExpensesList();
     bindExpensesFab();
   });
   document.getElementById('exp-filter-expired')?.addEventListener('click', () => {
     _expFilter = 'expired';
+    _expReorder = false;
     renderExpensesList();
     bindExpensesFab();
   });
@@ -240,7 +306,7 @@ function isExpenseActive(expense, today) {
   return true;
 }
 
-function buildPill(e, isExpired = false) {
+function buildPill(e, isExpired = false, reorderMode = false) {
   const isRecurring = e.recurrence === 'recurring';
 
   let recurrenceLabel;
@@ -337,8 +403,9 @@ function buildPill(e, isExpired = false) {
   }
 
   return `
-    <div class="expense-pill${isExpired ? ' expense-pill--expired' : ''}" id="pill-${e.expenseId}">
+    <div class="expense-pill${isExpired ? ' expense-pill--expired' : ''}" id="pill-${e.expenseId}" data-expense-id="${e.expenseId}">
       <div class="expense-pill__header">
+        ${reorderMode ? `<div class="expense-pill__drag-handle" aria-hidden="true">⋮⋮</div>` : ''}
         <div class="expense-pill__name">${esc(e.name)}${bankTag}</div>
         <div class="expense-pill__amount-wrap">
           ${cadenceBadge}
@@ -817,6 +884,7 @@ function sortExpenses(arr) {
       const nameB = cardB?.name || '\uffff';
       return nameA.localeCompare(nameB) || a.name.localeCompare(b.name);
     });
+    case 'manual': return s.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
     default: return s;
   }
 }

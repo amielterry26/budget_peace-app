@@ -90,7 +90,10 @@ function renderExpensesList() {
   const toggleHtml = `
     <div class="exp-header-row">
       ${tabsHtml}
-      <input class="exp-search-input" id="exp-search" type="search" placeholder="Search…" value="${esc(_expSearch)}" />
+      <div class="exp-search-wrap">
+        <svg class="exp-search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="exp-search-input" id="exp-search" type="search" placeholder="Search…" value="${esc(_expSearch)}" />
+      </div>
     </div>`;
 
   const displayedTotal = expMonthlyTotal(displayed);
@@ -145,11 +148,14 @@ function renderExpensesList() {
   if (_expScenario) mountNotesWidget('exp', _expScenario.scenarioId, _expScenario.notes);
   bindFilterToggle();
 
-  // Wire search input
+  // Wire search input — restore focus/cursor after re-render
   document.getElementById('exp-search')?.addEventListener('input', ev => {
+    const cursor = ev.target.selectionStart;
     _expSearch = ev.target.value;
     renderExpensesList();
     bindExpensesFab();
+    const el = document.getElementById('exp-search');
+    if (el) { el.focus(); el.setSelectionRange(cursor, cursor); }
   });
 
   // Wire sort select

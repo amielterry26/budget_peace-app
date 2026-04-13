@@ -10,6 +10,7 @@ let _selectedBank  = null; // null = All Banks
 let _walletCompact    = localStorage.getItem('bp_wallet_compact') === '1';
 let _walletReorder    = false;
 let _accountsReorder  = false;
+let _walletSearch     = '';
 
 const CARD_PALETTES = [
   'linear-gradient(135deg, #1C1C2E 0%, #2D3561 100%)',
@@ -265,14 +266,26 @@ function toggleItemExpand(el) {
   wireItemExpand(cardId);
 }
 
+function applyWalletSearch(cards) {
+  const q = (_walletSearch || '').toLowerCase().trim();
+  if (!q) return cards;
+  return cards.filter(c => {
+    const name = (c.name || '').toLowerCase();
+    const last = (c.lastFour || '').toLowerCase();
+    const bank = _banks.find(b => b.bankId === c.bankId);
+    const bankName = (bank?.name || '').toLowerCase();
+    return name.includes(q) || last.includes(q) || bankName.includes(q);
+  });
+}
+
 function renderCardsPage() {
   const content = document.getElementById('main-content');
 
-  // Filter + sort by selected bank
+  // Filter + sort by selected bank, then apply search
   const raw = _selectedBank
     ? _cards.filter(c => c.bankId === _selectedBank)
     : _cards;
-  const visibleCards = sortedCards(raw);
+  const visibleCards = applyWalletSearch(sortedCards(raw));
 
   // Keep selected card in sync
   if (!_selectedCard && visibleCards.length) {
@@ -415,9 +428,18 @@ function renderCardsPage() {
       <div class="wallet-mobile-empty__label">＋ Add a card or account</div>
     </div>`;
 
+  const walletSearchHtml = `
+    <div class="wallet-search-row">
+      <div class="exp-search-wrap">
+        <svg class="exp-search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="exp-search-input" id="wallet-search" type="search" placeholder="Search cards & accounts…" value="${esc(_walletSearch)}" />
+      </div>
+    </div>`;
+
   content.innerHTML = `
     <div class="page">
       ${bankChipsHtml}
+      ${walletSearchHtml}
       <div class="wallet-row">${walletItems}</div>
       <div id="card-detail-area"></div>
       <div class="wallet-mobile-stack">
@@ -430,6 +452,16 @@ function renderCardsPage() {
     </div>`;
 
   // ---- Wire events ----
+
+  // Wallet search — restore focus/cursor after re-render
+  document.getElementById('wallet-search')?.addEventListener('input', ev => {
+    const cursor = ev.target.selectionStart;
+    _walletSearch = ev.target.value;
+    renderCardsPage();
+    document.getElementById('fab').onclick = () => openCardSheet(null);
+    const el = document.getElementById('wallet-search');
+    if (el) { el.focus(); el.setSelectionRange(cursor, cursor); }
+  });
 
   // Bank chips
   document.querySelectorAll('.bank-tabs__chips .cmp-chip').forEach(chip => {

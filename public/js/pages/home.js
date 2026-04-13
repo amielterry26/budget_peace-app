@@ -101,10 +101,10 @@ function renderHealth(months) {
     const hiddenPeriodItems = periodItems.slice(5);
     currentPeriodCard = `
       <div class="dash-section home-section-period">
-        <div class="home-period-nav">
-          <button class="home-period-nav__btn" id="home-period-prev" ${canGoBack ? '' : 'disabled'}>&#8249;</button>
-          <span class="home-period-nav__label">${navLabel}</span>
-          <button class="home-period-nav__btn" id="home-period-next">&#8250;</button>
+        <div class="period-nav">
+          <button class="period-nav__arrow" id="home-period-prev" ${canGoBack ? '' : 'disabled'}>&#8592;</button>
+          <span class="period-nav__label">${navLabel}</span>
+          <button class="period-nav__arrow" id="home-period-next">&#8594;</button>
         </div>
         <div class="card period-shortcut-card" id="period-shortcut" style="cursor:pointer;padding:var(--space-3) var(--space-4);">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);">

@@ -410,6 +410,7 @@ function renderPlanGate(session, intent) {
 
     initTimeTravelStrip();
     updateScenarioSelector();
+    Profile.init();
     Router.init();
 
     // ---- Step 8: Listen for auth state changes ----------------

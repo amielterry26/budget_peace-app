@@ -1,9 +1,14 @@
 const express         = require('express');
 const { PutCommand, UpdateCommand, BatchWriteCommand, GetCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
+const { PutObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl }     = require('@aws-sdk/s3-request-presigner');
 const router          = express.Router();
 const db              = require('../config/dynamo');
+const s3              = require('../config/s3');
 const generatePeriods = require('../lib/generatePeriods');
 const { verifyOwner } = require('../middleware/auth');
+
+const AVATAR_BUCKET = process.env.S3_AVATAR_BUCKET || '';
 
 const USERS_TABLE   = 'bp_users';
 const PERIODS_TABLE = 'bp_budget_periods';
@@ -182,6 +187,63 @@ router.post('/:userId/regenerate-periods', verifyOwner, async (req, res) => {
   } catch (err) {
     console.error('POST /api/users/:userId/regenerate-periods error:', err);
     res.status(500).json({ error: 'Failed to regenerate periods' });
+  }
+});
+
+// POST /api/users/:userId/avatar-url — get a presigned S3 PUT URL for avatar upload
+router.post('/:userId/avatar-url', verifyOwner, async (req, res) => {
+  try {
+    if (!AVATAR_BUCKET) return res.status(503).json({ error: 'Avatar storage not configured' });
+
+    const { contentType } = req.body;
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!contentType || !allowed.includes(contentType)) {
+      return res.status(400).json({ error: 'contentType must be image/jpeg, image/png, image/webp, or image/gif' });
+    }
+
+    const key = `avatars/${req.params.userId}`;
+    const command = new PutObjectCommand({
+      Bucket:      AVATAR_BUCKET,
+      Key:         key,
+      ContentType: contentType,
+      CacheControl: 'no-cache',
+    });
+
+    const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 300 });
+    const region    = process.env.AWS_REGION || 'us-west-2';
+    const photoUrl  = `https://${AVATAR_BUCKET}.s3.${region}.amazonaws.com/${key}`;
+
+    res.json({ uploadUrl, photoUrl });
+  } catch (err) {
+    console.error('POST /api/users/:userId/avatar-url error:', err);
+    res.status(500).json({ error: 'Failed to generate upload URL' });
+  }
+});
+
+// PATCH /api/users/:userId/profile — update display name, photo, bio, job, goals
+router.patch('/:userId/profile', verifyOwner, async (req, res) => {
+  try {
+    const { displayName, photoUrl, bio, jobTitle, personalGoals } = req.body;
+    const uid = req.params.userId;
+
+    await db.send(new UpdateCommand({
+      TableName: USERS_TABLE,
+      Key: { userId: uid },
+      UpdateExpression: 'SET displayName = :dn, photoUrl = :pu, bio = :b, jobTitle = :jt, personalGoals = :pg, updatedAt = :u',
+      ExpressionAttributeValues: {
+        ':dn': displayName   || '',
+        ':pu': photoUrl      || '',
+        ':b':  bio           || '',
+        ':jt': jobTitle      || '',
+        ':pg': personalGoals || '',
+        ':u':  new Date().toISOString(),
+      },
+    }));
+
+    res.json({ updated: true });
+  } catch (err) {
+    console.error('PATCH /api/users/:userId/profile error:', err);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 

@@ -229,6 +229,7 @@ const Auth = (() => {
     getPlan,
     getEntitlementStatus,
     getProfile,
+    getUser: () => _cachedProfile,   // alias used by Plans.js and profile.js
     refreshProfile,
   };
 })();

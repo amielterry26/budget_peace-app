@@ -179,7 +179,7 @@ function renderHealth(months) {
           Welcome back.
           <span class="plan-badge plan-badge--${Plans.getTier() === 'pro' ? 'pro' : 'basic'}">${Plans.getTier() === 'pro' ? 'Pro' : 'Basic'} Plan</span>
         </div>
-        <div class="home-welcome__sub">Here's where your budget stands right now. &middot; ${new Date(today + 'T00:00:00Z').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' })}</div>
+        <div class="home-welcome__sub">Here's where your budget stands right now. &middot; ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</div>
       </div>
 
       <div class="home-mode-switch" aria-label="Home view switch">

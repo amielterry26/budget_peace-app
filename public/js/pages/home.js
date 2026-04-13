@@ -2,7 +2,7 @@
 // Home — Financial Health Dashboard
 // ============================================================
 
-let _healthData    = null; // { user, periods, expenses }
+let _healthData    = null; // { scenario, periods, expenses, goals, cards, banks }
 let _healthHorizon = parseInt(localStorage.getItem('bp_health_horizon')) || 6; // persisted
 let _homePeriodOffset  = 0;    // 0=current, 1=next, 2=period after; >2 → navigate to pay-period
 let _periodItems       = [];   // cached for bill card click handlers
@@ -22,14 +22,16 @@ Router.register('home', async () => {
     </div>`;
 
   try {
-    const [scenario, periods, expenses, goals] = await Promise.all([
+    const [scenario, periods, expenses, goals, cards, banks] = await Promise.all([
       Store.get('scenario'),
       Store.get('periods'),
       Store.get('expenses'),
       Store.get('goals'),
+      Store.get('cards').catch(() => []),
+      Store.get('banks').catch(() => []),
     ]);
 
-    _healthData = { scenario, periods, expenses, goals };
+    _healthData = { scenario, periods, expenses, goals, cards, banks };
     renderHealth(_healthHorizon);
   } catch (err) {
     console.error(err);
@@ -47,14 +49,26 @@ function renderHealth(months) {
   if (!_healthData) return;
   _healthHorizon = months;
 
-  const { scenario, periods, expenses, goals = [] } = _healthData;
+  const { scenario, periods, expenses, goals = [], cards = [], banks = [] } = _healthData;
+
+  function expBankMeta(e) {
+    const card = e.cardId ? cards.find(c => c.cardId === e.cardId) : null;
+    const bank = card?.bankId ? banks.find(b => b.bankId === card.bankId) : null;
+    if (!bank && !card) return '';
+    const dot = bank ? `<span style="width:5px;height:5px;border-radius:50%;background:${bank.color || '#6B7280'};display:inline-block;flex-shrink:0;margin-right:3px;vertical-align:middle;"></span>` : '';
+    const parts = [bank ? esc(bank.name) : '', card ? `${esc(card.name)} ···· ${esc(card.lastFour)}` : ''].filter(Boolean).join(' · ');
+    return `<div class="period-bill-card__note" style="font-size:11px;">${dot}${parts}</div>`;
+  }
   const today = effectiveToday();
 
   // Filter expenses: exclude expired and not-yet-started for monthly overview calculations
-  const liveExpenses = expenses.filter(e =>
-    (!e.endDate   || e.endDate   >= today) &&
-    (!e.startDate || e.startDate <= today)
-  );
+  const liveExpenses = expenses.filter(e => {
+    if (e.endDate && e.endDate < today) return false;
+    const activeFrom = e.recurrence === 'recurring'
+      ? (e.recurrenceStartDate || '1970-01-01')
+      : (e.startDate || '1970-01-01');
+    return activeFrom <= today;
+  });
 
   // Monthly structure
   const monthlyIncome = scenario.cadence === 'biweekly' ? scenario.income * 2 : scenario.income;
@@ -140,6 +154,7 @@ function renderHealth(months) {
                 <div>
                   <span class="period-bill-card__name">${esc(it.name)}</span>
                   ${it.note ? `<div class="period-bill-card__note">${it.note}</div>` : it.dueDay && (!it.allocationMethod || it.allocationMethod === 'due-date') ? `<div class="period-bill-card__note">Due ${it.dueDay}</div>` : ''}
+                  ${expBankMeta(it)}
                 </div>
                 <span class="period-bill-card__amount">${money(it.periodAmount)}</span>
               </div>`).join('')}
@@ -150,6 +165,7 @@ function renderHealth(months) {
                   <div>
                     <span class="period-bill-card__name">${esc(it.name)}</span>
                     ${it.note ? `<div class="period-bill-card__note">${it.note}</div>` : it.dueDay && (!it.allocationMethod || it.allocationMethod === 'due-date') ? `<div class="period-bill-card__note">Due ${it.dueDay}</div>` : ''}
+                    ${expBankMeta(it)}
                   </div>
                   <span class="period-bill-card__amount">${money(it.periodAmount)}</span>
                 </div>`).join('')}
@@ -524,6 +540,7 @@ function calcPeriodExp(expenses, period, cadence) {
     } else if (e.recurrence === 'recurring') {
       const startDate = e.recurrenceStartDate || '1970-01-01';
       if (startDate > period.endDate) continue;
+      if (e.endDate && e.endDate < period.startDate) continue;
       const freq = e.recurrenceFrequency || 'monthly';
       // Monthly expense in biweekly period: route by allocation method
       if (freq === 'monthly' && cadence === 'biweekly') {
@@ -567,6 +584,7 @@ function getPeriodItems(expenses, period, cadence) {
     } else if (e.recurrence === 'recurring') {
       const startDate = e.recurrenceStartDate || '1970-01-01';
       if (startDate > period.endDate) continue;
+      if (e.endDate && e.endDate < period.startDate) continue;
       const freq = e.recurrenceFrequency || 'monthly';
       if (freq === 'monthly' && cadence === 'biweekly') {
         const alloc = getEffectiveAllocation(e);
@@ -817,14 +835,16 @@ function setupSpeedDial() {
 
 async function homeRefresh() {
   try {
-    const [scenario, periods, expenses, goals] = await Promise.all([
+    const [scenario, periods, expenses, goals, cards, banks] = await Promise.all([
       Store.get('scenario'),
       Store.get('periods'),
       Store.get('expenses'),
       Store.get('goals'),
+      Store.get('cards').catch(() => []),
+      Store.get('banks').catch(() => []),
     ]);
     if (_currentPage !== 'home') return;
-    _healthData = { scenario, periods, expenses, goals };
+    _healthData = { scenario, periods, expenses, goals, cards, banks };
     renderHealth(_healthHorizon);
     setupSpeedDial();
   } catch (err) {

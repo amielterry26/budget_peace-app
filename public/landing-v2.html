@@ -7,7 +7,7 @@
   <meta name="description" content="Budget Peace shows you exactly what's left after every bill — before you spend it. One price. No tricks. No subscription traps." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet" />
   <script>
     (function(){
       var s = localStorage.getItem('bp_theme');
@@ -15,50 +15,38 @@
       document.documentElement.setAttribute('data-theme', s);
     })();
   </script>
+  <!-- App design system: tokens, dark mode, base resets -->
+  <link rel="stylesheet" href="/css/main.css" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:          #F5F7F4;
-      --surface:     #FFFFFF;
-      --surface-alt: #EEF1EC;
-      --border:      #DDE3DB;
-      --text:        #0D1C0F;
-      --text-2:      #4A5E4D;
-      --text-3:      #7A8F7D;
-      --accent:      #2E7D4F;
-      --accent-hl:   #3DA064;
-      --accent-lt:   #D4EDDE;
-      --accent-hl-dk:#1B5C36;
-      --danger:      #C0392B;
-      --font:        'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      --r-sm:        8px;
-      --r-md:        14px;
-      --r-lg:        20px;
+      /* Colours: inherit from app design system (main.css tokens) */
+      --bg:          var(--color-bg);
+      --surface:     var(--color-surface);
+      --surface-alt: var(--color-surface-alt);
+      --border:      var(--color-border);
+      --text:        var(--color-text-primary);
+      --text-2:      var(--color-text-secondary);
+      --text-3:      var(--color-text-secondary);
+      --accent:      var(--color-accent);
+      --accent-hl:   var(--color-accent-vivid);
+      --accent-lt:   var(--color-accent-light);
+      --accent-hl-dk:var(--color-accent-dark);
+      --danger:      var(--color-danger, #C0392B);
+      /* Typography & layout — landing-specific values */
+      --font:        var(--font-family);
+      --r-sm:        var(--radius-sm);
+      --r-md:        var(--radius-md);
+      --r-lg:        var(--radius-lg);
       --r-xl:        28px;
-      --shadow-sm:   0 1px 3px rgba(13,28,15,.06), 0 1px 2px rgba(13,28,15,.04);
-      --shadow-md:   0 4px 16px rgba(13,28,15,.08), 0 2px 4px rgba(13,28,15,.04);
-      --shadow-lg:   0 12px 40px rgba(13,28,15,.12), 0 4px 8px rgba(13,28,15,.06);
-      --shadow-xl:   0 24px 64px rgba(13,28,15,.16), 0 8px 16px rgba(13,28,15,.08);
+      --shadow-sm:   0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md:   0 4px 16px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+      --shadow-lg:   0 12px 40px rgba(0,0,0,.12), 0 4px 8px rgba(0,0,0,.06);
+      --shadow-xl:   0 24px 64px rgba(0,0,0,.16), 0 8px 16px rgba(0,0,0,.08);
       --max-w:       1080px;
     }
-
-    [data-theme="dark"] {
-      --bg:          #0D1410;
-      --surface:     #161D18;
-      --surface-alt: #1D2720;
-      --border:      #2A3A2D;
-      --text:        #E8EDE9;
-      --text-2:      #9AB09D;
-      --text-3:      #5A7A5E;
-      --accent:      #3DA064;
-      --accent-hl:   #4DBB77;
-      --accent-lt:   rgba(61,160,100,.15);
-      --shadow-sm:   0 1px 3px rgba(0,0,0,.3);
-      --shadow-md:   0 4px 16px rgba(0,0,0,.4);
-      --shadow-lg:   0 12px 40px rgba(0,0,0,.5);
-      --shadow-xl:   0 24px 64px rgba(0,0,0,.6);
-    }
+    /* Dark mode colours automatically cascade from main.css [data-theme="dark"] block */
 
     html   { scroll-behavior: smooth; }
     body   { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; }
@@ -127,7 +115,7 @@
       transition: background 0.2s;
     }
     [data-theme="dark"] .lp-nav {
-      background: rgba(13,20,16,.88);
+      background: rgba(24,24,26,.88);
     }
     .lp-nav__inner {
       display:         flex;
@@ -186,7 +174,7 @@
       width:          700px;
       height:         700px;
       border-radius:  50%;
-      background:     radial-gradient(circle, rgba(46,125,79,.14) 0%, transparent 70%);
+      background:     radial-gradient(circle, var(--color-accent-light) 0%, transparent 70%);
       pointer-events: none;
     }
     .hero__eyebrow {
@@ -620,7 +608,7 @@
       text-align:    center;
     }
     [data-theme="dark"] .notricks {
-      background: linear-gradient(135deg, #101A13, #131F15);
+      background: linear-gradient(135deg, var(--color-surface), var(--color-surface-alt));
     }
     .notricks__eyebrow {
       font-size:      11px;

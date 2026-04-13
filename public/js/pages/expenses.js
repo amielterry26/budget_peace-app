@@ -109,9 +109,8 @@ function renderExpensesList() {
         <select class="exp-sort-select" id="exp-sort">
           <option value="amount-desc" ${_expSort === 'amount-desc' ? 'selected' : ''}>Highest</option>
           <option value="amount-asc"  ${_expSort === 'amount-asc'  ? 'selected' : ''}>Lowest</option>
-          <option value="name-asc"    ${_expSort === 'name-asc'    ? 'selected' : ''}>A–Z</option>
-          <option value="newest"      ${_expSort === 'newest'      ? 'selected' : ''}>Newest</option>
-          <option value="oldest"      ${_expSort === 'oldest'      ? 'selected' : ''}>Oldest</option>
+          <option value="by-bank"     ${_expSort === 'by-bank'     ? 'selected' : ''}>By Bank</option>
+          <option value="by-card"     ${_expSort === 'by-card'     ? 'selected' : ''}>By Card</option>
         </select>
       </div>
     </div>`;
@@ -221,11 +220,11 @@ function applyExpSearch(expenses) {
 }
 
 function isExpenseActive(expense, today) {
-  // Expired and not-yet-started expenses are never "current"
+  // Expired expenses are never "current"
   if (isExpenseExpired(expense, today)) return false;
-  if (expense.startDate && expense.startDate > today) return false;
 
   if (expense.recurrence === 'recurring') {
+    // For recurring: recurrenceStartDate is the canonical "active from" date
     const start = expense.recurrenceStartDate || '1970-01-01';
     return start <= today;
   }
@@ -563,11 +562,7 @@ async function openSheet(expense, onSave) {
 
         <div class="sh-section">
           <div class="form-group">
-            <label class="form-label" for="sh-active-from">Active from <span class="text-muted">(optional)</span></label>
-            <input class="form-input" id="sh-active-from" type="date" value="${esc(expense?.startDate || '')}" />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="sh-active-until">Expires on <span class="text-muted">(optional)</span></label>
+            <label class="form-label" for="sh-active-until">Expires on <span class="text-muted">(optional — last active date)</span></label>
             <input class="form-input" id="sh-active-until" type="date" value="${esc(expense?.endDate || '')}" />
           </div>
         </div>
@@ -679,7 +674,6 @@ async function openSheet(expense, onSave) {
     const notes    = document.getElementById('sh-notes').value.trim();
     const tags     = document.getElementById('sh-tags').value.trim();
 
-    const activeFrom  = document.getElementById('sh-active-from')?.value  || '';
     const activeUntil = document.getElementById('sh-active-until')?.value || '';
 
     const payload = {
@@ -690,7 +684,6 @@ async function openSheet(expense, onSave) {
       ...(category    && { category }),
       ...(notes       && { notes }),
       ...(tags        && { tags }),
-      ...(activeFrom  && { startDate: activeFrom }),
       ...(activeUntil && { endDate: activeUntil }),
     };
 
@@ -808,10 +801,23 @@ function sortExpenses(arr) {
   switch (_expSort) {
     case 'amount-desc': return s.sort((a, b) => b.amount - a.amount);
     case 'amount-asc':  return s.sort((a, b) => a.amount - b.amount);
-    case 'name-asc':    return s.sort((a, b) => a.name.localeCompare(b.name));
-    case 'newest':      return s.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-    case 'oldest':      return s.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
-    default:            return s;
+    case 'by-bank': return s.sort((a, b) => {
+      const cardA = a.cardId ? _expCards.find(c => c.cardId === a.cardId) : null;
+      const bankA = cardA?.bankId ? _expBanks.find(b => b.bankId === cardA.bankId) : null;
+      const cardB = b.cardId ? _expCards.find(c => c.cardId === b.cardId) : null;
+      const bankB = cardB?.bankId ? _expBanks.find(b => b.bankId === cardB.bankId) : null;
+      const nameA = bankA?.name || '\uffff'; // no bank sorts last
+      const nameB = bankB?.name || '\uffff';
+      return nameA.localeCompare(nameB) || a.name.localeCompare(b.name);
+    });
+    case 'by-card': return s.sort((a, b) => {
+      const cardA = a.cardId ? _expCards.find(c => c.cardId === a.cardId) : null;
+      const cardB = b.cardId ? _expCards.find(c => c.cardId === b.cardId) : null;
+      const nameA = cardA?.name || '\uffff'; // no card sorts last
+      const nameB = cardB?.name || '\uffff';
+      return nameA.localeCompare(nameB) || a.name.localeCompare(b.name);
+    });
+    default: return s;
   }
 }
 

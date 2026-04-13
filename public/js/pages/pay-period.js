@@ -2,7 +2,7 @@
 // Pay Period — Operational Budget View
 // ============================================================
 
-let _pd    = null; // { user, periods, expenses }
+let _pd    = null; // { periods, expenses, cards, banks }
 let _pdIdx = 0;
 
 Router.register('pay-period', async (params) => {
@@ -18,9 +18,11 @@ Router.register('pay-period', async (params) => {
     </div>`;
 
   try {
-    const [periods, expenses] = await Promise.all([
+    const [periods, expenses, cards, banks] = await Promise.all([
       Store.get('periods'),
       Store.get('expenses'),
+      Store.get('cards').catch(() => []),
+      Store.get('banks').catch(() => []),
     ]);
 
     if (!periods.length) {
@@ -31,7 +33,7 @@ Router.register('pay-period', async (params) => {
       return;
     }
 
-    _pd = { periods, expenses };
+    _pd = { periods, expenses, cards, banks };
 
     let idx;
     if (params.idx != null) {
@@ -63,7 +65,7 @@ function renderPeriod(idx) {
   if (!_pd) return;
   _pdIdx = idx;
 
-  const { periods, expenses } = _pd;
+  const { periods, expenses, cards = [], banks = [] } = _pd;
   const period = periods[idx];
 
   const pd      = calcPdExpenses(expenses, period);
@@ -115,7 +117,7 @@ function renderPeriod(idx) {
         </button>
         <div id="period-breakdown" class="period-breakdown">
           <div class="divider" style="margin-top:var(--space-3);"></div>
-          ${buildPdBreakdown(pd)}
+          ${buildPdBreakdown(pd, cards, banks)}
           <button class="btn btn--ghost btn--full"
             style="margin-top:var(--space-4);font-size:var(--font-size-sm);" id="view-all-btn">
             View all budgets →
@@ -154,9 +156,20 @@ function renderPeriod(idx) {
 
 let _pdBreakdownItems = []; // cached for bill card click handlers
 
-function buildPdBreakdown(pd) {
+function buildPdBreakdown(pd, cards = [], banks = []) {
   let html = '';
   _pdBreakdownItems = [];
+
+  function expMeta(e) {
+    const card = e.cardId ? cards.find(c => c.cardId === e.cardId) : null;
+    const bank = card?.bankId ? banks.find(b => b.bankId === card.bankId) : null;
+    if (!bank && !card) return '';
+    const dot = bank ? `<span style="width:6px;height:6px;border-radius:50%;background:${bank.color || '#6B7280'};display:inline-block;flex-shrink:0;margin-right:3px;vertical-align:middle;"></span>` : '';
+    const bankLabel = bank ? esc(bank.name) : '';
+    const cardLabel = card ? `${esc(card.name)} ···· ${esc(card.lastFour)}` : '';
+    const parts = [bankLabel, cardLabel].filter(Boolean).join(' · ');
+    return `<div class="period-bill-card__note">${dot}${parts}</div>`;
+  }
 
   if (pd.recurringItems.length) {
     html += `<div class="section-title" style="margin:var(--space-3) 0 var(--space-1);">Recurring</div>`;
@@ -168,6 +181,7 @@ function buildPdBreakdown(pd) {
         <div>
           <span class="period-bill-card__name">${esc(e.name)}</span>
           ${e.note ? `<div class="period-bill-card__note">${esc(e.note)}</div>` : e.dueDay && (!e.allocationMethod || e.allocationMethod === 'due-date') ? `<div class="period-bill-card__note">Due ${e.dueDay}</div>` : ''}
+          ${expMeta(e)}
         </div>
         <span class="period-bill-card__amount">${pdMoney(e.displayAmount)}</span>
       </div>`;
@@ -184,6 +198,7 @@ function buildPdBreakdown(pd) {
         <div>
           <span class="period-bill-card__name">${esc(e.name)}</span>
           ${e.dueDate ? `<div class="period-bill-card__note">${e.dueDate}</div>` : ''}
+          ${expMeta(e)}
         </div>
         <span class="period-bill-card__amount">${pdMoney(e.amount)}</span>
       </div>`;
@@ -215,6 +230,7 @@ function calcPdExpenses(expenses, period) {
     } else if (e.recurrence === 'recurring') {
       const startDate = e.recurrenceStartDate || '1970-01-01';
       if (startDate > period.endDate) continue;
+      if (e.endDate && e.endDate < period.startDate) continue;
 
       const freq = e.recurrenceFrequency || 'monthly';
       let mult;
@@ -278,12 +294,14 @@ function setupPdFab() {
 
 async function payPeriodRefresh() {
   try {
-    const [periods, expenses] = await Promise.all([
+    const [periods, expenses, cards, banks] = await Promise.all([
       Store.get('periods'),
       Store.get('expenses'),
+      Store.get('cards').catch(() => []),
+      Store.get('banks').catch(() => []),
     ]);
     if (_currentPage !== 'pay-period') return;
-    _pd = { periods, expenses };
+    _pd = { periods, expenses, cards, banks };
     renderPeriod(_pdIdx);
     setupPdFab();
   } catch (err) {

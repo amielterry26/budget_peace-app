@@ -48,6 +48,7 @@ Router.register('budgets', async () => {
         if (e.recurrence === 'recurring') {
           const startDate = e.recurrenceStartDate || '1970-01-01';
           if (startDate > p.endDate) return sum;
+          if (e.endDate && e.endDate < p.startDate) return sum;
           const freq = e.recurrenceFrequency || 'monthly';
           // Monthly expense in biweekly period: route by allocation method
           if (freq === 'monthly' && cadence === 'biweekly') {

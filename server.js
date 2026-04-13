@@ -420,17 +420,13 @@ ensureMainScenario();
 
 // ---- Landing page & SPA fallback ----------------------------
 
-app.get('/landing', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'landing.html'));
-});
-
-app.get('/pro', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'pro.html'));
-});
-
-app.get('/demo', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'demo.html'));
-});
+app.get('/landing',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'landing.html')));
+app.get('/landing-v2', (req, res) => res.sendFile(path.join(__dirname, 'public', 'landing-v2.html')));
+app.get('/pro',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'pro.html')));
+app.get('/demo',       (req, res) => res.sendFile(path.join(__dirname, 'public', 'demo.html')));
+app.get('/demo-v2',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'demo-v2.html')));
+// /demo-app serves the full app shell in demo mode (loaded inside the demo-v2 iframe)
+app.get('/demo-app',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

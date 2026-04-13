@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Budget Peace — Interactive Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    (function(){
+      var s = localStorage.getItem('bp_theme');
+      if (!s) s = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', s);
+    })();
+  </script>
+  <link rel="stylesheet" href="/css/main.css" />
+  <style>
+    /* ── Demo shell ── */
+    body { margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+
+    /* Persistent top banner */
+    .demo-banner {
+      background:      var(--color-surface);
+      border-bottom:   1px solid var(--color-border);
+      padding:         0 16px;
+      height:          48px;
+      display:         flex;
+      align-items:     center;
+      justify-content: space-between;
+      gap:             12px;
+      flex-shrink:     0;
+      z-index:         999;
+    }
+    .demo-banner__left {
+      display:     flex;
+      align-items: center;
+      gap:         10px;
+    }
+    .demo-badge {
+      background:    var(--color-accent);
+      color:         #fff;
+      font-size:     11px;
+      font-weight:   700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding:       3px 8px;
+      border-radius: 6px;
+    }
+    .demo-banner__name {
+      font-size:   13px;
+      color:       var(--color-text-secondary);
+    }
+    .demo-banner__name strong {
+      color:       var(--color-text-primary);
+      font-weight: 600;
+    }
+    .demo-banner__right {
+      display:     flex;
+      align-items: center;
+      gap:         8px;
+    }
+    .demo-cta-btn {
+      background:  var(--color-accent);
+      color:       #fff;
+      font-size:   12px;
+      font-weight: 700;
+      padding:     6px 14px;
+      border-radius: 8px;
+      text-decoration: none;
+      white-space: nowrap;
+      transition:  background 0.15s;
+    }
+    .demo-cta-btn:hover { background: var(--color-accent-dark, #375C42); }
+    .demo-exit-btn {
+      font-size:   12px;
+      color:       var(--color-text-secondary);
+      text-decoration: none;
+      padding:     6px 10px;
+      border-radius: 6px;
+      transition:  background 0.15s;
+    }
+    .demo-exit-btn:hover { background: var(--color-surface-alt); }
+
+    /* App frame */
+    .demo-frame {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+    .demo-frame iframe {
+      width:  100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    /* Entry screen (before demo loads) */
+    .demo-entry {
+      position:        fixed;
+      inset:           0;
+      background:      var(--color-bg, #F4F6F8);
+      display:         flex;
+      align-items:     center;
+      justify-content: center;
+      z-index:         9999;
+      padding:         24px;
+    }
+    [data-theme="dark"] .demo-entry { background: var(--color-bg, #0D1410); }
+
+    .demo-entry__card {
+      background:    var(--color-surface);
+      border:        1px solid var(--color-border);
+      border-radius: 24px;
+      padding:       48px 40px 40px;
+      max-width:     440px;
+      width:         100%;
+      text-align:    center;
+      box-shadow:    0 24px 64px rgba(0,0,0,.12);
+    }
+    @media (max-width: 480px) {
+      .demo-entry__card { padding: 36px 24px 28px; }
+    }
+    .demo-entry__logo {
+      font-size:      22px;
+      font-weight:    800;
+      letter-spacing: -0.04em;
+      color:          var(--color-text-primary);
+      margin-bottom:  28px;
+    }
+    .demo-entry__logo span { color: var(--color-accent); }
+
+    .demo-entry__icon {
+      font-size:     3rem;
+      line-height:   1;
+      margin-bottom: 16px;
+    }
+    .demo-entry__title {
+      font-size:      1.6rem;
+      font-weight:    800;
+      letter-spacing: -0.03em;
+      color:          var(--color-text-primary);
+      margin-bottom:  10px;
+    }
+    .demo-entry__sub {
+      font-size:     14px;
+      color:         var(--color-text-secondary);
+      line-height:   1.65;
+      margin-bottom: 28px;
+    }
+
+    .demo-entry__input {
+      width:         100%;
+      box-sizing:    border-box;
+      padding:       12px 16px;
+      border:        1.5px solid var(--color-border);
+      border-radius: 12px;
+      background:    var(--color-surface-alt);
+      color:         var(--color-text-primary);
+      font-size:     15px;
+      font-family:   inherit;
+      outline:       none;
+      transition:    border-color 0.15s;
+      margin-bottom: 12px;
+      text-align:    center;
+    }
+    .demo-entry__input:focus { border-color: var(--color-accent); }
+
+    .demo-entry__launch {
+      width:         100%;
+      padding:       14px;
+      background:    var(--color-accent);
+      color:         #fff;
+      border:        none;
+      border-radius: 12px;
+      font-size:     15px;
+      font-weight:   700;
+      font-family:   inherit;
+      cursor:        pointer;
+      transition:    background 0.15s, transform 0.12s;
+      margin-bottom: 12px;
+    }
+    .demo-entry__launch:hover { background: var(--color-accent-dark, #375C42); }
+    .demo-entry__launch:active { transform: scale(0.98); }
+
+    .demo-entry__skip {
+      font-size:  13px;
+      color:      var(--color-text-secondary);
+      background: none;
+      border:     none;
+      cursor:     pointer;
+      font-family: inherit;
+      padding:    6px;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .demo-entry__skip:hover { color: var(--color-text-primary); }
+
+    .demo-entry__features {
+      margin-top:  24px;
+      padding-top: 24px;
+      border-top:  1px solid var(--color-border);
+      display:     flex;
+      justify-content: center;
+      gap:         20px;
+      flex-wrap:   wrap;
+    }
+    .demo-feat {
+      font-size:  12px;
+      color:      var(--color-text-secondary);
+      display:    flex;
+      align-items: center;
+      gap:        5px;
+    }
+    .demo-feat::before {
+      content:     '✓';
+      color:       var(--color-accent);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Entry screen -->
+  <div class="demo-entry" id="demo-entry">
+    <div class="demo-entry__card">
+      <div class="demo-entry__logo">Budget<span> Peace</span></div>
+      <div class="demo-entry__icon">🎮</div>
+      <h1 class="demo-entry__title">Try it yourself</h1>
+      <p class="demo-entry__sub">Explore a pre-loaded budget — no sign-up, no commitment. Your data stays local and disappears when you leave.</p>
+      <input id="demo-name-input" class="demo-entry__input" type="text" placeholder="What should we call you? (optional)" maxlength="30" autocomplete="off" />
+      <button id="demo-launch-btn" class="demo-entry__launch">Explore the demo →</button>
+      <button id="demo-skip-btn" class="demo-entry__skip">Skip &amp; explore anonymously</button>
+      <div class="demo-entry__features">
+        <span class="demo-feat">Real app UI</span>
+        <span class="demo-feat">Pre-loaded data</span>
+        <span class="demo-feat">No sign-up</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner (shown after entry) -->
+  <div class="demo-banner" id="demo-banner" style="display:none;">
+    <div class="demo-banner__left">
+      <span class="demo-badge">Demo</span>
+      <span class="demo-banner__name" id="demo-banner-name">Exploring Budget Peace</span>
+    </div>
+    <div class="demo-banner__right">
+      <a href="/landing-v2" class="demo-exit-btn">← Back</a>
+      <a href="/#pricing" class="demo-cta-btn">Get full access →</a>
+    </div>
+  </div>
+
+  <!-- App frame (shown after entry) -->
+  <div class="demo-frame" id="demo-frame" style="display:none;">
+    <iframe id="demo-iframe" src="about:blank" title="Budget Peace Demo" allow=""></iframe>
+  </div>
+
+  <script>
+    const nameInput  = document.getElementById('demo-name-input');
+    const launchBtn  = document.getElementById('demo-launch-btn');
+    const skipBtn    = document.getElementById('demo-skip-btn');
+    const entryEl    = document.getElementById('demo-entry');
+    const bannerEl   = document.getElementById('demo-banner');
+    const frameEl    = document.getElementById('demo-frame');
+    const bannerName = document.getElementById('demo-banner-name');
+    const iframe     = document.getElementById('demo-iframe');
+
+    function launch(name) {
+      const displayName = (name || '').trim();
+
+      // Store demo name for the iframe page to pick up
+      sessionStorage.setItem('bp_demo_name', displayName);
+      sessionStorage.setItem('bp_demo_mode', 'true');
+
+      // Update banner
+      bannerName.innerHTML = displayName
+        ? `Exploring as <strong>${displayName}</strong>`
+        : 'Exploring Budget Peace';
+
+      // Show app, hide entry
+      entryEl.style.display = 'none';
+      bannerEl.style.display = '';
+      frameEl.style.display  = '';
+
+      // Load demo app
+      iframe.src = '/demo-app';
+    }
+
+    launchBtn.addEventListener('click', () => launch(nameInput.value));
+    skipBtn.addEventListener('click',   () => launch(''));
+    nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') launch(nameInput.value); });
+
+    // Auto-focus name input
+    setTimeout(() => nameInput.focus(), 100);
+  </script>
+</body>
+</html>

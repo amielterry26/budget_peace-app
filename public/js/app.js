@@ -386,6 +386,10 @@ function renderPlanGate(session, intent) {
     const user = await Store.get('user');
     _activeScenario = user.activeScenarioId || 'main';
 
+    // ---- Step 7b: First-time onboarding -----------------------
+    // No-op for existing users. Shows wizard if user.cadence is not set.
+    Onboarding.check(user);
+
     // Show app chrome
     document.querySelector('.top-bar').style.display = '';
     document.getElementById('bottom-nav').classList.remove('is-hidden');

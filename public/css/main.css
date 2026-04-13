@@ -4347,3 +4347,61 @@ body.has-demo-banner .scenario-selector:not(.is-hidden) ~ .time-travel-strip:not
   box-shadow: 0 2px 8px rgba(78,158,106,0.12);
 }
 
+
+/* ---- Home Period Nav ---------------------------------------- */
+.home-period-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+  margin-bottom: var(--space-2);
+}
+.home-period-nav__btn {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 2px 10px;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  transition: color 0.15s;
+}
+.home-period-nav__btn:hover:not(:disabled) { color: var(--color-text); }
+.home-period-nav__btn:disabled { opacity: 0.2; cursor: default; }
+.home-period-nav__label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* ---- Expense search + header row ---------------------------- */
+.exp-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2);
+}
+.exp-search-input {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  padding: 6px 10px;
+  width: 140px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.exp-search-input:focus { border-color: var(--color-accent); }
+.exp-search-input::placeholder { color: var(--color-text-muted, var(--color-text-secondary)); }
+
+/* ---- Expired expense pills ---------------------------------- */
+.expense-pill--expired { opacity: 0.5; }
+.expense-pill__cadence--expired {
+  background: var(--color-border) !important;
+  color: var(--color-text-secondary) !important;
+}

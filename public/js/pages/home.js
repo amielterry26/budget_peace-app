@@ -4,10 +4,12 @@
 
 let _healthData    = null; // { user, periods, expenses }
 let _healthHorizon = parseInt(localStorage.getItem('bp_health_horizon')) || 6; // persisted
+let _homePeriodOffset  = 0;    // 0=current, 1=next, 2=period after; >2 → navigate to pay-period
 let _periodItems       = [];   // cached for bill card click handlers
 let _recurringExpenses = [];   // cached for overview-row click handlers
 
 Router.register('home', async () => {
+  _homePeriodOffset = 0;
   document.getElementById('page-title').textContent = 'Home';
   setActivePage('home');
   showBottomNav(true);
@@ -48,9 +50,15 @@ function renderHealth(months) {
   const { scenario, periods, expenses, goals = [] } = _healthData;
   const today = effectiveToday();
 
+  // Filter expenses: exclude expired and not-yet-started for monthly overview calculations
+  const liveExpenses = expenses.filter(e =>
+    (!e.endDate   || e.endDate   >= today) &&
+    (!e.startDate || e.startDate <= today)
+  );
+
   // Monthly structure
   const monthlyIncome = scenario.cadence === 'biweekly' ? scenario.income * 2 : scenario.income;
-  const monthlyBills  = calcMonthlyExp(expenses, today);
+  const monthlyBills  = calcMonthlyExp(liveExpenses, today);
   const monthlyLeft   = Math.round((monthlyIncome - monthlyBills) * 100) / 100;
   const monthlyLeftColor = monthlyLeft < 0 ? 'var(--color-danger)' : 'var(--color-accent)';
 
@@ -65,23 +73,44 @@ function renderHealth(months) {
     || [...periods].reverse().find(p => p.endDate <= today)
     || periods[0];
 
+  // Period nav: find base index and apply offset
+  let _periodBaseIdx = periods.findIndex(p => today >= p.startDate && today <= p.endDate);
+  if (_periodBaseIdx === -1) {
+    _periodBaseIdx = 0;
+    for (let i = periods.length - 1; i >= 0; i--) {
+      if (periods[i].endDate <= today) { _periodBaseIdx = i; break; }
+    }
+  }
+  const _viewIdx    = Math.max(0, Math.min(_periodBaseIdx + _homePeriodOffset, periods.length - 1));
+  const viewPeriod  = periods[_viewIdx] || currentPeriod;
+  const periodCardTitle = _homePeriodOffset === 0 ? 'Current Pay Period'
+                        : _homePeriodOffset === 1 ? 'Next Pay Period'
+                        : 'Upcoming Pay Period';
+  const canGoBack   = _homePeriodOffset > 0;
+  const navLabel    = _homePeriodOffset === 0 ? 'Current Period' : fmtRange(viewPeriod);
+
   let currentPeriodCard = '';
-  if (currentPeriod) {
-    const pd = calcPeriodExp(expenses, currentPeriod, scenario.cadence);
+  if (viewPeriod) {
+    const pd = calcPeriodExp(expenses, viewPeriod, scenario.cadence);
     const remColor = pd.remaining < 0 ? 'color:var(--color-danger)' : '';
-    const spendPct = currentPeriod.income > 0
-      ? Math.min(100, Math.round((pd.total / currentPeriod.income) * 100)) : 0;
-    const periodItems = getPeriodItems(expenses, currentPeriod, scenario.cadence);
+    const spendPct = viewPeriod.income > 0
+      ? Math.min(100, Math.round((pd.total / viewPeriod.income) * 100)) : 0;
+    const periodItems = getPeriodItems(expenses, viewPeriod, scenario.cadence);
     _periodItems = periodItems;
     const shownPeriodItems  = periodItems.slice(0, 5);
     const hiddenPeriodItems = periodItems.slice(5);
     currentPeriodCard = `
       <div class="dash-section home-section-period">
+        <div class="home-period-nav">
+          <button class="home-period-nav__btn" id="home-period-prev" ${canGoBack ? '' : 'disabled'}>&#8249;</button>
+          <span class="home-period-nav__label">${navLabel}</span>
+          <button class="home-period-nav__btn" id="home-period-next">&#8250;</button>
+        </div>
         <div class="card period-shortcut-card" id="period-shortcut" style="cursor:pointer;padding:var(--space-3) var(--space-4);">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);">
             <div>
-              <div class="card-header" style="margin-bottom:2px;">Current Pay Period</div>
-              <div class="text-muted text-sm">${fmtRange(currentPeriod)}</div>
+              <div class="card-header" style="margin-bottom:2px;">${periodCardTitle}</div>
+              <div class="text-muted text-sm">${fmtRange(viewPeriod)}</div>
             </div>
             <div style="text-align:right;">
               <div class="text-muted text-sm">Left</div>
@@ -92,7 +121,7 @@ function renderHealth(months) {
             <div class="period-detail__metrics">
               <div class="period-detail__metric">
                 <span class="period-detail__label">Income</span>
-                <span class="period-detail__value">${money(currentPeriod.income)}</span>
+                <span class="period-detail__value">${money(viewPeriod.income)}</span>
               </div>
               <div class="period-detail__metric">
                 <span class="period-detail__label">Expenses</span>
@@ -135,8 +164,8 @@ function renderHealth(months) {
       </div>`;
   }
 
-  // Recurring expenses for structural view
-  const recurringActive = expenses.filter(e =>
+  // Recurring expenses for structural view (live only — excludes expired/future-dated)
+  const recurringActive = liveExpenses.filter(e =>
     e.recurrence === 'recurring' &&
     (!e.recurrenceStartDate || e.recurrenceStartDate <= today)
   );
@@ -334,6 +363,20 @@ function renderHealth(months) {
   document.getElementById('health-upgrade')?.addEventListener('click', () => Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.financialHealth));
   document.getElementById('go-pay-period')?.addEventListener('click', () => Router.navigate('pay-period'));
   document.getElementById('period-shortcut')?.addEventListener('click', () => Router.navigate('pay-period'));
+
+  document.getElementById('home-period-prev')?.addEventListener('click', e => {
+    e.stopPropagation();
+    if (_homePeriodOffset > 0) { _homePeriodOffset--; renderHealth(_healthHorizon); }
+  });
+  document.getElementById('home-period-next')?.addEventListener('click', e => {
+    e.stopPropagation();
+    if (_homePeriodOffset >= 2) {
+      Router.navigate('pay-period');
+    } else {
+      _homePeriodOffset++;
+      renderHealth(_healthHorizon);
+    }
+  });
 
   document.getElementById('bills-expand')?.addEventListener('click', () => {
     const hidden = document.getElementById('bills-hidden');

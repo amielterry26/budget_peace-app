@@ -35,7 +35,7 @@ router.post('/', async (req, res) => {
   try {
     const { userId, name, amount, recurrence, periodStart, cardId,
             recurrenceFrequency, recurrenceStartDate, dueDay, dueDate, scenarioId,
-            splitBiweekly, allocationMethod } = req.body;
+            splitBiweekly, allocationMethod, startDate, endDate } = req.body;
     // Verify body userId matches authenticated user
     if (userId && userId !== req.userId) {
       return res.status(403).json({ error: 'Forbidden' });
@@ -90,6 +90,8 @@ router.post('/', async (req, res) => {
       // Allocation: prefer allocationMethod (new); fall back to legacy splitBiweekly
       ...(allocationMethod     && { allocationMethod }),
       ...(!allocationMethod && splitBiweekly && { splitBiweekly: true }),
+      ...(startDate && { startDate }),
+      ...(endDate   && { endDate }),
     };
     await db.send(new PutCommand({ TableName: TABLE, Item: item }));
     res.json(item);
@@ -105,7 +107,8 @@ router.put('/:userId/:expenseId', verifyOwner, async (req, res) => {
     const { name, amount, recurrence, periodStart, cardId,
             recurrenceFrequency, recurrenceStartDate, dueDay, dueDate,
             splitBiweekly, allocationMethod,
-            category, notes, tags } = req.body;
+            category, notes, tags,
+            startDate, endDate } = req.body;
 
     if (!name || !amount || !recurrence) {
       return res.status(400).json({ error: 'Missing required fields (name, amount, recurrence)' });
@@ -155,9 +158,11 @@ router.put('/:userId/:expenseId', verifyOwner, async (req, res) => {
       allocationMethod:    allocationMethod || undefined,
       splitBiweekly:       (!allocationMethod && splitBiweekly) ? true : undefined,
       // Optional metadata
-      category:            category || undefined,
-      notes:               notes    || undefined,
-      tags:                tags     || undefined,
+      category:            category   || undefined,
+      notes:               notes      || undefined,
+      tags:                tags       || undefined,
+      startDate:           startDate  || undefined,
+      endDate:             endDate    || undefined,
     };
 
     await db.send(new PutCommand({ TableName: TABLE, Item: item }));

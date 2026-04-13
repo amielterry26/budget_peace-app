@@ -9,6 +9,7 @@ let _expFilter   = 'current'; // 'current' or 'upcoming'
 let _expCards    = [];
 let _expBanks    = [];
 let _expSort     = 'amount-desc'; // persists across filter toggles
+let _expSearch   = '';            // persists across tab switches
 
 Router.register('expenses', async () => {
   document.getElementById('page-title').textContent = 'Expenses';
@@ -65,27 +66,39 @@ function renderExpensesList() {
   const content = document.getElementById('main-content');
   const today = effectiveToday();
 
-  const current  = _expenses.filter(e => isExpenseActive(e, today));
-  const upcoming = _expenses.filter(e => !isExpenseActive(e, today));
-  const filtered = _expFilter === 'current' ? current : upcoming;
+  const expired  = _expenses.filter(e => isExpenseExpired(e, today));
+  const active   = _expenses.filter(e => !isExpenseExpired(e, today));
+  const current  = active.filter(e => isExpenseActive(e, today));
+  const upcoming = active.filter(e => !isExpenseActive(e, today));
+
+  const filtered = _expFilter === 'current'  ? current
+                 : _expFilter === 'upcoming' ? upcoming
+                 : expired;
+  const isExpiredTab = _expFilter === 'expired';
+  const displayed    = applyExpSearch(sortExpenses(filtered));
 
   const hasUpcoming = upcoming.length > 0;
+  const hasExpired  = expired.length > 0;
 
-  let toggleHtml = '';
-  if (hasUpcoming || _expFilter === 'upcoming') {
-    toggleHtml = `
-      <div class="home-mode-switch" aria-label="Expense filter">
-        <button class="home-mode-switch__btn ${_expFilter === 'current' ? 'is-active' : ''}" id="exp-filter-current" type="button">Current</button>
-        <button class="home-mode-switch__btn ${_expFilter === 'upcoming' ? 'is-active' : ''}" id="exp-filter-upcoming" type="button">Upcoming (${upcoming.length})</button>
-      </div>`;
-  }
+  const tabsHtml = `
+    <div class="home-mode-switch" aria-label="Expense filter">
+      <button class="home-mode-switch__btn ${_expFilter === 'current'  ? 'is-active' : ''}" id="exp-filter-current"  type="button">Current</button>
+      ${hasUpcoming || _expFilter === 'upcoming' ? `<button class="home-mode-switch__btn ${_expFilter === 'upcoming' ? 'is-active' : ''}" id="exp-filter-upcoming" type="button">Upcoming (${upcoming.length})</button>` : ''}
+      ${hasExpired  || _expFilter === 'expired'  ? `<button class="home-mode-switch__btn ${_expFilter === 'expired'  ? 'is-active' : ''}" id="exp-filter-expired"  type="button">Expired (${expired.length})</button>`  : ''}
+    </div>`;
 
-  const filteredTotal = expMonthlyTotal(filtered);
+  const toggleHtml = `
+    <div class="exp-header-row">
+      ${tabsHtml}
+      <input class="exp-search-input" id="exp-search" type="search" placeholder="Search…" value="${esc(_expSearch)}" />
+    </div>`;
+
+  const displayedTotal = expMonthlyTotal(displayed);
   const maxExp = Plans.getLimit('maxExpensesPerScenario');
   const isExpLimited = typeof maxExp === 'number' && maxExp !== Infinity;
   const expUsage = isExpLimited
-    ? `${_expenses.length} of ${maxExp} expenses used · ${money(filteredTotal)}/mo`
-    : `${filtered.length} expense${filtered.length !== 1 ? 's' : ''} · ${money(filteredTotal)}/mo`;
+    ? `${_expenses.length} of ${maxExp} expenses used · ${money(displayedTotal)}/mo`
+    : `${displayed.length} expense${displayed.length !== 1 ? 's' : ''} · ${money(displayedTotal)}/mo`;
   const summaryHtml = `
     <div class="exp-sort-bar">
       <span class="text-muted text-sm">${expUsage}${isExpLimited && _expenses.length >= maxExp ? ' · <a href="javascript:void(0)" class="exp-usage-upgrade" style="color:var(--color-accent);font-weight:600;">Upgrade for more</a>' : ''}</span>
@@ -102,10 +115,12 @@ function renderExpensesList() {
 
   const notesHtml = _expScenario ? notesCardHtml('exp') : '';
 
-  if (!filtered.length) {
-    const emptyMsg = _expFilter === 'current'
-      ? 'No active expenses. Tap + to add one.'
-      : 'No upcoming expenses.';
+  if (!displayed.length) {
+    const emptyMsg = _expSearch.trim()
+      ? `No results for &ldquo;${esc(_expSearch)}&rdquo;.`
+      : _expFilter === 'current'  ? 'No active expenses. Tap + to add one.'
+      : _expFilter === 'upcoming' ? 'No upcoming expenses.'
+      : 'No expired expenses.';
     content.innerHTML = `
       <div class="page">
         ${notesHtml}
@@ -124,11 +139,18 @@ function renderExpensesList() {
       ${notesHtml}
       ${toggleHtml}
       ${summaryHtml}
-      <div class="stack--3">${sortExpenses(filtered).map(buildPill).join('')}</div>
+      <div class="stack--3">${displayed.map(e => buildPill(e, isExpiredTab)).join('')}</div>
     </div>`;
 
   if (_expScenario) mountNotesWidget('exp', _expScenario.scenarioId, _expScenario.notes);
   bindFilterToggle();
+
+  // Wire search input
+  document.getElementById('exp-search')?.addEventListener('input', ev => {
+    _expSearch = ev.target.value;
+    renderExpensesList();
+    bindExpensesFab();
+  });
 
   // Wire sort select
   document.getElementById('exp-sort')?.addEventListener('change', ev => {
@@ -168,9 +190,35 @@ function bindFilterToggle() {
     renderExpensesList();
     bindExpensesFab();
   });
+  document.getElementById('exp-filter-expired')?.addEventListener('click', () => {
+    _expFilter = 'expired';
+    renderExpensesList();
+    bindExpensesFab();
+  });
+}
+
+function isExpenseExpired(expense, today) {
+  return !!(expense.endDate && expense.endDate < today);
+}
+
+function applyExpSearch(expenses) {
+  const q = (_expSearch || '').toLowerCase().trim();
+  if (!q) return expenses;
+  return expenses.filter(e => {
+    const name   = (e.name || '').toLowerCase();
+    const linkedCard = e.cardId ? _expCards.find(c => c.cardId === e.cardId) : null;
+    const linkedBank = linkedCard?.bankId ? _expBanks.find(b => b.bankId === linkedCard.bankId) : null;
+    const bank   = (linkedBank?.name || '').toLowerCase();
+    const amount = String(e.amount);
+    return name.includes(q) || bank.includes(q) || amount.includes(q);
+  });
 }
 
 function isExpenseActive(expense, today) {
+  // Expired and not-yet-started expenses are never "current"
+  if (isExpenseExpired(expense, today)) return false;
+  if (expense.startDate && expense.startDate > today) return false;
+
   if (expense.recurrence === 'recurring') {
     const start = expense.recurrenceStartDate || '1970-01-01';
     return start <= today;
@@ -187,7 +235,7 @@ function isExpenseActive(expense, today) {
   return true;
 }
 
-function buildPill(e) {
+function buildPill(e, isExpired = false) {
   const isRecurring = e.recurrence === 'recurring';
 
   let recurrenceLabel;
@@ -215,9 +263,11 @@ function buildPill(e) {
 
   // Collapsed: cadence badge (label only, no math)
   const cadenceMap = { weekly: 'weekly', biweekly: 'bi-weekly', monthly: 'monthly' };
-  const cadenceBadge = isRecurring
-    ? `<span class="expense-pill__cadence">${cadenceMap[e.recurrenceFrequency] || 'recurring'}</span>`
-    : `<span class="expense-pill__cadence">one-time</span>`;
+  const cadenceBadge = isExpired
+    ? `<span class="expense-pill__cadence expense-pill__cadence--expired">expired</span>`
+    : isRecurring
+      ? `<span class="expense-pill__cadence">${cadenceMap[e.recurrenceFrequency] || 'recurring'}</span>`
+      : `<span class="expense-pill__cadence">one-time</span>`;
 
   // Expanded: monthly total (only when it differs from the entered amount)
   let moMeta = '';
@@ -282,7 +332,7 @@ function buildPill(e) {
   }
 
   return `
-    <div class="expense-pill" id="pill-${e.expenseId}">
+    <div class="expense-pill${isExpired ? ' expense-pill--expired' : ''}" id="pill-${e.expenseId}">
       <div class="expense-pill__header">
         <div class="expense-pill__name">${esc(e.name)}${bankTag}</div>
         <div class="expense-pill__amount-wrap">
@@ -507,6 +557,17 @@ async function openSheet(expense, onSave) {
 
         <div class="sh-section">
           <div class="form-group">
+            <label class="form-label" for="sh-active-from">Active from <span class="text-muted">(optional)</span></label>
+            <input class="form-input" id="sh-active-from" type="date" value="${esc(expense?.startDate || '')}" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="sh-active-until">Expires on <span class="text-muted">(optional)</span></label>
+            <input class="form-input" id="sh-active-until" type="date" value="${esc(expense?.endDate || '')}" />
+          </div>
+        </div>
+
+        <div class="sh-section">
+          <div class="form-group">
             <label class="form-label" for="sh-category">Category <span class="text-muted">(optional)</span></label>
             <input class="form-input" id="sh-category" type="text" placeholder="e.g. Housing, Food, Transport" value="${esc(expense?.category || '')}" />
           </div>
@@ -612,14 +673,19 @@ async function openSheet(expense, onSave) {
     const notes    = document.getElementById('sh-notes').value.trim();
     const tags     = document.getElementById('sh-tags').value.trim();
 
+    const activeFrom  = document.getElementById('sh-active-from')?.value  || '';
+    const activeUntil = document.getElementById('sh-active-until')?.value || '';
+
     const payload = {
       userId: userId(), name, amount: Number(amount),
       recurrence: selectedRecurrence,
       scenarioId: _activeScenario,
-      ...(cardId    && { cardId }),
-      ...(category  && { category }),
-      ...(notes     && { notes }),
-      ...(tags      && { tags }),
+      ...(cardId      && { cardId }),
+      ...(category    && { category }),
+      ...(notes       && { notes }),
+      ...(tags        && { tags }),
+      ...(activeFrom  && { startDate: activeFrom }),
+      ...(activeUntil && { endDate: activeUntil }),
     };
 
     if (selectedRecurrence === 'recurring') {

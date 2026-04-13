@@ -161,23 +161,64 @@
       flex-shrink:   0;
     }
     .lp-nav__theme:hover { background: var(--surface-alt); }
-    /* Mobile: only show logo + CTA */
+    /* Mobile: only show logo + dark mode toggle + CTA */
+    .lp-nav__mobile-actions {
+      display:     none;
+      align-items: center;
+      gap:         8px;
+    }
+    .lp-nav__mobile-cta {
+      display:       inline-flex;
+      align-items:   center;
+      padding:       7px 16px;
+      background:    var(--accent);
+      color:         #fff;
+      font-size:     13px;
+      font-weight:   600;
+      border-radius: var(--r-md);
+      letter-spacing: -0.01em;
+    }
     @media (max-width: 640px) {
       .lp-nav__links { display: none; }
-      .lp-nav__mobile-cta {
-        display:       inline-flex;
-        align-items:   center;
-        padding:       8px 18px;
-        background:    var(--accent);
-        color:         #fff;
-        font-size:     13px;
-        font-weight:   600;
-        border-radius: var(--r-md);
-        letter-spacing: -0.01em;
-      }
+      .lp-nav__mobile-actions { display: flex; }
     }
     @media (min-width: 641px) {
-      .lp-nav__mobile-cta { display: none; }
+      .lp-nav__mobile-actions { display: none; }
+    }
+
+    /* ── Mobile floating pill nav ── */
+    .lp-pill-nav {
+      display:         none;
+      position:        fixed;
+      bottom:          20px;
+      left:            50%;
+      transform:       translateX(-50%);
+      z-index:         200;
+      background:      var(--surface);
+      border:          1px solid var(--border);
+      border-radius:   var(--r-xl);
+      box-shadow:      0 8px 32px rgba(0,0,0,.14), 0 2px 8px rgba(0,0,0,.08);
+      padding:         6px 8px;
+      gap:             2px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      white-space:     nowrap;
+    }
+    .lp-pill-nav__item {
+      padding:       8px 14px;
+      border-radius: var(--r-lg);
+      font-size:     12px;
+      font-weight:   600;
+      color:         var(--text-2);
+      transition:    background 0.15s, color 0.15s;
+      letter-spacing: 0.01em;
+    }
+    .lp-pill-nav__item:hover {
+      background: var(--surface-alt);
+      color:      var(--text);
+    }
+    @media (max-width: 640px) {
+      .lp-pill-nav { display: flex; }
     }
 
     /* ── Hero ── */
@@ -457,6 +498,36 @@
       margin-bottom: 2px;
       text-transform: uppercase;
       letter-spacing: 0.04em;
+    }
+
+    /* ── Pricing toggle ── */
+    .billing-toggle {
+      display:         flex;
+      justify-content: center;
+      margin:          0 auto 40px;
+      background:      var(--surface-alt);
+      border:          1px solid var(--border);
+      border-radius:   var(--r-xl);
+      padding:         4px;
+      width:           fit-content;
+      gap:             2px;
+    }
+    .billing-toggle__btn {
+      padding:       9px 24px;
+      border-radius: var(--r-lg);
+      font-size:     14px;
+      font-weight:   600;
+      color:         var(--text-2);
+      background:    none;
+      border:        none;
+      cursor:        pointer;
+      transition:    background 0.18s, color 0.18s, box-shadow 0.18s;
+      letter-spacing: -0.01em;
+    }
+    .billing-toggle__btn.is-active {
+      background: var(--surface);
+      color:      var(--text);
+      box-shadow: 0 1px 4px rgba(0,0,0,.10);
     }
 
     /* ── Pricing ── */
@@ -877,8 +948,11 @@
           <a href="/"         class="btn btn-primary" style="padding:8px 18px;font-size:13px;">Open App</a>
           <button id="theme-toggle" class="lp-nav__theme" aria-label="Toggle dark mode">☀</button>
         </div>
-        <!-- Mobile: just CTA -->
-        <a href="/" class="lp-nav__mobile-cta">Open App</a>
+        <!-- Mobile: dark mode toggle + Get the App -->
+        <div class="lp-nav__mobile-actions">
+          <button id="theme-toggle-mobile" class="lp-nav__theme" aria-label="Toggle dark mode">☀</button>
+          <a href="/" class="lp-nav__mobile-cta">Get the App</a>
+        </div>
       </div>
     </div>
   </nav>
@@ -897,7 +971,7 @@
       </p>
       <div class="hero__ctas">
         <a href="#pricing" class="btn btn-primary btn-lg">Get Budget Peace</a>
-        <a href="/demo-v2"  class="btn btn-ghost btn-lg">See it in action →</a>
+        <a href="/demo-v2" class="btn btn-ghost btn-lg">See it in action →</a>
       </div>
       <div class="hero__trust">
         <span class="hero__trust-item">One-time payment option</span>
@@ -1054,19 +1128,25 @@
       <div class="section-header">
         <div class="section-tag">Pricing</div>
         <h2 class="section-title">Simple. Honest. Yours.</h2>
-        <p class="section-sub">Pick what works for you. Upgrade or cancel anytime on monthly. Or pay once and never think about it again.</p>
+        <p class="section-sub">Monthly or pay once. No trials that auto-charge. No dark patterns.</p>
+      </div>
+
+      <!-- Billing toggle -->
+      <div class="billing-toggle">
+        <button class="billing-toggle__btn is-active" data-billing="monthly">Monthly</button>
+        <button class="billing-toggle__btn" data-billing="lifetime">Lifetime</button>
       </div>
 
       <div class="pricing-grid">
 
-        <!-- Monthly -->
+        <!-- Basic -->
         <div class="pricing-card">
-          <div class="pricing-card__name">Monthly</div>
+          <div class="pricing-card__name">Basic</div>
           <div class="pricing-card__price">
-            <span class="price-amount">$4.99</span>
-            <span class="price-period">/mo</span>
+            <span class="price-amount" data-monthly="$4.99" data-lifetime="$59.99">$4.99</span>
+            <span class="price-period" data-monthly="/mo" data-lifetime="once">/mo</span>
           </div>
-          <p class="pricing-card__tagline">Try it out. Cancel anytime — no questions asked.</p>
+          <p class="pricing-card__tagline" data-monthly="Try it out. Cancel anytime — no questions asked." data-lifetime="One-time payment. Access until you decide otherwise.">Try it out. Cancel anytime — no questions asked.</p>
           <div class="pricing-card__divider"></div>
           <ul class="pricing-features">
             <li>1 budget scenario</li>
@@ -1078,18 +1158,18 @@
             <li class="disabled">Financial health view</li>
             <li class="disabled">Unlimited everything</li>
           </ul>
-          <a href="/#pricing?intent=budget-monthly" class="btn btn-ghost pricing-cta">Get started</a>
+          <a class="btn btn-ghost pricing-cta" id="basic-cta" href="/?intent=budget-monthly">Get started</a>
         </div>
 
-        <!-- Lifetime (featured) -->
+        <!-- Pro (featured) -->
         <div class="pricing-card pricing-card--featured">
-          <div class="pricing-card__badge">Best value</div>
-          <div class="pricing-card__name">Lifetime</div>
+          <div class="pricing-card__badge">Recommended</div>
+          <div class="pricing-card__name">Pro</div>
           <div class="pricing-card__price">
-            <span class="price-amount">$79.99</span>
-            <span class="price-period">once</span>
+            <span class="price-amount" data-monthly="$7.99" data-lifetime="$79.99">$7.99</span>
+            <span class="price-period" data-monthly="/mo" data-lifetime="once">/mo</span>
           </div>
-          <p class="pricing-card__tagline">Pay once. Everything included, forever.</p>
+          <p class="pricing-card__tagline" data-monthly="Everything, unlimited. Cancel whenever." data-lifetime="Pay once. Unlimited access, forever.">Everything, unlimited. Cancel whenever.</p>
           <div class="pricing-card__divider"></div>
           <ul class="pricing-features">
             <li>Unlimited scenarios</li>
@@ -1101,7 +1181,7 @@
             <li>All future features</li>
             <li>Priority support</li>
           </ul>
-          <a href="/#pricing?intent=pro-lifetime" class="btn btn-white pricing-cta">Get lifetime access</a>
+          <a class="btn btn-white pricing-cta" id="pro-cta" href="/?intent=pro-monthly">Go Pro</a>
         </div>
 
       </div>
@@ -1154,7 +1234,7 @@
   </section>
 
   <!-- FAQ -->
-  <section class="faq">
+  <section class="faq" id="faq">
     <div class="container">
       <div class="section-header">
         <div class="section-tag">Questions</div>
@@ -1214,6 +1294,14 @@
     </div>
   </section>
 
+  <!-- Mobile floating pill nav -->
+  <nav class="lp-pill-nav" aria-label="Quick navigation">
+    <a href="#features" class="lp-pill-nav__item">Features</a>
+    <a href="#pricing"  class="lp-pill-nav__item">Pricing</a>
+    <a href="/demo-v2"  class="lp-pill-nav__item">Demo</a>
+    <a href="#faq"      class="lp-pill-nav__item">FAQ</a>
+  </nav>
+
   <!-- Footer -->
   <footer class="footer">
     <div class="container">
@@ -1231,20 +1319,25 @@
   </footer>
 
   <script>
-    // Theme toggle
-    const toggle = document.getElementById('theme-toggle');
+    // Theme toggle (desktop + mobile)
     function syncTheme() {
       const t = document.documentElement.getAttribute('data-theme');
-      toggle.textContent = t === 'dark' ? '☀' : '☾';
+      const icon = t === 'dark' ? '☀' : '☾';
+      const dtToggle = document.getElementById('theme-toggle');
+      const mbToggle = document.getElementById('theme-toggle-mobile');
+      if (dtToggle) dtToggle.textContent = icon;
+      if (mbToggle) mbToggle.textContent = icon;
     }
-    syncTheme();
-    toggle.addEventListener('click', () => {
+    function toggleTheme() {
       const curr = document.documentElement.getAttribute('data-theme');
       const next = curr === 'dark' ? 'light' : 'dark';
       document.documentElement.setAttribute('data-theme', next);
       localStorage.setItem('bp_theme', next);
       syncTheme();
-    });
+    }
+    syncTheme();
+    document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
+    document.getElementById('theme-toggle-mobile')?.addEventListener('click', toggleTheme);
 
     // FAQ accordion
     document.querySelectorAll('.faq-q').forEach(btn => {
@@ -1254,6 +1347,38 @@
         document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('is-open'));
         if (!wasOpen) item.classList.add('is-open');
       });
+    });
+
+    // Billing toggle (Monthly / Lifetime)
+    let currentBilling = 'monthly';
+    const planLinks = {
+      'basic-cta': { monthly: '/?intent=budget-monthly', lifetime: '/?intent=budget-lifetime' },
+      'pro-cta':   { monthly: '/?intent=pro-monthly',   lifetime: '/?intent=pro-lifetime' },
+    };
+
+    function applyBilling(billing) {
+      currentBilling = billing;
+
+      // Update toggle buttons
+      document.querySelectorAll('.billing-toggle__btn').forEach(btn => {
+        btn.classList.toggle('is-active', btn.dataset.billing === billing);
+      });
+
+      // Update prices, periods, taglines
+      document.querySelectorAll('[data-monthly]').forEach(el => {
+        const val = billing === 'monthly' ? el.dataset.monthly : el.dataset.lifetime;
+        if (val !== undefined) el.textContent = val;
+      });
+
+      // Update CTA hrefs
+      Object.entries(planLinks).forEach(([id, links]) => {
+        const el = document.getElementById(id);
+        if (el) el.href = links[billing];
+      });
+    }
+
+    document.querySelectorAll('.billing-toggle__btn').forEach(btn => {
+      btn.addEventListener('click', () => applyBilling(btn.dataset.billing));
     });
   </script>
 </body>

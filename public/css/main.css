@@ -430,14 +430,15 @@ img  { display: block; max-width: 100%; }
   border-radius:   var(--radius-pill);
   background:      var(--color-accent);
   color:           var(--color-text-inverse);
-  font-size:       26px;
   display:         flex;
   align-items:     center;
   justify-content: center;
   box-shadow:      var(--shadow-md);
   z-index:         140;
   transition:      transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
-  padding-bottom:  2px;
+  flex-shrink:     0;
+  padding:         0;
+  line-height:     1;
 }
 .fab:hover  { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
 .fab:active { transform: scale(0.94); }
@@ -1397,17 +1398,17 @@ img  { display: block; max-width: 100%; }
 }
 .exp-sort-select {
   font-size:    var(--font-size-xs);
-  font-weight:  var(--font-weight-semi);
-  color:        var(--color-accent-dark);
+  font-weight:  var(--font-weight-medium);
+  color:        var(--color-text-secondary);
   background:   var(--color-surface);
-  border:       1.5px solid rgba(27,94,59,0.25);
+  border:       1px solid var(--color-border-strong);
   border-radius: var(--radius-pill);
   padding:      4px 26px 4px 10px;
   cursor:       pointer;
   outline:      none;
   appearance:   none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231B5E3B' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6B80' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 8px center;
   background-size: 10px 6px;
@@ -1424,8 +1425,8 @@ img  { display: block; max-width: 100%; }
 @media (min-width: 1200px) {
   .exp-sort-bar {
     padding:      var(--space-2) var(--space-4);
-    border-color: rgba(27,94,59,0.15);
-    background:   linear-gradient(to right, var(--color-surface-alt) 0%, var(--color-accent-light) 100%);
+    border-color: var(--color-border);
+    background:   var(--color-surface-alt);
   }
   .exp-sort-ctrl {
     display:     flex;
@@ -1701,16 +1702,20 @@ img  { display: block; max-width: 100%; }
 .exp-reorder-btn {
   font-size:     12px;
   font-weight:   500;
-  color:         var(--color-accent);
+  color:         var(--color-text-secondary);
   padding:       4px 10px;
-  border:        1px solid var(--color-accent);
+  border:        1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
   background:    none;
   cursor:        pointer;
   white-space:   nowrap;
-  transition:    background 0.15s;
+  transition:    background 0.15s, color 0.15s, border-color 0.15s;
 }
-.exp-reorder-btn:hover { background: var(--color-accent-light); }
+.exp-reorder-btn:hover {
+  color:         var(--color-accent-dark);
+  border-color:  var(--color-accent);
+  background:    var(--color-accent-light);
+}
 
 /* --- Wallet: savings list + compact cards list containers -- */
 #wallet-savings-list {
@@ -4317,11 +4322,11 @@ body.has-demo-banner .scenario-selector:not(.is-hidden) ~ .time-travel-strip:not
   border-color: var(--color-border-strong);
 }
 
-/* Sort select — muted green arrow */
+/* Sort select — muted in dark mode */
 [data-theme="dark"] .exp-sort-select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234E9E6A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  border-color: rgba(78,158,106,0.28);
-  color: var(--color-accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238C8A86' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  border-color: var(--color-border-strong);
+  color: var(--color-text-secondary);
   background-color: var(--color-surface-alt);
 }
 

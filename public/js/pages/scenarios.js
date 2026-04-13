@@ -10,7 +10,7 @@ Router.register('scenarios', async () => {
   showBottomNav(true);
   showFab(true);
 
-  document.getElementById('fab').textContent = '+';
+  document.getElementById('fab').innerHTML = '<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="11" y1="4" x2="11" y2="18"/><line x1="4" y1="11" x2="18" y2="11"/></svg>';
   document.getElementById('fab').onclick = () => openNewScenarioSheet();
 
   document.getElementById('main-content').innerHTML = `

@@ -3,6 +3,8 @@
 // ============================================================
 
 Router.register('scenarios', async () => {
+  _expandedScenarios.clear();
+  Object.keys(_scenarioExpCache).forEach(k => delete _scenarioExpCache[k]);
   document.getElementById('page-title').textContent = 'Scenarios';
   setActivePage('scenarios');
   showBottomNav(true);

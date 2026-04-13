@@ -37,6 +37,8 @@ const CHEVRON_DOWN  = `<svg width="13" height="13" viewBox="0 0 24 24" fill="non
 const CHEVRON_RIGHT = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>`;
 
 Router.register('cards', async () => {
+  _walletReorder   = false;
+  _accountsReorder = false;
   document.getElementById('page-title').textContent = 'Wallet';
   setActivePage('cards');
   showBottomNav(true);

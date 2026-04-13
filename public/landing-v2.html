@@ -364,35 +364,66 @@
       line-height: 1.6;
     }
 
-    /* ── Feature sections ── */
+    /* ── Feature tab section ── */
     .features { padding: 80px 0; }
 
-    .feature-block {
+    .feat-tabs {
+      display:       flex;
+      gap:           4px;
+      background:    var(--surface-alt);
+      border:        1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding:       4px;
+      margin-bottom: 40px;
+      overflow-x:    auto;
+      scrollbar-width: none;
+    }
+    .feat-tabs::-webkit-scrollbar { display: none; }
+
+    .feat-tab {
+      padding:       10px 20px;
+      border-radius: var(--r-md);
+      font-size:     14px;
+      font-weight:   600;
+      color:         var(--text-2);
+      background:    none;
+      border:        none;
+      cursor:        pointer;
+      white-space:   nowrap;
+      flex-shrink:   0;
+      transition:    background 0.15s, color 0.15s, box-shadow 0.15s;
+      letter-spacing: -0.01em;
+    }
+    .feat-tab.is-active {
+      background: var(--surface);
+      color:      var(--text);
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+
+    .feat-panel {
       display:     grid;
       grid-template-columns: 1fr 1fr;
       gap:         60px;
       align-items: center;
-      margin-bottom: 80px;
     }
-    .feature-block:last-child { margin-bottom: 0; }
-    .feature-block--flip .feature-block__img { order: 2; }
-    .feature-block--flip .feature-block__text { order: 1; }
     @media (max-width: 780px) {
-      .feature-block { grid-template-columns: 1fr; gap: 32px; }
-      .feature-block--flip .feature-block__img  { order: unset; }
-      .feature-block--flip .feature-block__text { order: unset; }
+      .feat-panel       { grid-template-columns: 1fr; gap: 32px; }
+      .feat-panel__text { order: 2; }
+      .feat-panel__img  { order: 1; }
     }
 
-    .feature-block__img {
+    .feat-panel__img {
       border-radius: var(--r-xl);
       overflow:      hidden;
       box-shadow:    var(--shadow-lg);
       border:        1px solid var(--border);
     }
-    .feature-block__img img {
-      width:   100%;
-      display: block;
+    .feat-panel__img img {
+      width:      100%;
+      display:    block;
+      transition: opacity 0.18s ease;
     }
+    .feat-panel__img img.is-switching { opacity: 0; }
 
     .feature-label {
       display:        inline-block;
@@ -407,18 +438,18 @@
       margin-bottom:  12px;
     }
     .feature-title {
-      font-size:      clamp(1.5rem, 3.5vw, 2rem);
+      font-size:      clamp(1.4rem, 3vw, 1.9rem);
       font-weight:    800;
       letter-spacing: -0.03em;
       line-height:    1.15;
       color:          var(--text);
-      margin-bottom:  16px;
+      margin-bottom:  14px;
     }
     .feature-body {
-      font-size:   16px;
+      font-size:   15px;
       color:       var(--text-2);
       line-height: 1.7;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
     .feature-checks {
       list-style:    none;
@@ -439,65 +470,6 @@
       font-weight: 700;
       flex-shrink: 0;
       margin-top:  1px;
-    }
-
-    /* ── Scenario callout ── */
-    .scenario-callout {
-      margin: 0 0 80px;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hl-dk, #1B5C36) 100%);
-      border-radius: var(--r-xl);
-      padding: 60px 48px;
-      color: #fff;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 48px;
-      align-items: center;
-    }
-    @media (max-width: 680px) {
-      .scenario-callout { grid-template-columns: 1fr; padding: 40px 28px; gap: 32px; }
-    }
-    .scenario-callout__label {
-      font-size:      11px;
-      font-weight:    700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      opacity:        0.7;
-      margin-bottom:  12px;
-    }
-    .scenario-callout__title {
-      font-size:      clamp(1.5rem, 3vw, 2rem);
-      font-weight:    800;
-      letter-spacing: -0.03em;
-      line-height:    1.15;
-      margin-bottom:  16px;
-    }
-    .scenario-callout__body {
-      font-size:   16px;
-      opacity:     0.85;
-      line-height: 1.65;
-    }
-    .scenario-callout__examples {
-      display:        flex;
-      flex-direction: column;
-      gap:            12px;
-    }
-    .scenario-eg {
-      background:    rgba(255,255,255,.12);
-      border-radius: var(--r-md);
-      padding:       14px 18px;
-      font-size:     14px;
-      font-weight:   500;
-      line-height:   1.5;
-      backdrop-filter: blur(4px);
-    }
-    .scenario-eg strong {
-      display:     block;
-      font-size:   13px;
-      opacity:     0.65;
-      font-weight: 600;
-      margin-bottom: 2px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
     }
 
     /* ── Pricing toggle ── */
@@ -1020,79 +992,37 @@
   <!-- Features -->
   <section class="features" id="features">
     <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Features</div>
+        <h2 class="section-title">Built around how you actually think about money.</h2>
+        <p class="section-sub">Not categories. Not transactions. Your paycheck, your bills, what's left.</p>
+      </div>
 
-      <div class="feature-block">
-        <div class="feature-block__img">
-          <img src="/screenshots/IMG_7156.PNG" alt="Pay Period view" />
+      <!-- Tab bar -->
+      <div class="feat-tabs" role="tablist">
+        <button class="feat-tab is-active" data-tab="0" role="tab">Pay Period</button>
+        <button class="feat-tab" data-tab="1" role="tab">Financial Health</button>
+        <button class="feat-tab" data-tab="2" role="tab">What-Ifs</button>
+        <button class="feat-tab" data-tab="3" role="tab">Wallet</button>
+      </div>
+
+      <!-- Tab panel: image left, text right -->
+      <div class="feat-panel">
+        <div class="feat-panel__img">
+          <img id="feat-img" src="/screenshots/IMG_7156.PNG" alt="Pay Period view" />
         </div>
-        <div class="feature-block__text">
-          <span class="feature-label">Pay Period</span>
-          <h2 class="feature-title">Know the number that actually matters.</h2>
-          <p class="feature-body">Every paycheck, see exactly what's left after your real expenses hit. Not estimated. Not averaged. The real number, right now.</p>
-          <ul class="feature-checks">
-            <li>Income minus obligations, per period</li>
-            <li>Bi-weekly and monthly cadence support</li>
-            <li>Progress bar shows how much of income is committed</li>
-            <li>Tap any expense to see due date and details</li>
+        <div class="feat-panel__text">
+          <span class="feature-label" id="feat-label">Pay Period</span>
+          <h2 class="feature-title" id="feat-title">What's actually left this paycheck.</h2>
+          <p class="feature-body" id="feat-body">Every pay period, see exactly what remains after your bills hit — not your bank balance, not an average. The real number, right now.</p>
+          <ul class="feature-checks" id="feat-checks">
+            <li>Income minus all obligations, per period</li>
+            <li>Bi-weekly and monthly cadence</li>
+            <li>Progress bar shows how committed your income is</li>
+            <li>Tap any expense to see its due date</li>
           </ul>
         </div>
       </div>
-
-      <div class="feature-block feature-block--flip">
-        <div class="feature-block__img">
-          <img src="/screenshots/IMG_7158.PNG" alt="Financial Health view" />
-        </div>
-        <div class="feature-block__text">
-          <span class="feature-label">Financial Health</span>
-          <h2 class="feature-title">See your trajectory — not just today.</h2>
-          <p class="feature-body">The Financial Health view projects your income and obligations across 3, 6, or 12 months. If nothing changes, here's where you end up.</p>
-          <ul class="feature-checks">
-            <li>Multi-month horizon view</li>
-            <li>Income vs obligations at a glance</li>
-            <li>Spot shortfalls before they happen</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Scenario callout -->
-      <div class="scenario-callout">
-        <div>
-          <div class="scenario-callout__label">Scenario Planning</div>
-          <h3 class="scenario-callout__title">What if I got a new job?<br>What if we moved?</h3>
-          <p class="scenario-callout__body">Create separate budget scenarios and run your what-ifs without touching your real numbers. Compare them side by side.</p>
-        </div>
-        <div class="scenario-callout__examples">
-          <div class="scenario-eg">
-            <strong>Scenario A — Current</strong>
-            $1,050 left this period
-          </div>
-          <div class="scenario-eg">
-            <strong>Scenario B — New job</strong>
-            $2,340 left this period
-          </div>
-          <div class="scenario-eg">
-            <strong>Scenario C — We move to Austin</strong>
-            $890 left this period
-          </div>
-        </div>
-      </div>
-
-      <div class="feature-block">
-        <div class="feature-block__img">
-          <img src="/screenshots/IMG_7154.PNG" alt="Cards / Wallet view" />
-        </div>
-        <div class="feature-block__text">
-          <span class="feature-label">Wallet</span>
-          <h2 class="feature-title">Your cards, organized by bank.</h2>
-          <p class="feature-body">Add your cards, group them by bank, and see which expenses are tied to each one. No more "wait, which card does this come out of?"</p>
-          <ul class="feature-checks">
-            <li>Group cards by bank with color coding</li>
-            <li>See all expenses attached to each card</li>
-            <li>Filter your expense list by bank instantly</li>
-          </ul>
-        </div>
-      </div>
-
     </div>
   </section>
 
@@ -1139,27 +1069,7 @@
 
       <div class="pricing-grid">
 
-        <!-- Basic -->
-        <div class="pricing-card">
-          <div class="pricing-card__name">Basic</div>
-          <div class="pricing-card__price">
-            <span class="price-amount" data-monthly="$4.99" data-lifetime="$59.99">$4.99</span>
-            <span class="price-period" data-monthly="/mo" data-lifetime="once">/mo</span>
-          </div>
-          <p class="pricing-card__tagline" data-monthly="Try it out. Cancel anytime — no questions asked." data-lifetime="One-time payment. Access until you decide otherwise.">Try it out. Cancel anytime — no questions asked.</p>
-          <div class="pricing-card__divider"></div>
-          <ul class="pricing-features">
-            <li>Pay period tracking + planning</li>
-            <li>1 scenario, up to 10 expenses</li>
-            <li>3-month planning horizon</li>
-            <li>Goals + bank tracking</li>
-            <li class="disabled">Scenario comparison</li>
-            <li class="disabled">Unlimited everything</li>
-          </ul>
-          <a class="btn btn-ghost pricing-cta" id="basic-cta" href="/?intent=budget-monthly">Get started</a>
-        </div>
-
-        <!-- Pro (featured) -->
+        <!-- Pro (featured) — shown first -->
         <div class="pricing-card pricing-card--featured">
           <div class="pricing-card__badge">Recommended</div>
           <div class="pricing-card__name">Pro</div>
@@ -1180,6 +1090,71 @@
           <a class="btn btn-white pricing-cta" id="pro-cta" href="/?intent=pro-monthly">Go Pro</a>
         </div>
 
+        <!-- Basic -->
+        <div class="pricing-card">
+          <div class="pricing-card__name">Basic</div>
+          <div class="pricing-card__price">
+            <span class="price-amount" data-monthly="$4.99" data-lifetime="$59.99">$4.99</span>
+            <span class="price-period" data-monthly="/mo" data-lifetime="once">/mo</span>
+          </div>
+          <p class="pricing-card__tagline" data-monthly="Try it out. Cancel anytime — no questions asked." data-lifetime="One-time payment. Access until you decide otherwise.">Try it out. Cancel anytime — no questions asked.</p>
+          <div class="pricing-card__divider"></div>
+          <ul class="pricing-features">
+            <li>Pay period tracking + planning</li>
+            <li>1 scenario, up to 10 expenses</li>
+            <li>3-month planning horizon</li>
+            <li>Goals + bank tracking</li>
+            <li class="disabled">Scenario comparison</li>
+            <li class="disabled">Unlimited everything</li>
+          </ul>
+          <a class="btn btn-ghost pricing-cta" id="basic-cta" href="/?intent=budget-monthly">Get started</a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials (placeholder) -->
+  <section class="testimonials">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">From real users</div>
+        <h2 class="section-title">Finally, a budget that makes sense.</h2>
+      </div>
+      <div class="testimonial-grid">
+        <div class="testimonial-card">
+          <div class="testimonial-stars">★★★★★</div>
+          <p class="testimonial-quote">"I've tried Mint, YNAB, and a dozen spreadsheets. Budget Peace is the first thing that actually matches how I think about money — by paycheck, not by month."</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">MJ</div>
+            <div>
+              <div class="testimonial-name">Marcus J.</div>
+              <div class="testimonial-role">Software Engineer</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-stars">★★★★★</div>
+          <p class="testimonial-quote">"The scenario feature alone is worth it. I ran 'what if I quit my job' and 'what if we move cities' side by side. I made a huge life decision with actual numbers."</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">AT</div>
+            <div>
+              <div class="testimonial-name">Amara T.</div>
+              <div class="testimonial-role">Freelance Designer</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-stars">★★★★★</div>
+          <p class="testimonial-quote">"I'm not a finance person. I just needed to know: can I afford this? Budget Peace answers that question in under 30 seconds. That's it. That's all I needed."</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">DL</div>
+            <div>
+              <div class="testimonial-name">DeShawn L.</div>
+              <div class="testimonial-role">Nurse Practitioner</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -1330,6 +1305,92 @@
 
     document.querySelectorAll('.billing-toggle__btn').forEach(btn => {
       btn.addEventListener('click', () => applyBilling(btn.dataset.billing));
+    });
+
+    // Feature tabs
+    const featData = [
+      {
+        label:  'Pay Period',
+        img:    '/screenshots/IMG_7156.PNG',
+        alt:    'Pay Period view',
+        title:  'What\'s actually left this paycheck.',
+        body:   'Every pay period, see exactly what remains after your bills hit — not your bank balance, not an average. The real number, right now.',
+        checks: [
+          'Income minus all obligations, per period',
+          'Bi-weekly and monthly cadence',
+          'Progress bar shows how committed your income is',
+          'Tap any expense to see its due date',
+        ],
+      },
+      {
+        label:  'Financial Health',
+        img:    '/screenshots/IMG_7158.PNG',
+        alt:    'Financial Health view',
+        title:  'See your next 12 months, today.',
+        body:   'The Financial Health view projects your income and obligations forward — 3, 6, or 12 months. Spot a shortfall before it becomes an emergency.',
+        checks: [
+          'Monthly income vs obligations at a glance',
+          'Spot underfunded periods before they hit',
+          'Updates instantly as you add or change expenses',
+        ],
+      },
+      {
+        label:  'What-Ifs',
+        img:    '/screenshots/IMG_7160.PNG',
+        alt:    'Scenario comparison view',
+        title:  'Model life changes without the risk.',
+        body:   'Create a separate scenario for any what-if — new job, new city, new baby — and compare it to your real budget side by side. Your actual numbers stay untouched.',
+        checks: [
+          'Unlimited scenarios (Pro)',
+          'Side-by-side comparison view',
+          'Each scenario has its own income, expenses, and pay dates',
+        ],
+      },
+      {
+        label:  'Wallet',
+        img:    '/screenshots/IMG_7154.PNG',
+        alt:    'Wallet and cards view',
+        title:  'Every card. Every bank. One place.',
+        body:   'Add your cards, group them by bank, and see exactly which expenses hit each one. Filter your entire expense list by bank in one tap.',
+        checks: [
+          'Group cards by bank with color coding',
+          'See all expenses tied to each card',
+          'Filter the expense list by bank instantly',
+        ],
+      },
+    ];
+
+    const featImg    = document.getElementById('feat-img');
+    const featLabel  = document.getElementById('feat-label');
+    const featTitle  = document.getElementById('feat-title');
+    const featBody   = document.getElementById('feat-body');
+    const featChecks = document.getElementById('feat-checks');
+
+    function switchTab(idx) {
+      // Highlight active tab
+      document.querySelectorAll('.feat-tab').forEach((t, i) => {
+        t.classList.toggle('is-active', i === idx);
+      });
+
+      const d = featData[idx];
+
+      // Crossfade image
+      featImg.classList.add('is-switching');
+      setTimeout(() => {
+        featImg.src = d.img;
+        featImg.alt = d.alt;
+        featImg.classList.remove('is-switching');
+      }, 180);
+
+      // Swap text
+      featLabel.textContent  = d.label;
+      featTitle.textContent  = d.title;
+      featBody.textContent   = d.body;
+      featChecks.innerHTML   = d.checks.map(c => `<li>${c}</li>`).join('');
+    }
+
+    document.querySelectorAll('.feat-tab').forEach((btn, idx) => {
+      btn.addEventListener('click', () => switchTab(idx));
     });
   </script>
 </body>

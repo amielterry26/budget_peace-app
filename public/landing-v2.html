@@ -190,32 +190,32 @@
     .lp-pill-nav {
       display:         none;
       position:        fixed;
-      bottom:          20px;
+      bottom:          32px;
       left:            50%;
       transform:       translateX(-50%);
       z-index:         200;
-      background:      var(--surface);
-      border:          1px solid var(--border);
+      background:      var(--accent);
+      border:          1px solid rgba(255,255,255,.12);
       border-radius:   var(--r-xl);
-      box-shadow:      0 8px 32px rgba(0,0,0,.14), 0 2px 8px rgba(0,0,0,.08);
-      padding:         6px 8px;
+      box-shadow:      0 8px 32px rgba(27,94,59,.35), 0 2px 8px rgba(27,94,59,.20);
+      padding:         6px 6px;
       gap:             2px;
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       white-space:     nowrap;
     }
     .lp-pill-nav__item {
-      padding:       8px 14px;
+      padding:       9px 16px;
       border-radius: var(--r-lg);
       font-size:     12px;
       font-weight:   600;
-      color:         var(--text-2);
+      color:         rgba(255,255,255,.80);
       transition:    background 0.15s, color 0.15s;
       letter-spacing: 0.01em;
     }
     .lp-pill-nav__item:hover {
-      background: var(--surface-alt);
-      color:      var(--text);
+      background: rgba(255,255,255,.15);
+      color:      #fff;
     }
     @media (max-width: 640px) {
       .lp-pill-nav { display: flex; }
@@ -1149,13 +1149,11 @@
           <p class="pricing-card__tagline" data-monthly="Try it out. Cancel anytime — no questions asked." data-lifetime="One-time payment. Access until you decide otherwise.">Try it out. Cancel anytime — no questions asked.</p>
           <div class="pricing-card__divider"></div>
           <ul class="pricing-features">
-            <li>1 budget scenario</li>
-            <li>Up to 10 expenses</li>
-            <li>Up to 3 savings goals</li>
-            <li>Up to 2 banks</li>
+            <li>Pay period tracking + planning</li>
+            <li>1 scenario, up to 10 expenses</li>
             <li>3-month planning horizon</li>
+            <li>Goals + bank tracking</li>
             <li class="disabled">Scenario comparison</li>
-            <li class="disabled">Financial health view</li>
             <li class="disabled">Unlimited everything</li>
           </ul>
           <a class="btn btn-ghost pricing-cta" id="basic-cta" href="/?intent=budget-monthly">Get started</a>
@@ -1172,63 +1170,16 @@
           <p class="pricing-card__tagline" data-monthly="Everything, unlimited. Cancel whenever." data-lifetime="Pay once. Unlimited access, forever.">Everything, unlimited. Cancel whenever.</p>
           <div class="pricing-card__divider"></div>
           <ul class="pricing-features">
-            <li>Unlimited scenarios</li>
-            <li>Unlimited expenses</li>
-            <li>Unlimited goals + banks</li>
-            <li>Scenario comparison</li>
-            <li>Financial health view</li>
+            <li>Unlimited scenarios + expenses</li>
             <li>12-month planning horizon</li>
-            <li>All future features</li>
+            <li>Scenario comparison view</li>
+            <li>Financial health view</li>
+            <li>All future features included</li>
             <li>Priority support</li>
           </ul>
           <a class="btn btn-white pricing-cta" id="pro-cta" href="/?intent=pro-monthly">Go Pro</a>
         </div>
 
-      </div>
-    </div>
-  </section>
-
-  <!-- Testimonials -->
-  <section class="testimonials">
-    <div class="container">
-      <div class="section-header">
-        <div class="section-tag">From real users</div>
-        <h2 class="section-title">Finally, a budget that makes sense.</h2>
-      </div>
-      <div class="testimonial-grid">
-        <div class="testimonial-card">
-          <div class="testimonial-stars">★★★★★</div>
-          <p class="testimonial-quote">"I've tried Mint, YNAB, and a dozen spreadsheets. Budget Peace is the first thing that actually matches how I think about money — by paycheck, not by month."</p>
-          <div class="testimonial-author">
-            <div class="testimonial-avatar">MJ</div>
-            <div>
-              <div class="testimonial-name">Marcus J.</div>
-              <div class="testimonial-role">Software Engineer</div>
-            </div>
-          </div>
-        </div>
-        <div class="testimonial-card">
-          <div class="testimonial-stars">★★★★★</div>
-          <p class="testimonial-quote">"The scenario feature alone is worth it. I ran 'what if I quit my job' and 'what if we move cities' side by side. I made a huge life decision with actual numbers."</p>
-          <div class="testimonial-author">
-            <div class="testimonial-avatar">AT</div>
-            <div>
-              <div class="testimonial-name">Amara T.</div>
-              <div class="testimonial-role">Freelance Designer</div>
-            </div>
-          </div>
-        </div>
-        <div class="testimonial-card">
-          <div class="testimonial-stars">★★★★★</div>
-          <p class="testimonial-quote">"I'm not a finance person. I just needed to know: can I afford this? Budget Peace answers that question in under 30 seconds. That's it. That's all I needed."</p>
-          <div class="testimonial-author">
-            <div class="testimonial-avatar">DL</div>
-            <div>
-              <div class="testimonial-name">DeShawn L.</div>
-              <div class="testimonial-role">Nurse Practitioner</div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </section>

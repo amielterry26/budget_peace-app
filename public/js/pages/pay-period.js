@@ -2,8 +2,9 @@
 // Pay Period — Operational Budget View
 // ============================================================
 
-let _pd    = null; // { periods, expenses, cards, banks }
-let _pdIdx = 0;
+let _pd     = null; // { periods, expenses, cards, banks }
+let _pdIdx  = 0;
+let _pdSort = 'amount-desc';
 
 Router.register('pay-period', async (params) => {
   document.getElementById('page-title').textContent = 'Pay Period';
@@ -143,6 +144,11 @@ function renderPeriod(idx) {
 
   document.getElementById('view-all-btn')?.addEventListener('click', () => Router.navigate('budgets'));
 
+  document.getElementById('pd-sort')?.addEventListener('change', ev => {
+    _pdSort = ev.target.value;
+    renderPeriod(_pdIdx);
+  });
+
   // Bill mini-card click handlers
   document.querySelectorAll('.pd-bill-card').forEach(card => {
     card.addEventListener('click', () => {
@@ -156,7 +162,38 @@ function renderPeriod(idx) {
 
 let _pdBreakdownItems = []; // cached for bill card click handlers
 
+function sortPdItems(arr, cards, banks) {
+  const s = arr.slice();
+  switch (_pdSort) {
+    case 'amount-desc': return s.sort((a, b) => (b.displayAmount || b.amount) - (a.displayAmount || a.amount));
+    case 'amount-asc':  return s.sort((a, b) => (a.displayAmount || a.amount) - (b.displayAmount || b.amount));
+    case 'by-bank': return s.sort((a, b) => {
+      const cardA = a.cardId ? cards.find(c => c.cardId === a.cardId) : null;
+      const bankA = cardA?.bankId ? banks.find(b => b.bankId === cardA.bankId) : null;
+      const cardB = b.cardId ? cards.find(c => c.cardId === b.cardId) : null;
+      const bankB = cardB?.bankId ? banks.find(b => b.bankId === cardB.bankId) : null;
+      return (bankA?.name || '\uffff').localeCompare(bankB?.name || '\uffff') || a.name.localeCompare(b.name);
+    });
+    case 'by-card': return s.sort((a, b) => {
+      const cardA = a.cardId ? cards.find(c => c.cardId === a.cardId) : null;
+      const cardB = b.cardId ? cards.find(c => c.cardId === b.cardId) : null;
+      return (cardA?.name || '\uffff').localeCompare(cardB?.name || '\uffff') || a.name.localeCompare(b.name);
+    });
+    default: return s;
+  }
+}
+
 function buildPdBreakdown(pd, cards = [], banks = []) {
+  const sortBar = `
+    <div style="display:flex;justify-content:flex-end;align-items:center;gap:var(--space-2);margin-bottom:var(--space-1);">
+      <select class="exp-sort-select" id="pd-sort">
+        <option value="amount-desc" ${_pdSort === 'amount-desc' ? 'selected' : ''}>Highest</option>
+        <option value="amount-asc"  ${_pdSort === 'amount-asc'  ? 'selected' : ''}>Lowest</option>
+        <option value="by-bank"     ${_pdSort === 'by-bank'     ? 'selected' : ''}>By Bank</option>
+        <option value="by-card"     ${_pdSort === 'by-card'     ? 'selected' : ''}>By Card</option>
+      </select>
+    </div>`;
+
   let html = '';
   _pdBreakdownItems = [];
 
@@ -171,9 +208,12 @@ function buildPdBreakdown(pd, cards = [], banks = []) {
     return `<div class="period-bill-card__note">${dot}${parts}</div>`;
   }
 
-  if (pd.recurringItems.length) {
+  const sortedRecurring = sortPdItems(pd.recurringItems, cards, banks);
+  const sortedOnce      = sortPdItems(pd.onceItems, cards, banks);
+
+  if (sortedRecurring.length) {
     html += `<div class="section-title" style="margin:var(--space-3) 0 var(--space-1);">Recurring</div>`;
-    html += pd.recurringItems.map(e => {
+    html += sortedRecurring.map(e => {
       const idx = _pdBreakdownItems.length;
       _pdBreakdownItems.push(e);
       return `
@@ -188,9 +228,9 @@ function buildPdBreakdown(pd, cards = [], banks = []) {
     }).join('');
   }
 
-  if (pd.onceItems.length) {
+  if (sortedOnce.length) {
     html += `<div class="section-title" style="margin:var(--space-4) 0 var(--space-1);">One-time</div>`;
-    html += pd.onceItems.map(e => {
+    html += sortedOnce.map(e => {
       const idx = _pdBreakdownItems.length;
       _pdBreakdownItems.push(e);
       return `
@@ -205,11 +245,11 @@ function buildPdBreakdown(pd, cards = [], banks = []) {
     }).join('');
   }
 
-  if (!pd.recurringItems.length && !pd.onceItems.length) {
-    html = `<p class="text-muted text-sm text-center" style="padding:var(--space-4) 0;">No expenses this period.</p>`;
+  if (!sortedRecurring.length && !sortedOnce.length) {
+    return `<p class="text-muted text-sm text-center" style="padding:var(--space-4) 0;">No expenses this period.</p>`;
   }
 
-  return html;
+  return sortBar + html;
 }
 
 // ---- Math --------------------------------------------------

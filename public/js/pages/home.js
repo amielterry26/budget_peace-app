@@ -5,6 +5,7 @@
 let _healthData    = null; // { scenario, periods, expenses, goals, cards, banks }
 let _healthHorizon = parseInt(localStorage.getItem('bp_health_horizon')) || 6; // persisted
 let _homePeriodOffset  = 0;    // 0=current, 1=next, 2=period after; >2 → navigate to pay-period
+let _homeViewIdx       = 0;    // actual period index of the currently displayed period
 let _periodItems       = [];   // cached for bill card click handlers
 let _recurringExpenses = [];   // cached for overview-row click handlers
 
@@ -96,6 +97,7 @@ function renderHealth(months) {
     }
   }
   const _viewIdx    = Math.max(0, Math.min(_periodBaseIdx + _homePeriodOffset, periods.length - 1));
+  _homeViewIdx = _viewIdx;
   const viewPeriod  = periods[_viewIdx] || currentPeriod;
   const periodCardTitle = _homePeriodOffset === 0 ? 'Current Pay Period'
                         : _homePeriodOffset === 1 ? 'Next Pay Period'
@@ -377,8 +379,9 @@ function renderHealth(months) {
   }
 
   document.getElementById('health-upgrade')?.addEventListener('click', () => Plans.showUpgradeModal(Plans.UPGRADE_CONTEXT.financialHealth));
-  document.getElementById('go-pay-period')?.addEventListener('click', () => Router.navigate('pay-period'));
-  document.getElementById('period-shortcut')?.addEventListener('click', () => Router.navigate('pay-period'));
+  document.getElementById('home-goals-card')?.addEventListener('click', () => Router.navigate('goals'));
+  document.getElementById('go-pay-period')?.addEventListener('click', () => Router.navigate('pay-period', { idx: _homeViewIdx }));
+  document.getElementById('period-shortcut')?.addEventListener('click', () => Router.navigate('pay-period', { idx: _homeViewIdx }));
 
   document.getElementById('home-period-prev')?.addEventListener('click', e => {
     e.stopPropagation();
@@ -404,7 +407,8 @@ function renderHealth(months) {
     btn.innerHTML = isOpen ? `View ${count} more ▼` : 'Show less ▲';
   });
 
-  document.getElementById('period-bills-expand')?.addEventListener('click', () => {
+  document.getElementById('period-bills-expand')?.addEventListener('click', (e) => {
+    e.stopPropagation();
     const more = document.getElementById('period-bills-more');
     const btn  = document.getElementById('period-bills-expand');
     if (!more || !btn) return;
@@ -491,17 +495,17 @@ function buildMonthlyBills(recurring) {
 function buildHomeGoalsCard(goals) {
   if (!goals || !goals.length) {
     return `
-      <div class="card home-card--side home-goals-card">
+      <div class="card home-card--side home-goals-card" id="home-goals-card" style="cursor:pointer;">
         <div class="home-goals-empty">
           <div class="home-goals-empty__text">No goals yet</div>
-          <div class="home-goals-empty__hint">Visit Goals to set your first target.</div>
+          <div class="home-goals-empty__hint">Tap to set your first target.</div>
         </div>
       </div>`;
   }
   const gFmt = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   const sorted = goals.slice().sort((a, b) => a.targetDate.localeCompare(b.targetDate));
   return `
-    <div class="card home-card--side home-goals-card">
+    <div class="card home-card--side home-goals-card" id="home-goals-card" style="cursor:pointer;">
       ${sorted.map(g => {
         const pct = g.targetAmount > 0
           ? Math.min(100, Math.round((g.currentSaved || 0) / g.targetAmount * 100))

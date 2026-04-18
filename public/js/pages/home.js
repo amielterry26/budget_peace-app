@@ -547,20 +547,18 @@ function renderHomePdBills() {
 
   const q = _homePdSearch.trim();
 
-  const searchHtml = _homePdReorder ? '' : `
-    <div class="exp-search-wrap" style="margin-bottom:var(--space-2);">
-      <svg class="exp-search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input class="exp-search-input" id="home-pd-search" type="search" placeholder="Search bills…" value="${esc(_homePdSearch)}" />
-    </div>`;
-
-  const ctrlHtml = _homePdReorder ? `
-    <div class="exp-sort-bar" style="padding:var(--space-2) 0;">
+  const controlsHtml = _homePdReorder ? `
+    <div class="exp-sort-bar">
       <span class="text-muted text-sm">Drag to reorder. Tap Done to save.</span>
       <button class="btn btn--primary" id="home-pd-reorder-done" style="font-size:12px;padding:5px 14px;">Done</button>
     </div>` : `
-    <div class="period-bills-preview__header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
-      <span>Bills this period</span>
-      <div style="display:flex;align-items:center;gap:var(--space-2);">
+    <div class="exp-search-wrap" style="margin-bottom:var(--space-2);">
+      <svg class="exp-search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="exp-search-input" id="home-pd-search" type="search" placeholder="Search bills…" value="${esc(_homePdSearch)}" />
+    </div>
+    <div class="exp-sort-bar">
+      <span class="text-muted text-sm">Bills this period</span>
+      <div class="exp-sort-ctrl">
         <select class="exp-sort-select" id="home-pd-sort">
           <option value="amount-desc" ${_homePdSort === 'amount-desc' ? 'selected' : ''}>Highest</option>
           <option value="amount-asc"  ${_homePdSort === 'amount-asc'  ? 'selected' : ''}>Lowest</option>
@@ -604,8 +602,7 @@ function renderHomePdBills() {
 
   container.innerHTML = `
     <div class="period-bills-preview" style="margin-top:var(--space-3);">
-      ${searchHtml}
-      ${ctrlHtml}
+      ${controlsHtml}
       ${billsHtml}
     </div>`;
 

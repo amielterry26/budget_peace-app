@@ -116,11 +116,6 @@ function renderPeriod(idx) {
           <div class="spend-bar__fill${isOver ? ' is-over' : ''}" style="width:${spendPct}%;"></div>
         </div>
         <div class="spend-bar__label">${spendPct}% of income spent</div>
-        ${!_pdReorder ? `
-        <div class="exp-search-wrap" style="margin-top:var(--space-3);">
-          <svg class="exp-search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input class="exp-search-input" id="pd-search" type="search" placeholder="Search bills…" value="${esc(_pdSearch)}" />
-        </div>` : ''}
         <button class="breakdown-toggle" id="breakdown-toggle">
           Hide breakdown <span id="bd-chevron">▲</span>
         </button>
@@ -277,20 +272,28 @@ function applyPdSearch(items, q, cards, banks) {
 function buildPdBreakdown(pd, cards = [], banks = []) {
   const q = _pdSearch.trim();
 
+  const totalItems = pd.recurringItems.length + pd.onceItems.length;
   const sortBar = _pdReorder ? `
-    <div class="exp-sort-bar" style="padding:0 0 var(--space-2);">
+    <div class="exp-sort-bar">
       <span class="text-muted text-sm">Drag to reorder. Tap Done to save.</span>
       <button class="btn btn--primary" id="pd-reorder-done" style="font-size:12px;padding:5px 14px;">Done</button>
     </div>` : `
-    <div style="display:flex;justify-content:flex-end;align-items:center;gap:var(--space-2);margin-bottom:var(--space-1);">
-      <select class="exp-sort-select" id="pd-sort">
-        <option value="amount-desc" ${_pdSort === 'amount-desc' ? 'selected' : ''}>Highest</option>
-        <option value="amount-asc"  ${_pdSort === 'amount-asc'  ? 'selected' : ''}>Lowest</option>
-        <option value="by-bank"     ${_pdSort === 'by-bank'     ? 'selected' : ''}>By Bank</option>
-        <option value="by-card"     ${_pdSort === 'by-card'     ? 'selected' : ''}>By Card</option>
-        <option value="manual"      ${_pdSort === 'manual'      ? 'selected' : ''}>My Order</option>
-      </select>
-      <button class="exp-reorder-btn" id="pd-reorder-btn" type="button">≡ Reorder</button>
+    <div class="exp-search-wrap" style="margin-bottom:var(--space-2);">
+      <svg class="exp-search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="exp-search-input" id="pd-search" type="search" placeholder="Search bills…" value="${esc(q)}" />
+    </div>
+    <div class="exp-sort-bar">
+      <span class="text-muted text-sm">${totalItems} bill${totalItems !== 1 ? 's' : ''} this period</span>
+      <div class="exp-sort-ctrl">
+        <select class="exp-sort-select" id="pd-sort">
+          <option value="amount-desc" ${_pdSort === 'amount-desc' ? 'selected' : ''}>Highest</option>
+          <option value="amount-asc"  ${_pdSort === 'amount-asc'  ? 'selected' : ''}>Lowest</option>
+          <option value="by-bank"     ${_pdSort === 'by-bank'     ? 'selected' : ''}>By Bank</option>
+          <option value="by-card"     ${_pdSort === 'by-card'     ? 'selected' : ''}>By Card</option>
+          <option value="manual"      ${_pdSort === 'manual'      ? 'selected' : ''}>My Order</option>
+        </select>
+        <button class="exp-reorder-btn" id="pd-reorder-btn" type="button">≡ Reorder</button>
+      </div>
     </div>`;
 
   let html = '';

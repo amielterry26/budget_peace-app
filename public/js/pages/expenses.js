@@ -275,12 +275,13 @@ function applyExpSearch(expenses) {
   const q = (_expSearch || '').toLowerCase().trim();
   if (!q) return expenses;
   return expenses.filter(e => {
-    const name   = (e.name || '').toLowerCase();
+    const name     = (e.name || '').toLowerCase();
     const linkedCard = e.cardId ? _expCards.find(c => c.cardId === e.cardId) : null;
     const linkedBank = linkedCard?.bankId ? _expBanks.find(b => b.bankId === linkedCard.bankId) : null;
-    const bank   = (linkedBank?.name || '').toLowerCase();
-    const amount = String(e.amount);
-    return name.includes(q) || bank.includes(q) || amount.includes(q);
+    const cardName = (linkedCard?.name || '').toLowerCase();
+    const bankName = (linkedBank?.name || '').toLowerCase();
+    const amount   = String(e.amount);
+    return name.includes(q) || cardName.includes(q) || bankName.includes(q) || amount.includes(q);
   });
 }
 

@@ -265,7 +265,9 @@ function applyPdSearch(items, q, cards, banks) {
     const name = (e.name || '').toLowerCase();
     const card = e.cardId ? cards.find(c => c.cardId === e.cardId) : null;
     const bank = card?.bankId ? banks.find(b => b.bankId === card.bankId) : null;
-    return name.includes(lq) || (bank?.name || '').toLowerCase().includes(lq) || String(e.amount).includes(lq);
+    const cardName = (card?.name || '').toLowerCase();
+    const bankName = (bank?.name || '').toLowerCase();
+    return name.includes(lq) || cardName.includes(lq) || bankName.includes(lq) || String(e.amount).includes(lq);
   });
 }
 

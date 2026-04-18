@@ -522,7 +522,9 @@ function applyHomePdSearch(arr) {
     const name = (e.name || '').toLowerCase();
     const card = e.cardId ? cards.find(c => c.cardId === e.cardId) : null;
     const bank = card?.bankId ? banks.find(b => b.bankId === card.bankId) : null;
-    return name.includes(q) || (bank?.name || '').toLowerCase().includes(q) || String(e.amount).includes(q);
+    const cardName = (card?.name || '').toLowerCase();
+    const bankName = (bank?.name || '').toLowerCase();
+    return name.includes(q) || cardName.includes(q) || bankName.includes(q) || String(e.amount).includes(q);
   });
 }
 

@@ -280,9 +280,11 @@ function buildPdBreakdown(pd, cards = [], banks = []) {
       <span class="text-muted text-sm">Drag to reorder. Tap Done to save.</span>
       <button class="btn btn--primary" id="pd-reorder-done" style="font-size:12px;padding:5px 14px;">Done</button>
     </div>` : `
-    <div class="exp-search-wrap" style="margin-bottom:var(--space-2);width:100%;display:flex;">
-      <svg class="exp-search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input class="exp-search-input" id="pd-search" type="search" placeholder="Search bills…" value="${esc(q)}" style="width:100%;" />
+    <div style="display:flex;justify-content:flex-end;margin-bottom:var(--space-2);">
+      <div class="exp-search-wrap">
+        <svg class="exp-search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="exp-search-input" id="pd-search" type="search" placeholder="Search…" value="${esc(q)}" />
+      </div>
     </div>
     <div class="exp-sort-bar">
       <span class="text-muted text-sm">${totalItems} bill${totalItems !== 1 ? 's' : ''} this period</span>

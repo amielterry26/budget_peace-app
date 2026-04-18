@@ -2,9 +2,12 @@
 // Pay Period — Operational Budget View
 // ============================================================
 
-let _pd     = null; // { periods, expenses, cards, banks }
-let _pdIdx  = 0;
-let _pdSort = 'amount-desc';
+let _pd              = null; // { periods, expenses, cards, banks }
+let _pdIdx           = 0;
+let _pdSort          = 'amount-desc';
+let _pdSearch        = '';
+let _pdReorder       = false;
+let _pdBreakdownOpen = true;
 
 Router.register('pay-period', async (params) => {
   document.getElementById('page-title').textContent = 'Pay Period';
@@ -113,6 +116,11 @@ function renderPeriod(idx) {
           <div class="spend-bar__fill${isOver ? ' is-over' : ''}" style="width:${spendPct}%;"></div>
         </div>
         <div class="spend-bar__label">${spendPct}% of income spent</div>
+        ${!_pdReorder ? `
+        <div class="exp-search-wrap" style="margin-top:var(--space-3);">
+          <svg class="exp-search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="exp-search-input" id="pd-search" type="search" placeholder="Search bills…" value="${esc(_pdSearch)}" />
+        </div>` : ''}
         <button class="breakdown-toggle" id="breakdown-toggle">
           Hide breakdown <span id="bd-chevron">▲</span>
         </button>
@@ -128,15 +136,26 @@ function renderPeriod(idx) {
 
     </div>`;
 
+  // Restore breakdown open/close state after re-render
+  if (!_pdBreakdownOpen) {
+    const bd = document.getElementById('period-breakdown');
+    if (bd) bd.style.display = 'none';
+    const ch = document.getElementById('bd-chevron');
+    if (ch) ch.textContent = '▼';
+    const bt = document.getElementById('breakdown-toggle');
+    if (bt) bt.childNodes[0].textContent = 'See full breakdown ';
+  }
+
   document.getElementById('go-financial-health').addEventListener('click', () => Router.navigate('home'));
-  document.getElementById('prev-period').addEventListener('click', () => renderPeriod(idx - 1));
-  document.getElementById('next-period').addEventListener('click', () => renderPeriod(idx + 1));
+  document.getElementById('prev-period').addEventListener('click', () => { _pdSearch = ''; _pdReorder = false; renderPeriod(idx - 1); });
+  document.getElementById('next-period').addEventListener('click', () => { _pdSearch = ''; _pdReorder = false; renderPeriod(idx + 1); });
 
   document.getElementById('breakdown-toggle').addEventListener('click', () => {
     const bd      = document.getElementById('period-breakdown');
     const chevron = document.getElementById('bd-chevron');
     const btn     = document.getElementById('breakdown-toggle');
     const isOpen  = bd.style.display !== 'none';
+    _pdBreakdownOpen    = !isOpen;
     bd.style.display    = isOpen ? 'none' : 'block';
     chevron.textContent = isOpen ? '▼' : '▲';
     btn.childNodes[0].textContent = isOpen ? 'See full breakdown ' : 'Hide breakdown ';
@@ -149,9 +168,69 @@ function renderPeriod(idx) {
     renderPeriod(_pdIdx);
   });
 
+  // Search
+  document.getElementById('pd-search')?.addEventListener('input', ev => {
+    const cursor = ev.target.selectionStart;
+    _pdSearch = ev.target.value;
+    renderPeriod(_pdIdx);
+    const el = document.getElementById('pd-search');
+    if (el) { el.focus(); el.setSelectionRange(cursor, cursor); }
+  });
+
+  // Enter reorder mode
+  document.getElementById('pd-reorder-btn')?.addEventListener('click', () => {
+    _pdReorder = true;
+    _pdSort = 'manual';
+    _pdBreakdownOpen = true;
+    renderPeriod(_pdIdx);
+    const list = document.getElementById('pd-reorder-list');
+    if (list && typeof Sortable !== 'undefined') {
+      new Sortable(list, {
+        animation:  150,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        filter: '.section-title',
+        draggable: '.pd-bill-card',
+      });
+    }
+  });
+
+  // Done reordering — save sortOrder to API
+  document.getElementById('pd-reorder-done')?.addEventListener('click', async () => {
+    const list = document.getElementById('pd-reorder-list');
+    const items = list
+      ? Array.from(list.querySelectorAll('[data-expense-id]')).map((el, i) => ({
+          expenseId: el.dataset.expenseId,
+          sortOrder: (i + 1) * 1000,
+        }))
+      : [];
+    if (_pd) {
+      items.forEach(({ expenseId, sortOrder }) => {
+        const e = _pd.expenses.find(x => x.expenseId === expenseId);
+        if (e) e.sortOrder = sortOrder;
+      });
+    }
+    _pdReorder = false;
+    renderPeriod(_pdIdx);
+    if (!items.length) return;
+    try {
+      await authFetch(`/api/expenses/${userId()}/order`, {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ items }),
+      });
+      Store.invalidate('expenses');
+      if (_pd) _pd.expenses = await Store.get('expenses');
+      renderPeriod(_pdIdx);
+    } catch (err) {
+      console.error('Failed to save expense order:', err);
+    }
+  });
+
   // Bill mini-card click handlers
   document.querySelectorAll('.pd-bill-card').forEach(card => {
     card.addEventListener('click', () => {
+      if (_pdReorder) return;
       const idx = Number(card.dataset.pdBillIdx);
       if (_pdBreakdownItems[idx]) openBillDetailModal(_pdBreakdownItems[idx], payPeriodRefresh);
     });
@@ -179,19 +258,39 @@ function sortPdItems(arr, cards, banks) {
       const cardB = b.cardId ? cards.find(c => c.cardId === b.cardId) : null;
       return (cardA?.name || '\uffff').localeCompare(cardB?.name || '\uffff') || a.name.localeCompare(b.name);
     });
+    case 'manual': return s.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
     default: return s;
   }
 }
 
+function applyPdSearch(items, q, cards, banks) {
+  if (!q) return items;
+  const lq = q.toLowerCase().trim();
+  return items.filter(e => {
+    const name = (e.name || '').toLowerCase();
+    const card = e.cardId ? cards.find(c => c.cardId === e.cardId) : null;
+    const bank = card?.bankId ? banks.find(b => b.bankId === card.bankId) : null;
+    return name.includes(lq) || (bank?.name || '').toLowerCase().includes(lq) || String(e.amount).includes(lq);
+  });
+}
+
 function buildPdBreakdown(pd, cards = [], banks = []) {
-  const sortBar = `
+  const q = _pdSearch.trim();
+
+  const sortBar = _pdReorder ? `
+    <div class="exp-sort-bar" style="padding:0 0 var(--space-2);">
+      <span class="text-muted text-sm">Drag to reorder. Tap Done to save.</span>
+      <button class="btn btn--primary" id="pd-reorder-done" style="font-size:12px;padding:5px 14px;">Done</button>
+    </div>` : `
     <div style="display:flex;justify-content:flex-end;align-items:center;gap:var(--space-2);margin-bottom:var(--space-1);">
       <select class="exp-sort-select" id="pd-sort">
         <option value="amount-desc" ${_pdSort === 'amount-desc' ? 'selected' : ''}>Highest</option>
         <option value="amount-asc"  ${_pdSort === 'amount-asc'  ? 'selected' : ''}>Lowest</option>
         <option value="by-bank"     ${_pdSort === 'by-bank'     ? 'selected' : ''}>By Bank</option>
         <option value="by-card"     ${_pdSort === 'by-card'     ? 'selected' : ''}>By Card</option>
+        <option value="manual"      ${_pdSort === 'manual'      ? 'selected' : ''}>My Order</option>
       </select>
+      <button class="exp-reorder-btn" id="pd-reorder-btn" type="button">≡ Reorder</button>
     </div>`;
 
   let html = '';
@@ -208,8 +307,13 @@ function buildPdBreakdown(pd, cards = [], banks = []) {
     return `<div class="period-bill-card__note">${dot}${parts}</div>`;
   }
 
-  const sortedRecurring = sortPdItems(pd.recurringItems, cards, banks);
-  const sortedOnce      = sortPdItems(pd.onceItems, cards, banks);
+  let sortedRecurring = sortPdItems(pd.recurringItems, cards, banks);
+  let sortedOnce      = sortPdItems(pd.onceItems, cards, banks);
+
+  if (!_pdReorder && q) {
+    sortedRecurring = applyPdSearch(sortedRecurring, q, cards, banks);
+    sortedOnce      = applyPdSearch(sortedOnce, q, cards, banks);
+  }
 
   if (sortedRecurring.length) {
     html += `<div class="section-title" style="margin:var(--space-3) 0 var(--space-1);">Recurring</div>`;
@@ -217,7 +321,7 @@ function buildPdBreakdown(pd, cards = [], banks = []) {
       const idx = _pdBreakdownItems.length;
       _pdBreakdownItems.push(e);
       return `
-      <div class="period-bill-card pd-bill-card" data-pd-bill-idx="${idx}">
+      <div class="period-bill-card pd-bill-card" data-pd-bill-idx="${idx}" data-expense-id="${e.expenseId}">
         <div>
           <span class="period-bill-card__name">${esc(e.name)}</span>
           ${e.note ? `<div class="period-bill-card__note">${esc(e.note)}</div>` : e.dueDay && (!e.allocationMethod || e.allocationMethod === 'due-date') ? `<div class="period-bill-card__note">Due ${e.dueDay}</div>` : ''}
@@ -234,7 +338,7 @@ function buildPdBreakdown(pd, cards = [], banks = []) {
       const idx = _pdBreakdownItems.length;
       _pdBreakdownItems.push(e);
       return `
-      <div class="period-bill-card pd-bill-card" data-pd-bill-idx="${idx}">
+      <div class="period-bill-card pd-bill-card" data-pd-bill-idx="${idx}" data-expense-id="${e.expenseId}">
         <div>
           <span class="period-bill-card__name">${esc(e.name)}</span>
           ${e.dueDate ? `<div class="period-bill-card__note">${e.dueDate}</div>` : ''}
@@ -246,10 +350,12 @@ function buildPdBreakdown(pd, cards = [], banks = []) {
   }
 
   if (!sortedRecurring.length && !sortedOnce.length) {
+    if (q) return sortBar + `<p class="text-muted text-sm text-center" style="padding:var(--space-4) 0;">No results for &ldquo;${esc(q)}&rdquo;.</p>`;
     return `<p class="text-muted text-sm text-center" style="padding:var(--space-4) 0;">No expenses this period.</p>`;
   }
 
-  return sortBar + html;
+  const listHtml = _pdReorder ? `<div id="pd-reorder-list">${html}</div>` : html;
+  return sortBar + listHtml;
 }
 
 // ---- Math --------------------------------------------------

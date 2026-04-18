@@ -8,6 +8,9 @@ let _homePeriodOffset  = 0;    // 0=current, 1=next, 2=period after; >2 → navi
 let _homeViewIdx       = 0;    // actual period index of the currently displayed period
 let _periodItems       = [];   // cached for bill card click handlers
 let _recurringExpenses = [];   // cached for overview-row click handlers
+let _homePdSort        = 'amount-desc';
+let _homePdSearch      = '';
+let _homePdReorder     = false;
 
 Router.register('home', async () => {
   _homePeriodOffset = 0;
@@ -111,10 +114,7 @@ function renderHealth(months) {
     const remColor = pd.remaining < 0 ? 'color:var(--color-danger)' : '';
     const spendPct = viewPeriod.income > 0
       ? Math.min(100, Math.round((pd.total / viewPeriod.income) * 100)) : 0;
-    const periodItems = getPeriodItems(expenses, viewPeriod, scenario.cadence);
-    _periodItems = periodItems;
-    const shownPeriodItems  = periodItems.slice(0, 5);
-    const hiddenPeriodItems = periodItems.slice(5);
+    _periodItems = getPeriodItems(expenses, viewPeriod, scenario.cadence);
     currentPeriodCard = `
       <div class="dash-section home-section-period">
         <div class="period-nav">
@@ -148,34 +148,7 @@ function renderHealth(months) {
               <div class="period-detail__bar-fill" style="width:${spendPct}%"></div>
             </div>
             <div class="period-detail__bar-label">${spendPct}% of income spent</div>
-            ${periodItems.length ? `
-            <div class="period-bills-preview">
-              <div class="period-bills-preview__header">Bills this period</div>
-              ${shownPeriodItems.map((it, i) => `
-              <div class="period-bill-card" data-bill-idx="${i}">
-                <div>
-                  <span class="period-bill-card__name">${esc(it.name)}</span>
-                  ${it.note ? `<div class="period-bill-card__note">${it.note}</div>` : it.dueDay && (!it.allocationMethod || it.allocationMethod === 'due-date') ? `<div class="period-bill-card__note">Due ${it.dueDay}</div>` : ''}
-                  ${expBankMeta(it)}
-                </div>
-                <span class="period-bill-card__amount">${money(it.periodAmount)}</span>
-              </div>`).join('')}
-              ${hiddenPeriodItems.length ? `
-              <div id="period-bills-more" style="display:none;">
-                ${hiddenPeriodItems.map((it, i) => `
-                <div class="period-bill-card" data-bill-idx="${5 + i}">
-                  <div>
-                    <span class="period-bill-card__name">${esc(it.name)}</span>
-                    ${it.note ? `<div class="period-bill-card__note">${it.note}</div>` : it.dueDay && (!it.allocationMethod || it.allocationMethod === 'due-date') ? `<div class="period-bill-card__note">Due ${it.dueDay}</div>` : ''}
-                    ${expBankMeta(it)}
-                  </div>
-                  <span class="period-bill-card__amount">${money(it.periodAmount)}</span>
-                </div>`).join('')}
-              </div>
-              <button class="breakdown-toggle" id="period-bills-expand" style="margin-top:var(--space-2);">
-                View ${hiddenPeriodItems.length} more ▼
-              </button>` : ''}
-            </div>` : ''}
+            <div id="home-pd-bills" onclick="event.stopPropagation()"></div>
           </div>
           <div class="period-shortcut__action" style="margin-top:var(--space-2);">Review pay period →</div>
         </div>
@@ -328,6 +301,7 @@ function renderHealth(months) {
     </div>`;
 
   mountNotesWidget('home', scenario.scenarioId, scenario.notes);
+  renderHomePdBills();
 
   document.querySelectorAll('.horizon-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -385,7 +359,12 @@ function renderHealth(months) {
 
   document.getElementById('home-period-prev')?.addEventListener('click', e => {
     e.stopPropagation();
-    if (_homePeriodOffset > 0) { _homePeriodOffset--; renderHealth(_healthHorizon); }
+    if (_homePeriodOffset > 0) {
+      _homePeriodOffset--;
+      _homePdSearch = '';
+      _homePdReorder = false;
+      renderHealth(_healthHorizon);
+    }
   });
   document.getElementById('home-period-next')?.addEventListener('click', e => {
     e.stopPropagation();
@@ -393,6 +372,8 @@ function renderHealth(months) {
       Router.navigate('pay-period');
     } else {
       _homePeriodOffset++;
+      _homePdSearch = '';
+      _homePdReorder = false;
       renderHealth(_healthHorizon);
     }
   });
@@ -407,17 +388,6 @@ function renderHealth(months) {
     btn.innerHTML = isOpen ? `View ${count} more ▼` : 'Show less ▲';
   });
 
-  document.getElementById('period-bills-expand')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const more = document.getElementById('period-bills-more');
-    const btn  = document.getElementById('period-bills-expand');
-    if (!more || !btn) return;
-    const isOpen = more.style.display !== 'none';
-    more.style.display = isOpen ? 'none' : 'block';
-    const count = more.querySelectorAll('.period-bill-card').length;
-    btn.innerHTML = isOpen ? `View ${count} more ▼` : 'Show less ▲';
-  });
-
   document.getElementById('bills-card-toggle')?.addEventListener('click', () => {
     if (window.innerWidth >= 1200) return;
     const body = document.getElementById('bills-card-body');
@@ -426,15 +396,6 @@ function renderHealth(months) {
     const isHidden = body.classList.toggle('is-hidden');
     chev.innerHTML = isHidden ? '&#9656;' : '&#9662;';
     localStorage.setItem('bp_collapse_bills', isHidden ? '1' : '0');
-  });
-
-  // Bill mini-card click handlers
-  document.querySelectorAll('.period-bill-card').forEach(card => {
-    card.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const idx = Number(card.dataset.billIdx);
-      if (_periodItems[idx]) openBillDetailModal(_periodItems[idx], homeRefresh);
-    });
   });
 
   // Monthly bills overview-row click handlers
@@ -526,6 +487,214 @@ function buildHomeGoalsCard(goals) {
 }
 
 // ---- Math --------------------------------------------------
+// ---- Home Period Bills (search / sort / reorder) -----------
+
+const HOME_PD_PREVIEW = 5;
+
+function sortHomePdItems(arr) {
+  const { cards = [], banks = [] } = _healthData || {};
+  const s = arr.slice();
+  switch (_homePdSort) {
+    case 'amount-desc': return s.sort((a, b) => b.periodAmount - a.periodAmount);
+    case 'amount-asc':  return s.sort((a, b) => a.periodAmount - b.periodAmount);
+    case 'by-bank': return s.sort((a, b) => {
+      const cA = a.cardId ? cards.find(c => c.cardId === a.cardId) : null;
+      const bA = cA?.bankId ? banks.find(b => b.bankId === cA.bankId) : null;
+      const cB = b.cardId ? cards.find(c => c.cardId === b.cardId) : null;
+      const bB = cB?.bankId ? banks.find(b => b.bankId === cB.bankId) : null;
+      return (bA?.name || '\uffff').localeCompare(bB?.name || '\uffff') || a.name.localeCompare(b.name);
+    });
+    case 'by-card': return s.sort((a, b) => {
+      const cA = a.cardId ? cards.find(c => c.cardId === a.cardId) : null;
+      const cB = b.cardId ? cards.find(c => c.cardId === b.cardId) : null;
+      return (cA?.name || '\uffff').localeCompare(cB?.name || '\uffff') || a.name.localeCompare(b.name);
+    });
+    case 'manual': return s.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    default: return s;
+  }
+}
+
+function applyHomePdSearch(arr) {
+  const q = _homePdSearch.toLowerCase().trim();
+  if (!q) return arr;
+  const { cards = [], banks = [] } = _healthData || {};
+  return arr.filter(e => {
+    const name = (e.name || '').toLowerCase();
+    const card = e.cardId ? cards.find(c => c.cardId === e.cardId) : null;
+    const bank = card?.bankId ? banks.find(b => b.bankId === card.bankId) : null;
+    return name.includes(q) || (bank?.name || '').toLowerCase().includes(q) || String(e.amount).includes(q);
+  });
+}
+
+function renderHomePdBills() {
+  const container = document.getElementById('home-pd-bills');
+  if (!container) return;
+  if (!_periodItems.length) { container.innerHTML = ''; return; }
+
+  const { cards = [], banks = [] } = _healthData || {};
+
+  function itemMeta(e) {
+    const card = e.cardId ? cards.find(c => c.cardId === e.cardId) : null;
+    const bank = card?.bankId ? banks.find(b => b.bankId === card.bankId) : null;
+    if (!bank && !card) return '';
+    const dot = bank ? `<span style="width:5px;height:5px;border-radius:50%;background:${bank.color || '#6B7280'};display:inline-block;flex-shrink:0;margin-right:3px;vertical-align:middle;"></span>` : '';
+    const parts = [bank ? esc(bank.name) : '', card ? `${esc(card.name)} ···· ${esc(card.lastFour)}` : ''].filter(Boolean).join(' · ');
+    return `<div class="period-bill-card__note" style="font-size:11px;">${dot}${parts}</div>`;
+  }
+
+  let items = sortHomePdItems(_periodItems);
+  if (!_homePdReorder) items = applyHomePdSearch(items);
+
+  const q = _homePdSearch.trim();
+
+  const searchHtml = _homePdReorder ? '' : `
+    <div class="exp-search-wrap" style="margin-bottom:var(--space-2);">
+      <svg class="exp-search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="exp-search-input" id="home-pd-search" type="search" placeholder="Search bills…" value="${esc(_homePdSearch)}" />
+    </div>`;
+
+  const ctrlHtml = _homePdReorder ? `
+    <div class="exp-sort-bar" style="padding:var(--space-2) 0;">
+      <span class="text-muted text-sm">Drag to reorder. Tap Done to save.</span>
+      <button class="btn btn--primary" id="home-pd-reorder-done" style="font-size:12px;padding:5px 14px;">Done</button>
+    </div>` : `
+    <div class="period-bills-preview__header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
+      <span>Bills this period</span>
+      <div style="display:flex;align-items:center;gap:var(--space-2);">
+        <select class="exp-sort-select" id="home-pd-sort">
+          <option value="amount-desc" ${_homePdSort === 'amount-desc' ? 'selected' : ''}>Highest</option>
+          <option value="amount-asc"  ${_homePdSort === 'amount-asc'  ? 'selected' : ''}>Lowest</option>
+          <option value="by-bank"     ${_homePdSort === 'by-bank'     ? 'selected' : ''}>By Bank</option>
+          <option value="by-card"     ${_homePdSort === 'by-card'     ? 'selected' : ''}>By Card</option>
+          <option value="manual"      ${_homePdSort === 'manual'      ? 'selected' : ''}>My Order</option>
+        </select>
+        <button class="exp-reorder-btn" id="home-pd-reorder-btn" type="button">≡ Reorder</button>
+      </div>
+    </div>`;
+
+  let billsHtml = '';
+  if (!items.length) {
+    billsHtml = q
+      ? `<p class="text-muted text-sm text-center" style="padding:var(--space-3) 0;">No results for &ldquo;${esc(q)}&rdquo;.</p>`
+      : `<p class="text-muted text-sm text-center" style="padding:var(--space-3) 0;">No expenses this period.</p>`;
+  } else {
+    const buildCard = (it, idx) => `
+      <div class="period-bill-card home-pd-bill-card" data-home-bill-idx="${idx}" data-expense-id="${it.expenseId}">
+        <div>
+          <span class="period-bill-card__name">${esc(it.name)}</span>
+          ${it.note ? `<div class="period-bill-card__note">${it.note}</div>` : it.dueDay && (!it.allocationMethod || it.allocationMethod === 'due-date') ? `<div class="period-bill-card__note">Due ${it.dueDay}</div>` : ''}
+          ${itemMeta(it)}
+        </div>
+        <span class="period-bill-card__amount">${money(it.periodAmount)}</span>
+      </div>`;
+
+    if (_homePdReorder) {
+      billsHtml = `<div id="home-pd-reorder-list">${items.map(buildCard).join('')}</div>`;
+    } else {
+      const shown  = items.slice(0, HOME_PD_PREVIEW);
+      const hidden = items.slice(HOME_PD_PREVIEW);
+      billsHtml = shown.map(buildCard).join('');
+      if (hidden.length) {
+        billsHtml += `
+          <div id="home-pd-more" style="display:none;">${hidden.map((it, i) => buildCard(it, HOME_PD_PREVIEW + i)).join('')}</div>
+          <button class="breakdown-toggle" id="home-pd-expand" style="margin-top:var(--space-2);">View ${hidden.length} more ▼</button>`;
+      }
+    }
+  }
+
+  container.innerHTML = `
+    <div class="period-bills-preview" style="margin-top:var(--space-3);">
+      ${searchHtml}
+      ${ctrlHtml}
+      ${billsHtml}
+    </div>`;
+
+  // Wire events
+  document.getElementById('home-pd-search')?.addEventListener('input', ev => {
+    ev.stopPropagation();
+    const cursor = ev.target.selectionStart;
+    _homePdSearch = ev.target.value;
+    renderHomePdBills();
+    const el = document.getElementById('home-pd-search');
+    if (el) { el.focus(); el.setSelectionRange(cursor, cursor); }
+  });
+
+  document.getElementById('home-pd-sort')?.addEventListener('change', ev => {
+    ev.stopPropagation();
+    _homePdSort = ev.target.value;
+    renderHomePdBills();
+  });
+
+  document.getElementById('home-pd-reorder-btn')?.addEventListener('click', ev => {
+    ev.stopPropagation();
+    _homePdReorder = true;
+    _homePdSort = 'manual';
+    renderHomePdBills();
+    const list = document.getElementById('home-pd-reorder-list');
+    if (list && typeof Sortable !== 'undefined') {
+      new Sortable(list, {
+        animation:  150,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        draggable: '.home-pd-bill-card',
+      });
+    }
+  });
+
+  document.getElementById('home-pd-reorder-done')?.addEventListener('click', async ev => {
+    ev.stopPropagation();
+    const list = document.getElementById('home-pd-reorder-list');
+    const orderItems = list
+      ? Array.from(list.querySelectorAll('[data-expense-id]')).map((el, i) => ({
+          expenseId: el.dataset.expenseId,
+          sortOrder: (i + 1) * 1000,
+        }))
+      : [];
+    if (_healthData) {
+      orderItems.forEach(({ expenseId, sortOrder }) => {
+        const e = _healthData.expenses.find(x => x.expenseId === expenseId);
+        if (e) e.sortOrder = sortOrder;
+      });
+    }
+    _homePdReorder = false;
+    renderHomePdBills();
+    if (!orderItems.length) return;
+    try {
+      await authFetch(`/api/expenses/${userId()}/order`, {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ items: orderItems }),
+      });
+      Store.invalidate('expenses');
+      if (_healthData) _healthData.expenses = await Store.get('expenses');
+      _periodItems = getPeriodItems(_healthData.expenses, _healthData.periods[_homeViewIdx], _healthData.scenario.cadence);
+      renderHomePdBills();
+    } catch (err) {
+      console.error('Failed to save expense order:', err);
+    }
+  });
+
+  document.getElementById('home-pd-expand')?.addEventListener('click', ev => {
+    ev.stopPropagation();
+    const more = document.getElementById('home-pd-more');
+    const btn  = document.getElementById('home-pd-expand');
+    if (!more || !btn) return;
+    const isOpen = more.style.display !== 'none';
+    more.style.display = isOpen ? 'none' : 'block';
+    const count = more.querySelectorAll('.home-pd-bill-card').length;
+    btn.innerHTML = isOpen ? `View ${count} more ▼` : 'Show less ▲';
+  });
+
+  document.querySelectorAll('.home-pd-bill-card').forEach((card, i) => {
+    card.addEventListener('click', ev => {
+      ev.stopPropagation();
+      if (_homePdReorder) return;
+      const idx = Number(card.dataset.homeBillIdx);
+      if (items[idx]) openBillDetailModal(items[idx], homeRefresh);
+    });
+  });
+}
+
 // calcMonthlyAmt() provided by shared.js
 
 function calcMonthlyExp(expenses, today) {

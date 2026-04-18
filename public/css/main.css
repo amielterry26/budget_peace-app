@@ -2855,6 +2855,9 @@ img  { display: block; max-width: 100%; }
 }
 
 /* --- Goals page ------------------------------------------- */
+.goals-page {
+  padding-top: var(--space-4);
+}
 .goals-empty-state {
   text-align: center;
   padding: var(--space-8) var(--space-4);

@@ -49,8 +49,8 @@ function layout(title, body) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>${title}</title>
 </head>
-<body style="margin:0;padding:0;background-color:#EEF2F7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#EEF2F7;padding:32px 16px;">
+<body style="margin:0;padding:0;background-color:#F0FDF4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F0FDF4;padding:32px 16px;">
   <tr>
     <td align="center">
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,0.08);">
@@ -80,7 +80,7 @@ function layout(title, body) {
           <td style="padding:20px 32px 28px;border-top:1px solid #F1F5F9;">
             <p style="margin:0;font-size:12px;color:#94A3B8;text-align:center;line-height:1.6;">
               You received this because you have Budget Peace email notifications on.<br/>
-              <a href="https://budgetpeace.app/#settings" style="color:#64748B;text-decoration:underline;">Manage notification preferences</a>
+              <a href="https://budgetpeace.app/#settings" style="color:#16A34A;text-decoration:underline;">Manage notification preferences</a>
             </p>
           </td>
         </tr>
@@ -98,8 +98,8 @@ function layout(title, body) {
 function statBoxRow(boxes) {
   // boxes: [{label, value, valueColor}]
   const cols = boxes.map((b, i) => `
-    <td width="${Math.floor(100 / boxes.length)}%" style="background:#F8FAFC;border-radius:10px;padding:14px 16px;${i < boxes.length - 1 ? 'border-right:6px solid transparent;' : ''}">
-      <div style="font-size:11px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">${b.label}</div>
+    <td width="${Math.floor(100 / boxes.length)}%" style="background:#F0FDF4;border-radius:10px;padding:14px 16px;${i < boxes.length - 1 ? 'border-right:6px solid transparent;' : ''}">
+      <div style="font-size:11px;font-weight:600;color:#16A34A;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">${b.label}</div>
       <div style="font-size:20px;font-weight:700;color:${b.valueColor || '#0F172A'};">${b.value}</div>
     </td>`).join('');
   return `
@@ -123,7 +123,7 @@ function billListTable(rows) {
       </td>
     </tr>`).join('');
   return `
-    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E2E8F0;border-radius:10px;border-collapse:collapse;margin-bottom:24px;overflow:hidden;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #BBF7D0;border-left:3px solid #22C55E;border-radius:10px;border-collapse:collapse;margin-bottom:24px;overflow:hidden;">
       ${rowsHtml}
     </table>`;
 }
@@ -170,7 +170,7 @@ function paydaySummaryHtml(data) {
       { label: 'Remaining',  value: money(remaining), valueColor: remColor },
     ])}
 
-    <div style="font-size:11px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">Bills this period</div>
+    <div style="font-size:11px;font-weight:600;color:#16A34A;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">Bills this period</div>
     ${billListTable(rows)}
 
     ${ctaBtn('Open Budget Peace', 'https://budgetpeace.app')}
@@ -213,7 +213,7 @@ function billDueHtml(data) {
     </h2>
     <p style="margin:0 0 24px;font-size:14px;color:#64748B;">Period: ${fmtRange(period.startDate, period.endDate)}</p>
 
-    <div style="font-size:11px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">Coming up</div>
+    <div style="font-size:11px;font-weight:600;color:#16A34A;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">Coming up</div>
     ${billListTable(rows)}
 
     ${ctaBtn('Open Budget Peace', 'https://budgetpeace.app')}

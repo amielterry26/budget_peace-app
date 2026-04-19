@@ -90,13 +90,14 @@ async function getBanksForUser(userId) {
 }
 
 // ---- Bill-due detection ------------------------------------
-// Returns expenses whose dueDate is exactly `targetDate`
+// Returns recurring expenses whose dueDay matches the day-of-month of targetDate.
+// Recurring expenses store dueDay (integer 1–31), not a full dueDate string.
 
 function getExpensesDueOn(expenses, targetDate) {
+  const targetDay = Number(targetDate.split('-')[2]); // e.g. '2026-05-18' → 18
   return expenses.filter(e => {
     if (e.recurrence !== 'recurring') return false;
-    if (e.dueDate && e.dueDate === targetDate) return true;
-    return false;
+    return Number(e.dueDay) === targetDay;
   });
 }
 

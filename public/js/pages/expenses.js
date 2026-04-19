@@ -505,8 +505,9 @@ async function openSheet(expense, onSave) {
   const initDueDay  = editing ? (expense.dueDay || (expense.recurrenceFrequency === 'monthly' ? new Date().getDate() : '')) : '';
   const initDueDate = editing ? (expense.dueDate || '') : '';
 
-  // Determine if user is on biweekly pay cadence (allocation only relevant then)
-  const isBiweekly = periods.length > 0 && inferCadence(periods[0]) === 'biweekly';
+  // Allocation options apply to both biweekly and semimonthly cadences (half-month periods)
+  const _detectedCadence = periods.length > 0 ? inferCadence(periods[0]) : null;
+  const isHalfMonth = _detectedCadence === 'biweekly' || _detectedCadence === 'semimonthly';
 
   // Normalize all allocation field variants to canonical values
   const rawAlloc = editing ? (expense.allocationMethod || (expense.splitBiweekly ? 'split' : null)) : null;
@@ -514,20 +515,20 @@ async function openSheet(expense, onSave) {
                   : (rawAlloc === 'second' || rawAlloc === 'paycheck2') ? 'paycheck2'
                   : rawAlloc === 'split'    ? 'split'
                   : rawAlloc === 'due-date' ? 'due-date'
-                  : (editing && isBiweekly && initFreq === 'monthly') ? 'due-date'  // legacy no-alloc = due-date
+                  : (editing && isHalfMonth && initFreq === 'monthly') ? 'due-date'  // legacy no-alloc = due-date
                   : 'split';  // new expense default
 
-  // Detect legacy due-date mode: monthly+biweekly expense without a modern allocationMethod.
+  // Detect legacy due-date mode: monthly half-month expense without a modern allocationMethod.
   // We must NOT silently convert these — preserve their behavior unless the user explicitly changes it.
-  const isLegacyDueDate = editing && isBiweekly && initFreq === 'monthly' && (
+  const isLegacyDueDate = editing && isHalfMonth && initFreq === 'monthly' && (
     expense.allocationMethod === 'due-date' ||
     (!expense.allocationMethod && !expense.splitBiweekly)
   );
 
-  // Due day shown for monthly expenses only (required on monthly cadence, optional metadata on biweekly)
+  // Due day shown for monthly expenses only (required on monthly cadence, optional metadata on half-month)
   const initDueDayVisible = initFreq === 'monthly';
-  // Allocation dropdown shown for biweekly cadence + monthly expense frequency only
-  const initShowAlloc = isBiweekly && initFreq === 'monthly';
+  // Allocation dropdown shown for half-month cadence (biweekly or semimonthly) + monthly expense only
+  const initShowAlloc = isHalfMonth && initFreq === 'monthly';
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="sheet-overlay" class="sheet-overlay"></div>
@@ -590,7 +591,7 @@ async function openSheet(expense, onSave) {
               <input class="form-input" id="sh-start-date" type="date" value="${initStart}" />
             </div>
             <div class="form-group" id="sh-due-day-group" style="display:${initDueDayVisible ? 'block' : 'none'}">
-              <label class="form-label" for="sh-due-day" id="sh-due-day-label">Due date ${initFreq === 'monthly' && !isBiweekly ? '' : '<span class="text-muted">(optional)</span>'}</label>
+              <label class="form-label" for="sh-due-day" id="sh-due-day-label">Due date ${initFreq === 'monthly' && !isHalfMonth ? '' : '<span class="text-muted">(optional)</span>'}</label>
               <input class="form-input" id="sh-due-day" type="number" min="1" max="31"
                 placeholder="e.g. 15" value="${initDueDay}" />
             </div>
@@ -675,8 +676,8 @@ async function openSheet(expense, onSave) {
 
     const isMonthly      = selectedFreq === 'monthly';
     const isBiweeklyFreq = selectedFreq === 'biweekly';
-    // Show alloc for biweekly cadence + monthly expense frequency only
-    const showAlloc = isBiweekly && isMonthly;
+    // Show alloc for half-month cadence (biweekly or semimonthly) + monthly expense frequency only
+    const showAlloc = isHalfMonth && isMonthly;
 
     if (allocGrp) allocGrp.style.display = showAlloc ? 'block' : 'none';
 
@@ -684,7 +685,7 @@ async function openSheet(expense, onSave) {
     const showDueDay = isMonthly;
     if (dueDayGrp) dueDayGrp.style.display = showDueDay ? 'block' : 'none';
 
-    label.innerHTML = (!isBiweekly || selectedAlloc === 'due-date')
+    label.innerHTML = (!isHalfMonth || selectedAlloc === 'due-date')
       ? 'Due date'
       : 'Due date <span class="text-muted">(optional)</span>';
   }
@@ -759,8 +760,8 @@ async function openSheet(expense, onSave) {
       const startDate = document.getElementById('sh-start-date').value;
       if (!startDate) { alert('Enter a start date.'); return; }
       payload.recurrenceStartDate = startDate;
-      // Allocation applies for biweekly cadence + monthly expense frequency only
-      const showAlloc = isBiweekly && selectedFreq === 'monthly';
+      // Allocation applies for half-month cadence (biweekly or semimonthly) + monthly expense frequency only
+      const showAlloc = isHalfMonth && selectedFreq === 'monthly';
       if (showAlloc) {
         if (isLegacyDueDate && !hasChangedAlloc) {
           // Preserve legacy due-date behavior — user did not explicitly change allocation

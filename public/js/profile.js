@@ -135,6 +135,14 @@ const Profile = (() => {
             <div id="profile-save-status" class="profile-save-status"></div>
           </div>
 
+          <!-- Quick links -->
+          <div class="profile-quick-links">
+            <button class="profile-quick-link" id="profile-goto-settings">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M12.95 3.05l-1.06 1.06M4.11 11.89l-1.06 1.06"/></svg>
+              Settings
+            </button>
+          </div>
+
           <!-- Account summary -->
           <div class="profile-summary">
             <div class="profile-summary__title">Account</div>
@@ -217,6 +225,12 @@ const Profile = (() => {
 
     // Save
     document.getElementById('profile-save-btn').addEventListener('click', () => saveProfile());
+
+    // Settings shortcut
+    document.getElementById('profile-goto-settings').addEventListener('click', () => {
+      close();
+      Router.navigate('settings');
+    });
   }
 
   async function handlePhotoUpload(fileInput, profile) {

@@ -2,6 +2,11 @@
 // Settings — per-scenario configuration
 // ============================================================
 
+const SETTINGS_LS = {
+  financial: 'bp_settings_financial_collapsed',
+  notif:     'bp_settings_notif_collapsed',
+};
+
 Router.register('settings', async () => {
   document.getElementById('page-title').textContent = 'Settings';
   setActivePage('settings');
@@ -37,6 +42,11 @@ function renderSettings(scenario, user) {
   const cadenceLabel = cadence === 'biweekly' ? 'bi-weekly' : 'monthly';
   const incomeFmt = '$' + Number(income).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  const chevronSvg = `<svg class="settings-section__chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 6 8 10 12 6"/></svg>`;
+
+  const financialCollapsed = localStorage.getItem(SETTINGS_LS.financial) === 'true';
+  const notifCollapsed     = localStorage.getItem(SETTINGS_LS.notif) === 'true';
+
   document.getElementById('main-content').innerHTML = `
     <div class="page settings-page">
 
@@ -58,73 +68,83 @@ function renderSettings(scenario, user) {
       </div>
 
       <!-- Financial Setup -->
-      <div class="card settings-setup-card">
-        <div class="card-header settings-setup-card__title">Financial Setup</div>
+      <div class="card settings-setup-card settings-section ${financialCollapsed ? 'is-collapsed' : ''}" id="settings-financial-card">
+        <button class="settings-section__header" id="settings-financial-toggle" aria-expanded="${!financialCollapsed}">
+          <span class="settings-setup-card__title">Financial Setup</span>
+          ${chevronSvg}
+        </button>
+        <div class="settings-section__body">
 
-        ${!isMain ? `
-        <div class="form-group" style="margin-bottom:var(--space-3);">
-          <label class="form-label" for="settings-name">Scenario name</label>
-          <input class="form-input" type="text" id="settings-name" value="${esc(name)}" />
-        </div>` : ''}
+          ${!isMain ? `
+          <div class="form-group" style="margin-bottom:var(--space-3);">
+            <label class="form-label" for="settings-name">Scenario name</label>
+            <input class="form-input" type="text" id="settings-name" value="${esc(name)}" />
+          </div>` : ''}
 
-        <div class="form-group" style="margin-bottom:var(--space-3);">
-          <label class="form-label">How often do you get paid?</label>
-          <div class="option-grid option-grid--2">
-            <div class="option-card settings-cadence ${cadence === 'biweekly' ? 'is-selected' : ''}" data-value="biweekly">
-              <div class="option-card__title">Every 2 weeks</div>
-              <div class="option-card__sub">26 paychecks / year</div>
+          <div class="form-group" style="margin-bottom:var(--space-3);">
+            <label class="form-label">How often do you get paid?</label>
+            <div class="option-grid option-grid--2">
+              <div class="option-card settings-cadence ${cadence === 'biweekly' ? 'is-selected' : ''}" data-value="biweekly">
+                <div class="option-card__title">Every 2 weeks</div>
+                <div class="option-card__sub">26 paychecks / year</div>
+              </div>
+              <div class="option-card settings-cadence ${cadence === 'monthly' ? 'is-selected' : ''}" data-value="monthly">
+                <div class="option-card__title">Monthly</div>
+                <div class="option-card__sub">12 paychecks / year</div>
+              </div>
             </div>
-            <div class="option-card settings-cadence ${cadence === 'monthly' ? 'is-selected' : ''}" data-value="monthly">
-              <div class="option-card__title">Monthly</div>
-              <div class="option-card__sub">12 paychecks / year</div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:var(--space-3);">
+            <label class="form-label">Budget horizon</label>
+            <div class="option-grid option-grid--3">
+              ${[3,6,12].map(m => {
+                const maxDur = Plans.getLimit('maxProjectionMonths');
+                const locked = typeof maxDur === 'number' && m > maxDur;
+                const selected = duration === m ? 'is-selected' : '';
+                const lockedCls = locked ? 'is-locked' : '';
+                return `
+                <div class="option-card settings-duration ${selected} ${lockedCls}" data-value="${m}" ${locked ? 'data-locked="true"' : ''}>
+                  <div class="option-card__title">${m}${locked ? ' <span style="font-size:12px;">&#9733;</span>' : ''}</div>
+                  <div class="option-card__sub">${locked ? 'Pro' : 'months'}</div>
+                </div>`;
+              }).join('')}
             </div>
           </div>
-        </div>
 
-        <div class="form-group" style="margin-bottom:var(--space-3);">
-          <label class="form-label">Budget horizon</label>
-          <div class="option-grid option-grid--3">
-            ${[3,6,12].map(m => {
-              const maxDur = Plans.getLimit('maxProjectionMonths');
-              const locked = typeof maxDur === 'number' && m > maxDur;
-              const selected = duration === m ? 'is-selected' : '';
-              const lockedCls = locked ? 'is-locked' : '';
-              return `
-              <div class="option-card settings-duration ${selected} ${lockedCls}" data-value="${m}" ${locked ? 'data-locked="true"' : ''}>
-                <div class="option-card__title">${m}${locked ? ' <span style="font-size:12px;">&#9733;</span>' : ''}</div>
-                <div class="option-card__sub">${locked ? 'Pro' : 'months'}</div>
-              </div>`;
-            }).join('')}
+          <div class="form-group" style="margin-bottom:var(--space-3);">
+            <label class="form-label" for="settings-date">Pay start date</label>
+            <input class="form-input" type="date" id="settings-date" value="${payDate}" />
           </div>
-        </div>
 
-        <div class="form-group" style="margin-bottom:var(--space-3);">
-          <label class="form-label" for="settings-date">Pay start date</label>
-          <input class="form-input" type="date" id="settings-date" value="${payDate}" />
-        </div>
-
-        <div class="form-group" style="margin-bottom:var(--space-3);">
-          <label class="form-label" for="settings-income">Take-home per paycheck</label>
-          <div class="ob-input-money">
-            <input class="form-input" type="number" id="settings-income"
-              placeholder="0.00" min="0" step="0.01" value="${income}" />
+          <div class="form-group" style="margin-bottom:var(--space-3);">
+            <label class="form-label" for="settings-income">Take-home per paycheck</label>
+            <div class="ob-input-money">
+              <input class="form-input" type="number" id="settings-income"
+                placeholder="0.00" min="0" step="0.01" value="${income}" />
+            </div>
           </div>
-        </div>
 
-        <div class="settings-save-area">
-          <button class="btn btn--primary btn--full" id="settings-save">Save Changes</button>
-          <p class="text-muted text-sm text-center settings-save-area__hint">
-            Changing your income updates all calculations instantly. Changing pay frequency, start date, or horizon will regenerate your pay periods.
-          </p>
+          <div class="settings-save-area">
+            <button class="btn btn--primary btn--full" id="settings-save">Save Changes</button>
+            <p class="text-muted text-sm text-center settings-save-area__hint">
+              Changing your income updates all calculations instantly. Changing pay frequency, start date, or horizon will regenerate your pay periods.
+            </p>
+          </div>
+
         </div>
       </div>
 
       <!-- Email Notifications -->
-      ${renderEmailPrefsCard(user)}
+      ${renderEmailPrefsCard(user, notifCollapsed)}
 
       <!-- Notes -->
       ${notesCardHtml('settings')}
     </div>`;
+
+  // Collapse toggles
+  mountCollapseToggle('settings-financial-toggle', 'settings-financial-card', SETTINGS_LS.financial);
+  mountCollapseToggle('settings-notif-toggle',     'settings-notif-card',     SETTINGS_LS.notif);
 
   // Track selected cadence + duration
   let selectedCadence  = cadence;
@@ -208,10 +228,26 @@ function renderSettings(scenario, user) {
   mountEmailPrefsWidget(user);
 }
 
+// ---- Collapse toggle ----------------------------------------
+
+function mountCollapseToggle(btnId, cardId, lsKey) {
+  const btn  = document.getElementById(btnId);
+  const card = document.getElementById(cardId);
+  if (!btn || !card) return;
+
+  btn.addEventListener('click', () => {
+    const collapsed = card.classList.toggle('is-collapsed');
+    btn.setAttribute('aria-expanded', String(!collapsed));
+    localStorage.setItem(lsKey, String(collapsed));
+  });
+}
+
 // ---- Email preferences card ---------------------------------
 
-function renderEmailPrefsCard(user) {
+function renderEmailPrefsCard(user, collapsed) {
   const prefs = (user && user.emailPrefs) || {};
+  const chevronSvg = `<svg class="settings-section__chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 6 8 10 12 6"/></svg>`;
+
   const toggleRow = (id, label, sublabel, checked) => `
     <div class="notif-row">
       <div class="notif-row__text">
@@ -225,21 +261,26 @@ function renderEmailPrefsCard(user) {
     </div>`;
 
   return `
-    <div class="card settings-notif-card">
-      <div class="card-header settings-setup-card__title">Email Notifications</div>
-      <div class="notif-email-hint text-muted text-sm" style="margin-bottom:var(--space-3);">
-        Sent to <strong>${esc((user && user.email) || '')}</strong>
+    <div class="card settings-notif-card settings-section ${collapsed ? 'is-collapsed' : ''}" id="settings-notif-card">
+      <button class="settings-section__header" id="settings-notif-toggle" aria-expanded="${!collapsed}">
+        <span class="settings-setup-card__title">Email Notifications</span>
+        ${chevronSvg}
+      </button>
+      <div class="settings-section__body">
+        <div class="notif-email-hint text-muted text-sm" style="margin-bottom:var(--space-3);">
+          Sent to <strong>${esc((user && user.email) || '')}</strong>
+        </div>
+        ${toggleRow('notif-payday',    'Payday summary',    'Overview of income &amp; bills the day before each paycheck', !!prefs.paydaySummary)}
+        ${toggleRow('notif-bills',     'Bill reminders',    'Alert 3 days before bills with a due date are due', !!prefs.billReminders)}
+        ${toggleRow('notif-goals',     'Goal milestones',   'Celebrate when you hit 25%, 50%, 75%, and 100% of a goal', !!prefs.goalMilestones)}
+        ${toggleRow('notif-budget',    'Over-budget alert', 'Notify when your bills exceed your paycheck', !!prefs.overBudget)}
+        <div id="notif-save-status" style="height:20px;margin-top:var(--space-2);font-size:13px;color:var(--color-text-tertiary);text-align:right;"></div>
       </div>
-      ${toggleRow('notif-payday',    'Payday summary',    'Overview of income &amp; bills the day before each paycheck', !!prefs.paydaySummary)}
-      ${toggleRow('notif-bills',     'Bill reminders',    'Alert 3 days before bills with a due date are due', !!prefs.billReminders)}
-      ${toggleRow('notif-goals',     'Goal milestones',   'Celebrate when you hit 25%, 50%, 75%, and 100% of a goal', !!prefs.goalMilestones)}
-      ${toggleRow('notif-budget',    'Over-budget alert', 'Notify when your bills exceed your paycheck', !!prefs.overBudget)}
-      <div id="notif-save-status" style="height:20px;margin-top:var(--space-2);font-size:13px;color:var(--color-text-tertiary);text-align:right;"></div>
     </div>`;
 }
 
 function mountEmailPrefsWidget(user) {
-  const ids = ['notif-payday', 'notif-bills', 'notif-goals', 'notif-budget'];
+  const ids  = ['notif-payday', 'notif-bills', 'notif-goals', 'notif-budget'];
   const keys = { 'notif-payday': 'paydaySummary', 'notif-bills': 'billReminders', 'notif-goals': 'goalMilestones', 'notif-budget': 'overBudget' };
 
   let saveTimer = null;
@@ -249,11 +290,11 @@ function mountEmailPrefsWidget(user) {
     if (!el) return;
     el.addEventListener('change', () => {
       clearTimeout(saveTimer);
-      saveTimer = setTimeout(() => saveEmailPrefs(keys), 600);
+      saveTimer = setTimeout(saveEmailPrefs, 600);
     });
   });
 
-  async function saveEmailPrefs(keys) {
+  async function saveEmailPrefs() {
     const statusEl = document.getElementById('notif-save-status');
     const prefs = {};
     ids.forEach(id => {
@@ -268,6 +309,7 @@ function mountEmailPrefsWidget(user) {
         body:    JSON.stringify(prefs),
       });
       if (!res.ok) throw new Error('Save failed');
+      Store.invalidate('user');
       if (statusEl) { statusEl.textContent = 'Saved'; setTimeout(() => { statusEl.textContent = ''; }, 2000); }
     } catch (err) {
       console.error(err);

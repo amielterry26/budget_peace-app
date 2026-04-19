@@ -3172,10 +3172,56 @@ img  { display: block; max-width: 100%; }
   color:       var(--color-text-secondary);
 }
 
+/* --- Collapsible settings section ---------------------------- */
+.settings-section__header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  width:           100%;
+  padding:         var(--space-4) var(--space-4) var(--space-3);
+  background:      none;
+  border:          none;
+  cursor:          pointer;
+  color:           var(--color-text-primary);
+  text-align:      left;
+}
+.settings-section__header:hover .settings-section__chevron {
+  color: var(--color-accent);
+}
+.settings-section__chevron {
+  flex-shrink:  0;
+  color:        var(--color-text-tertiary);
+  transition:   transform var(--transition-fast), color var(--transition-fast);
+}
+.settings-section.is-collapsed .settings-section__chevron {
+  transform: rotate(-90deg);
+}
+.settings-section__body {
+  padding:         0 var(--space-4) 0;
+  overflow:        hidden;
+  max-height:      9999px;
+  transition:      max-height 0.28s ease, padding 0.2s ease;
+}
+.settings-section.is-collapsed .settings-section__body {
+  max-height: 0;
+  padding-bottom: 0;
+}
+
+/* Remove old hard padding from setup card since header now handles top padding */
+.settings-setup-card {
+  padding: 0 !important;
+}
+.settings-setup-card .settings-section__body {
+  padding-bottom: var(--space-1);
+}
+
 /* --- Email Notifications card -------------------------------- */
 .settings-notif-card {
-  padding: var(--space-4);
+  padding: 0;
   margin-bottom: var(--space-4);
+}
+.settings-notif-card .settings-section__body {
+  padding-bottom: var(--space-2);
 }
 
 .notif-row {
@@ -4691,6 +4737,32 @@ body.has-demo-banner .scenario-selector:not(.is-hidden) ~ .time-travel-strip:not
   padding-top:   var(--space-4);
   border-top:    1px solid var(--color-border);
 }
+/* Profile quick links */
+.profile-quick-links {
+  display:       flex;
+  gap:           var(--space-2);
+  padding:       var(--space-3) var(--space-4);
+  border-top:    1px solid var(--color-border);
+}
+.profile-quick-link {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           6px;
+  padding:       8px 14px;
+  background:    var(--color-surface-2);
+  border:        1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size:     var(--font-size-sm);
+  font-weight:   var(--font-weight-semi);
+  color:         var(--color-text-primary);
+  cursor:        pointer;
+  transition:    background var(--transition-fast), border-color var(--transition-fast);
+}
+.profile-quick-link:hover {
+  background:    var(--color-surface-3);
+  border-color:  var(--color-border-strong);
+}
+
 .profile-summary__title {
   font-size:      var(--font-size-xs);
   font-weight:    var(--font-weight-semi);

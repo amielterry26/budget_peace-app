@@ -220,6 +220,29 @@ router.post('/:userId/avatar-url', verifyOwner, async (req, res) => {
   }
 });
 
+// PATCH /api/users/:userId/email-prefs — update notification preferences
+router.patch('/:userId/email-prefs', verifyOwner, async (req, res) => {
+  try {
+    const { paydaySummary, billReminders, goalMilestones, overBudget } = req.body;
+    const prefs = {};
+    if (typeof paydaySummary === 'boolean')  prefs.paydaySummary  = paydaySummary;
+    if (typeof billReminders === 'boolean')  prefs.billReminders  = billReminders;
+    if (typeof goalMilestones === 'boolean') prefs.goalMilestones = goalMilestones;
+    if (typeof overBudget === 'boolean')     prefs.overBudget     = overBudget;
+
+    await db.send(new UpdateCommand({
+      TableName: USERS_TABLE,
+      Key: { userId: req.params.userId },
+      UpdateExpression: 'SET emailPrefs = :prefs, updatedAt = :u',
+      ExpressionAttributeValues: { ':prefs': prefs, ':u': new Date().toISOString() },
+    }));
+    res.json({ ok: true, emailPrefs: prefs });
+  } catch (err) {
+    console.error('PATCH /api/users/:userId/email-prefs error:', err);
+    res.status(500).json({ error: 'Failed to update email preferences' });
+  }
+});
+
 // PATCH /api/users/:userId/profile — update display name, photo, bio, job, goals
 router.patch('/:userId/profile', verifyOwner, async (req, res) => {
   try {

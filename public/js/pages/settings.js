@@ -14,8 +14,8 @@ Router.register('settings', async () => {
     </div>`;
 
   try {
-    const scenario = await Store.get('scenario');
-    renderSettings(scenario);
+    const [scenario, user] = await Promise.all([Store.get('scenario'), Store.get('user')]);
+    renderSettings(scenario, user);
   } catch (err) {
     console.error(err);
     document.getElementById('main-content').innerHTML = `
@@ -26,7 +26,7 @@ Router.register('settings', async () => {
   }
 });
 
-function renderSettings(scenario) {
+function renderSettings(scenario, user) {
   const cadence   = scenario.cadence || 'biweekly';
   const duration  = scenario.durationMonths || 6;
   const payDate   = scenario.firstPayDate || '';
@@ -119,6 +119,9 @@ function renderSettings(scenario) {
         </div>
       </div>
 
+      <!-- Email Notifications -->
+      ${renderEmailPrefsCard(user)}
+
       <!-- Notes -->
       ${notesCardHtml('settings')}
     </div>`;
@@ -200,4 +203,75 @@ function renderSettings(scenario) {
 
   // Notes widget
   mountNotesWidget('settings', scenario.scenarioId, scenario.notes);
+
+  // Email prefs toggles
+  mountEmailPrefsWidget(user);
+}
+
+// ---- Email preferences card ---------------------------------
+
+function renderEmailPrefsCard(user) {
+  const prefs = (user && user.emailPrefs) || {};
+  const toggleRow = (id, label, sublabel, checked) => `
+    <div class="notif-row">
+      <div class="notif-row__text">
+        <div class="notif-row__label">${label}</div>
+        <div class="notif-row__sub">${sublabel}</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="${id}" ${checked ? 'checked' : ''} />
+        <span class="toggle-switch__track"></span>
+      </label>
+    </div>`;
+
+  return `
+    <div class="card settings-notif-card">
+      <div class="card-header settings-setup-card__title">Email Notifications</div>
+      <div class="notif-email-hint text-muted text-sm" style="margin-bottom:var(--space-3);">
+        Sent to <strong>${esc((user && user.email) || '')}</strong>
+      </div>
+      ${toggleRow('notif-payday',    'Payday summary',    'Overview of income &amp; bills the day before each paycheck', !!prefs.paydaySummary)}
+      ${toggleRow('notif-bills',     'Bill reminders',    'Alert 3 days before bills with a due date are due', !!prefs.billReminders)}
+      ${toggleRow('notif-goals',     'Goal milestones',   'Celebrate when you hit 25%, 50%, 75%, and 100% of a goal', !!prefs.goalMilestones)}
+      ${toggleRow('notif-budget',    'Over-budget alert', 'Notify when your bills exceed your paycheck', !!prefs.overBudget)}
+      <div id="notif-save-status" style="height:20px;margin-top:var(--space-2);font-size:13px;color:var(--color-text-tertiary);text-align:right;"></div>
+    </div>`;
+}
+
+function mountEmailPrefsWidget(user) {
+  const ids = ['notif-payday', 'notif-bills', 'notif-goals', 'notif-budget'];
+  const keys = { 'notif-payday': 'paydaySummary', 'notif-bills': 'billReminders', 'notif-goals': 'goalMilestones', 'notif-budget': 'overBudget' };
+
+  let saveTimer = null;
+
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', () => {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => saveEmailPrefs(keys), 600);
+    });
+  });
+
+  async function saveEmailPrefs(keys) {
+    const statusEl = document.getElementById('notif-save-status');
+    const prefs = {};
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) prefs[keys[id]] = el.checked;
+    });
+
+    try {
+      const res = await authFetch(`/api/users/${encodeURIComponent(userId())}/email-prefs`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(prefs),
+      });
+      if (!res.ok) throw new Error('Save failed');
+      if (statusEl) { statusEl.textContent = 'Saved'; setTimeout(() => { statusEl.textContent = ''; }, 2000); }
+    } catch (err) {
+      console.error(err);
+      if (statusEl) statusEl.textContent = 'Failed to save';
+    }
+  }
 }

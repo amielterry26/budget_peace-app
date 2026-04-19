@@ -418,6 +418,9 @@ async function ensureMainScenario() {
 }
 ensureMainScenario();
 
+// ---- Email notification cron --------------------------------
+require('./services/cron').start();
+
 // ---- Landing page & SPA fallback ----------------------------
 
 app.get('/landing',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'landing.html')));

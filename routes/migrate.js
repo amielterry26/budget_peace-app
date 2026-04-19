@@ -3,6 +3,8 @@ const { QueryCommand, PutCommand, GetCommand, UpdateCommand, DeleteCommand } = r
 const router  = express.Router();
 const db      = require('../config/dynamo');
 const { verifyOwner } = require('../middleware/auth');
+const emailSvc = require('../services/email');
+const cron     = require('../services/cron');
 
 // All 7 DynamoDB tables partitioned by userId
 const TABLES = [
@@ -153,6 +155,110 @@ router.post('/migrate', async (req, res) => {
   } catch (err) {
     console.error('POST /api/admin/migrate error:', err);
     res.status(500).json({ error: 'Migration failed: ' + err.message });
+  }
+});
+
+// ============================================================
+// POST /api/admin/test-email
+// Fire any email type on demand for development/testing
+// Body: { type: 'paydaySummary'|'billDue'|'overBudget'|'goalMilestone', userId? }
+// If userId is omitted, uses the authenticated user's ID.
+// ============================================================
+router.post('/test-email', async (req, res) => {
+  try {
+    const { type, userId: targetId } = req.body;
+    const uid = targetId || req.userId;
+
+    const userResult = await db.send(new GetCommand({
+      TableName: 'bp_users',
+      Key: { userId: uid },
+    }));
+    if (!userResult.Item) return res.status(404).json({ error: 'User not found' });
+
+    const user = userResult.Item;
+    const toEmail = user.email;
+    if (!toEmail) return res.status(400).json({ error: 'User has no email' });
+
+    // Load supporting data
+    const [periodsRes, expensesRes, cardsRes, banksRes, goalsRes] = await Promise.all([
+      db.send(new QueryCommand({ TableName: 'bp_budget_periods', KeyConditionExpression: 'userId = :uid', ExpressionAttributeValues: { ':uid': uid } })),
+      db.send(new QueryCommand({ TableName: 'bp_expenses',       KeyConditionExpression: 'userId = :uid', ExpressionAttributeValues: { ':uid': uid } })),
+      db.send(new QueryCommand({ TableName: 'bp_cards',          KeyConditionExpression: 'userId = :uid', ExpressionAttributeValues: { ':uid': uid } })),
+      db.send(new QueryCommand({ TableName: 'bp_banks',          KeyConditionExpression: 'userId = :uid', ExpressionAttributeValues: { ':uid': uid } })),
+      db.send(new QueryCommand({ TableName: 'bp_goals',          KeyConditionExpression: 'userId = :uid', ExpressionAttributeValues: { ':uid': uid } })),
+    ]);
+
+    const periods  = periodsRes.Items  || [];
+    const expenses = expensesRes.Items || [];
+    const cards    = cardsRes.Items    || [];
+    const banks    = banksRes.Items    || [];
+    const goals    = goalsRes.Items    || [];
+
+    // Use next upcoming period, or first period if none upcoming
+    const today = new Date().toISOString().split('T')[0];
+    const period = periods.find(p => p.startDate >= today) || periods[0];
+    if (!period && type !== 'goalMilestone') {
+      return res.status(400).json({ error: 'No budget period found for this user' });
+    }
+
+    const scenario = user.activeScenarioId || 'main';
+    const recurringExp = expenses.filter(e =>
+      e.recurrence === 'recurring' &&
+      (!e.scenarioId || e.scenarioId === scenario)
+    );
+    const totalBills = recurringExp.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+
+    let result;
+    switch (type) {
+      case 'paydaySummary': {
+        const remaining = (Number(period.income) || 0) - totalBills;
+        result = await emailSvc.sendPaydaySummary(toEmail, {
+          period, expenses: recurringExp, cards, banks, totalBills, remaining,
+        });
+        break;
+      }
+      case 'billDue': {
+        const due = recurringExp.slice(0, 3); // preview first 3 for testing
+        result = await emailSvc.sendBillDueReminder(toEmail, { expenses: due, period, daysAway: 3 });
+        break;
+      }
+      case 'overBudget': {
+        const income  = Number(period.income) || 0;
+        const overage = Math.max(0, totalBills - income) || 50; // force non-zero for test
+        result = await emailSvc.sendOverBudget(toEmail, { period, totalBills, income, overage });
+        break;
+      }
+      case 'goalMilestone': {
+        const goal = goals.find(g => g.currentAmount > 0 && g.targetAmount > 0) || goals[0];
+        if (!goal) return res.status(400).json({ error: 'No goals found for this user' });
+        result = await emailSvc.sendGoalMilestone(toEmail, { goal });
+        break;
+      }
+      default:
+        return res.status(400).json({ error: `Unknown type "${type}". Use: paydaySummary, billDue, overBudget, goalMilestone` });
+    }
+
+    if (result?.error) {
+      return res.status(500).json({ error: result.error.message || 'Resend error', detail: result.error });
+    }
+
+    res.json({ ok: true, type, sentTo: toEmail, resendId: result?.data?.id });
+  } catch (err) {
+    console.error('POST /api/admin/test-email error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/run-cron — manually trigger the daily cron tick
+router.post('/run-cron', async (req, res) => {
+  try {
+    // Reset lastRunDate so tick() actually runs even if already ran today
+    cron._lastRunDate = null;
+    await cron.tick();
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('POST /api/admin/run-cron error:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 

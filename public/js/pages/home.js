@@ -718,8 +718,8 @@ function calcPeriodExp(expenses, period, cadence) {
       if (startDate > period.endDate) continue;
       if (e.endDate && e.endDate < period.startDate) continue;
       const freq = e.recurrenceFrequency || 'monthly';
-      // Monthly expense in biweekly period: route by allocation method
-      if (freq === 'monthly' && cadence === 'biweekly') {
+      // Monthly expense in biweekly or semimonthly period: route by allocation/dueDay
+      if (freq === 'monthly' && (cadence === 'biweekly' || cadence === 'semimonthly')) {
         const alloc = getEffectiveAllocation(e);
         if (alloc === 'split') {
           total += e.amount / 2;
@@ -730,7 +730,7 @@ function calcPeriodExp(expenses, period, cadence) {
         } else {
           if (dueDayInPeriod(e.dueDay || 1, period)) total += e.amount;
         }
-      } else if (freq === 'biweekly' && cadence === 'biweekly' && e.allocationMethod) {
+      } else if (freq === 'biweekly' && (cadence === 'biweekly' || cadence === 'semimonthly') && e.allocationMethod) {
         const alloc = getEffectiveAllocation(e);
         if (alloc === 'first') {
           if (dueDayInPeriod(1, period)) total += e.amount;
@@ -762,7 +762,7 @@ function getPeriodItems(expenses, period, cadence) {
       if (startDate > period.endDate) continue;
       if (e.endDate && e.endDate < period.startDate) continue;
       const freq = e.recurrenceFrequency || 'monthly';
-      if (freq === 'monthly' && cadence === 'biweekly') {
+      if (freq === 'monthly' && (cadence === 'biweekly' || cadence === 'semimonthly')) {
         const alloc = getEffectiveAllocation(e);
         if (alloc === 'split') {
           items.push({ ...e, periodAmount: Math.round(e.amount / 2 * 100) / 100, note: 'Split across both' });
@@ -773,7 +773,7 @@ function getPeriodItems(expenses, period, cadence) {
         } else {
           if (dueDayInPeriod(e.dueDay || 1, period)) items.push({ ...e, periodAmount: e.amount });
         }
-      } else if (freq === 'biweekly' && cadence === 'biweekly' && e.allocationMethod) {
+      } else if (freq === 'biweekly' && (cadence === 'biweekly' || cadence === 'semimonthly') && e.allocationMethod) {
         const alloc = getEffectiveAllocation(e);
         if (alloc === 'first') {
           if (dueDayInPeriod(1, period)) items.push({ ...e, periodAmount: e.amount, note: '1st paycheck' });

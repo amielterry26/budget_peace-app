@@ -50,16 +50,16 @@ Router.register('budgets', async () => {
           if (startDate > p.endDate) return sum;
           if (e.endDate && e.endDate < p.startDate) return sum;
           const freq = e.recurrenceFrequency || 'monthly';
-          // Monthly expense in biweekly period: route by allocation method
-          if (freq === 'monthly' && cadence === 'biweekly') {
+          // Monthly expense in biweekly or semimonthly period: route by allocation/dueDay
+          if (freq === 'monthly' && (cadence === 'biweekly' || cadence === 'semimonthly')) {
             const alloc = getEffectiveAllocation(e);
             if (alloc === 'split')  return sum + e.amount / 2;
             if (alloc === 'first')  return dueDayInPeriod(1,  p) ? sum + e.amount : sum;
             if (alloc === 'second') return dueDayInPeriod(16, p) ? sum + e.amount : sum;
             return dueDayInPeriod(e.dueDay || 1, p) ? sum + e.amount : sum; // 'due-date'
           }
-          // Biweekly expense with explicit paycheck allocation
-          if (freq === 'biweekly' && cadence === 'biweekly' && e.allocationMethod) {
+          // Biweekly expense with explicit paycheck allocation (also applies to semimonthly)
+          if (freq === 'biweekly' && (cadence === 'biweekly' || cadence === 'semimonthly') && e.allocationMethod) {
             const alloc = getEffectiveAllocation(e);
             if (alloc === 'first')    return dueDayInPeriod(1,  p) ? sum + e.amount : sum;
             if (alloc === 'second')   return dueDayInPeriod(16, p) ? sum + e.amount : sum;

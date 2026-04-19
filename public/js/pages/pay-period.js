@@ -391,8 +391,8 @@ function calcPdExpenses(expenses, period) {
       const freq = e.recurrenceFrequency || 'monthly';
       let mult;
       let isSplit = false;
-      // Monthly expense in biweekly period: route by allocation method
-      if (freq === 'monthly' && cadence === 'biweekly') {
+      // Monthly expense in biweekly or semimonthly period: route by allocation/dueDay
+      if (freq === 'monthly' && (cadence === 'biweekly' || cadence === 'semimonthly')) {
         const alloc = getEffectiveAllocation(e);
         if (alloc === 'split') {
           isSplit = true;
@@ -402,10 +402,10 @@ function calcPdExpenses(expenses, period) {
         } else if (alloc === 'second') {
           mult = dueDayInPeriod(16, period) ? 1 : 0;
         } else {
-          // 'due-date': full amount if dueDay falls in this period
+          // 'due-date': full amount only if dueDay falls in this period
           mult = dueDayInPeriod(e.dueDay || 1, period) ? 1 : 0;
         }
-      } else if (freq === 'biweekly' && cadence === 'biweekly' && e.allocationMethod) {
+      } else if (freq === 'biweekly' && (cadence === 'biweekly' || cadence === 'semimonthly') && e.allocationMethod) {
         // Biweekly expense with explicit paycheck allocation
         const alloc = getEffectiveAllocation(e);
         if (alloc === 'first') {
@@ -426,7 +426,7 @@ function calcPdExpenses(expenses, period) {
       let note = null;
       if (isSplit) {
         note = 'Split across both';
-      } else if (freq === 'monthly' && cadence === 'biweekly' && mult === 0) {
+      } else if (freq === 'monthly' && (cadence === 'biweekly' || cadence === 'semimonthly') && mult === 0) {
         note = 'Due in other period';
       } else if (mult !== 1) {
         note = `${mult} payments this period`;

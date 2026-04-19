@@ -4768,6 +4768,17 @@ body.has-demo-banner .scenario-selector:not(.is-hidden) ~ .time-travel-strip:not
   color:     var(--color-text-secondary);
   line-height: 1;
 }
+.profile-stat--link {
+  cursor: pointer;
+}
+.profile-stat--link:hover,
+.profile-stat--link:active {
+  border-color: var(--color-primary);
+  background:   var(--color-primary-subtle, var(--color-surface-alt));
+}
+.profile-stat--link .profile-stat__val {
+  color: var(--color-primary);
+}
 
 /* Fields */
 .profile-fields {

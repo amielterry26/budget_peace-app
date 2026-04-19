@@ -366,9 +366,11 @@ function buildPill(e, isExpired = false, reorderMode = false) {
   let allocMeta = '';
   if (isRecurring) {
     const alloc = getEffectiveAllocation(e);
+    const _pillCadence = _periods.length ? inferCadence(_periods[0]) : null;
+    const _isSemi = _pillCadence === 'semimonthly';
     const allocLabel = alloc === 'split'  ? 'Split across both'
-                     : alloc === 'first'  ? '1st paycheck'
-                     : alloc === 'second' ? '2nd paycheck'
+                     : alloc === 'first'  ? (_isSemi ? 'Paycheck A (1st–14th)' : 'Paycheck A')
+                     : alloc === 'second' ? (_isSemi ? 'Paycheck B (15th–end)' : 'Paycheck B')
                      : null;
     if (allocLabel) {
       allocMeta = `<div class="expense-pill__meta-item">
@@ -516,7 +518,7 @@ async function openSheet(expense, onSave) {
                   : rawAlloc === 'split'    ? 'split'
                   : rawAlloc === 'due-date' ? 'due-date'
                   : (editing && isHalfMonth && initFreq === 'monthly') ? 'due-date'  // legacy no-alloc = due-date
-                  : 'split';  // new expense default
+                  : 'due-date';  // new expense default
 
   // Detect legacy due-date mode: monthly half-month expense without a modern allocationMethod.
   // We must NOT silently convert these — preserve their behavior unless the user explicitly changes it.
@@ -600,8 +602,8 @@ async function openSheet(expense, onSave) {
               <select class="form-input form-select" id="sh-alloc">
                 <option value="due-date"  ${initAlloc === 'due-date'  ? 'selected' : ''}>Due date</option>
                 <option value="split"     ${initAlloc === 'split'     ? 'selected' : ''}>Split across both</option>
-                <option value="paycheck1" ${initAlloc === 'paycheck1' ? 'selected' : ''}>1st paycheck</option>
-                <option value="paycheck2" ${initAlloc === 'paycheck2' ? 'selected' : ''}>2nd paycheck</option>
+                <option value="paycheck1" ${initAlloc === 'paycheck1' ? 'selected' : ''}>${_detectedCadence === 'semimonthly' ? 'Paycheck A (1st–14th)' : 'Paycheck A'}</option>
+                <option value="paycheck2" ${initAlloc === 'paycheck2' ? 'selected' : ''}>${_detectedCadence === 'semimonthly' ? 'Paycheck B (15th–end)' : 'Paycheck B'}</option>
               </select>
             </div>
           </div>

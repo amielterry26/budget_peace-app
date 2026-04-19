@@ -81,11 +81,15 @@ const Profile = (() => {
     const goals  = profile?.personalGoals || '';
     const photo  = profile?.photoUrl      || '';
 
-    const statPill = (val, label) => `
-      <div class="profile-stat">
-        <span class="profile-stat__val">${val}</span>
-        <span class="profile-stat__label">${label}</span>
-      </div>`;
+    const statPill = (val, label, route) => route
+      ? `<div class="profile-stat profile-stat--link" data-route="${route}">
+           <span class="profile-stat__val">${val}</span>
+           <span class="profile-stat__label">${label}</span>
+         </div>`
+      : `<div class="profile-stat">
+           <span class="profile-stat__val">${val}</span>
+           <span class="profile-stat__label">${label}</span>
+         </div>`;
 
     return `
       <div id="profile-panel-overlay" class="profile-overlay"></div>
@@ -120,10 +124,10 @@ const Profile = (() => {
               <div class="profile-identity__name">${name || 'Your name'}</div>
               <div class="profile-identity__meta">${planLabel(profile)} · ${formatMemberSince(profile?.createdAt)}</div>
               <div class="profile-stat-row">
-                ${statPill(summary.expenses,  'Expenses')}
-                ${statPill(summary.banks,     'Banks')}
-                ${statPill(summary.goals,     'Goals')}
-                ${statPill(summary.scenarios, 'Scenarios')}
+                ${statPill(summary.expenses,  'Expenses',  'expenses')}
+                ${statPill(summary.banks,     'Banks',     'cards')}
+                ${statPill(summary.goals,     'Goals',     'goals')}
+                ${statPill(summary.scenarios, 'Scenarios', 'scenarios')}
               </div>
             </div>
           </div>
@@ -214,6 +218,14 @@ const Profile = (() => {
     document.getElementById('profile-goto-settings').addEventListener('click', () => {
       close();
       Router.navigate('settings');
+    });
+
+    // Stat pills → navigate to linked page
+    document.querySelectorAll('.profile-stat--link').forEach(el => {
+      el.addEventListener('click', () => {
+        close();
+        Router.navigate(el.dataset.route);
+      });
     });
   }
 

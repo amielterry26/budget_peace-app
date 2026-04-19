@@ -371,7 +371,7 @@ function renderHealth(months) {
   document.getElementById('home-period-next')?.addEventListener('click', e => {
     e.stopPropagation();
     if (_homePeriodOffset >= 2) {
-      Router.navigate('pay-period');
+      Router.navigate('pay-period', { idx: _homeViewIdx });
     } else {
       _homePeriodOffset++;
       _homePdSearch = '';

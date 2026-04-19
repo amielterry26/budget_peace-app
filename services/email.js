@@ -237,23 +237,25 @@ function billDueText(data) {
 
 function goalMilestoneHtml(data) {
   const { goal } = data;
-  const pct  = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100));
-  const left = goal.targetAmount - goal.currentAmount;
+  const saved  = Number(goal.currentAmount) || 0;
+  const target = Number(goal.targetAmount)  || 0;
+  const pct    = target > 0 ? Math.min(100, Math.round((saved / target) * 100)) : 100;
+  const left   = Math.max(0, target - saved);
 
   const body = `
     <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;color:#0F172A;letter-spacing:-0.3px;">Goal milestone reached!</h2>
     <p style="margin:0 0 24px;font-size:14px;color:#64748B;">${esc(goal.name)}</p>
 
     ${statBoxRow([
-      { label: 'Progress', value: `${pct}%`,                    valueColor: '#059669' },
-      { label: 'Saved',    value: money(goal.currentAmount)     },
-      { label: 'Target',   value: money(goal.targetAmount)      },
+      { label: 'Progress', value: `${pct}%`,   valueColor: '#059669' },
+      { label: 'Saved',    value: money(saved)  },
+      { label: 'Target',   value: money(target) },
     ])}
 
     <p style="margin:0 0 24px;font-size:14px;color:#64748B;">
       ${left > 0
         ? `Just ${money(left)} to go — you're almost there!`
-        : `You've hit your goal of ${money(goal.targetAmount)}. Incredible work!`}
+        : `You've hit your goal of ${money(target)}. Incredible work!`}
     </p>
 
     ${ctaBtn('Open Budget Peace', 'https://budgetpeace.app')}

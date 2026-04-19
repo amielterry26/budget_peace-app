@@ -84,8 +84,8 @@ function renderSettings(scenario, user) {
           <div class="form-group" style="margin-bottom:var(--space-3);">
             <label class="form-label">How often do you get paid?</label>
             <div class="option-grid option-grid--2">
-              <div class="option-card settings-cadence ${cadence === 'weekly' ? 'is-selected' : ''}" data-value="weekly">
-                <div class="option-card__title">Every week</div>
+              <div class="option-card settings-cadence is-disabled" data-value="weekly" data-locked="cadence-soon">
+                <div class="option-card__title">Every week <span class="cadence-badge">Soon</span></div>
                 <div class="option-card__sub">52 paychecks / year</div>
               </div>
               <div class="option-card settings-cadence ${cadence === 'biweekly' ? 'is-selected' : ''}" data-value="biweekly">
@@ -93,11 +93,11 @@ function renderSettings(scenario, user) {
                 <div class="option-card__sub">26 paychecks / year</div>
               </div>
               <div class="option-card settings-cadence ${cadence === 'semimonthly' ? 'is-selected' : ''}" data-value="semimonthly">
-                <div class="option-card__title">Twice a month</div>
+                <div class="option-card__title">Twice a month <span class="cadence-badge">Beta</span></div>
                 <div class="option-card__sub">1st &amp; 15th · 24/year</div>
               </div>
               <div class="option-card settings-cadence ${cadence === 'monthly' ? 'is-selected' : ''}" data-value="monthly">
-                <div class="option-card__title">Monthly</div>
+                <div class="option-card__title">Monthly <span class="cadence-badge">Beta</span></div>
                 <div class="option-card__sub">12 paychecks / year</div>
               </div>
             </div>
@@ -145,7 +145,7 @@ function renderSettings(scenario, user) {
       </div>
 
       <!-- Email Notifications -->
-      ${renderEmailPrefsCard(user, notifCollapsed)}
+      ${renderEmailPrefsCard(user, notifCollapsed, scenario)}
 
       <!-- Notes -->
       ${notesCardHtml('settings')}
@@ -174,6 +174,7 @@ function renderSettings(scenario, user) {
 
   document.querySelectorAll('.settings-cadence').forEach(card => {
     card.addEventListener('click', () => {
+      if (card.dataset.locked === 'cadence-soon') return; // coming soon, not selectable
       document.querySelectorAll('.settings-cadence').forEach(c => c.classList.remove('is-selected'));
       card.classList.add('is-selected');
       selectedCadence = card.dataset.value;
@@ -267,8 +268,8 @@ function mountCollapseToggle(btnId, cardId, lsKey) {
 
 // ---- Email preferences card ---------------------------------
 
-function renderEmailPrefsCard(user, collapsed) {
-  const prefs = (user && user.emailPrefs) || {};
+function renderEmailPrefsCard(user, collapsed, scenario) {
+  const prefs = (scenario && scenario.emailPrefs) || (user && user.emailPrefs) || {};
   const chevronSvg = `<svg class="settings-section__chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 6 8 10 12 6"/></svg>`;
 
   const toggleRow = (id, label, sublabel, checked) => `
@@ -326,13 +327,13 @@ function mountEmailPrefsWidget(user) {
     });
 
     try {
-      const res = await authFetch(`/api/users/${encodeURIComponent(userId())}/email-prefs`, {
+      const res = await authFetch(`/api/scenarios/${encodeURIComponent(userId())}/${encodeURIComponent(scenario.scenarioId)}/email-prefs`, {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(prefs),
       });
       if (!res.ok) throw new Error('Save failed');
-      Store.invalidate('user');
+      Store.invalidate('scenario');
       if (statusEl) { statusEl.textContent = 'Saved'; setTimeout(() => { statusEl.textContent = ''; }, 2000); }
     } catch (err) {
       console.error(err);

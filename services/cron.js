@@ -4,15 +4,16 @@
 // ============================================================
 'use strict';
 
-const { ScanCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
+const { ScanCommand, QueryCommand, GetCommand } = require('@aws-sdk/lib-dynamodb');
 const db = require('../config/dynamo');
 const email = require('./email');
 
-const USERS_TABLE    = 'bp_users';
-const PERIODS_TABLE  = 'bp_budget_periods';
-const EXPENSES_TABLE = 'bp_expenses';
-const CARDS_TABLE    = 'bp_cards';
-const BANKS_TABLE    = 'bp_banks';
+const USERS_TABLE     = 'bp_users';
+const SCENARIOS_TABLE = 'bp_scenarios';
+const PERIODS_TABLE   = 'bp_budget_periods';
+const EXPENSES_TABLE  = 'bp_expenses';
+const CARDS_TABLE     = 'bp_cards';
+const BANKS_TABLE     = 'bp_banks';
 
 // ---- Date utilities -----------------------------------------
 
@@ -32,9 +33,23 @@ function addDays(dateStr, n) {
 // ---- Data loaders -------------------------------------------
 
 async function getAllUsers() {
-  // Scan all users — small table (single-user / early-stage product)
   const result = await db.send(new ScanCommand({ TableName: USERS_TABLE }));
   return result.Items || [];
+}
+
+async function getActiveScenario(userId, activeScenarioId) {
+  const sid = activeScenarioId || 'main';
+  const result = await db.send(new GetCommand({
+    TableName: SCENARIOS_TABLE,
+    Key: { userId, scenarioId: sid },
+  }));
+  return result.Item || null;
+}
+
+// Returns the effective emailPrefs: scenario-level first, user-level fallback
+async function getEmailPrefs(user) {
+  const scenario = await getActiveScenario(user.userId, user.activeScenarioId);
+  return scenario?.emailPrefs || user.emailPrefs || {};
 }
 
 async function getPeriodsForUser(userId) {
@@ -90,7 +105,7 @@ async function runPaydaySummary(users, today) {
   const tomorrow = addDays(today, 1);
 
   for (const user of users) {
-    const prefs = user.emailPrefs || {};
+    const prefs = await getEmailPrefs(user);
     if (!prefs.paydaySummary) continue;
     const toEmail = user.email;
     if (!toEmail) continue;
@@ -128,7 +143,7 @@ async function runBillDueReminders(users, today) {
   const targetDate = addDays(today, 3);
 
   for (const user of users) {
-    const prefs = user.emailPrefs || {};
+    const prefs = await getEmailPrefs(user);
     if (!prefs.billReminders) continue;
     const toEmail = user.email;
     if (!toEmail) continue;
@@ -155,7 +170,7 @@ async function runBillDueReminders(users, today) {
 
 async function runOverBudgetAlerts(users, today) {
   for (const user of users) {
-    const prefs = user.emailPrefs || {};
+    const prefs = await getEmailPrefs(user);
     if (!prefs.overBudget) continue;
     const toEmail = user.email;
     if (!toEmail) continue;

@@ -468,13 +468,6 @@ async function payPeriodRefresh() {
 // ---- Helpers -----------------------------------------------
 // localToday(), esc(), fmtRange(), dueDayInPeriod() provided by shared.js
 
-function fmtPayday(dateStr, today) {
-  const d = new Date(dateStr + 'T00:00:00Z');
-  const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
-  const isPast = dateStr < today;
-  return isPast ? `Paid ${label}` : `Payday ${label}`;
-}
-
 function pdMoney(n) {
   const str = '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const dot = str.lastIndexOf('.');

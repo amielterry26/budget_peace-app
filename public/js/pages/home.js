@@ -106,7 +106,6 @@ function renderHealth(months) {
                         : _homePeriodOffset === 1 ? 'Next Pay Period'
                         : 'Upcoming Pay Period';
   const canGoBack   = _homePeriodOffset > 0;
-  const navLabel    = _homePeriodOffset === 0 ? 'Current Period' : fmtRange(viewPeriod);
 
   let currentPeriodCard = '';
   if (viewPeriod) {
@@ -119,7 +118,10 @@ function renderHealth(months) {
       <div class="dash-section home-section-period">
         <div class="period-nav">
           <button class="period-nav__arrow" id="home-period-prev" ${canGoBack ? '' : 'disabled'}>&#8592;</button>
-          <span class="period-nav__label">${navLabel}</span>
+          <div class="period-nav__center">
+            <span class="period-nav__label">${fmtRange(viewPeriod)}</span>
+            <span class="period-nav__payday">${fmtPayday(viewPeriod.startDate, today)}</span>
+          </div>
           <button class="period-nav__arrow" id="home-period-next">&#8594;</button>
         </div>
         <div class="card period-shortcut-card" id="period-shortcut" style="cursor:pointer;padding:var(--space-3) var(--space-4);">

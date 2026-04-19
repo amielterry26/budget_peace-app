@@ -127,6 +127,13 @@ function fmtRange(p) {
   return `${fmt(p.startDate)} – ${fmt(p.endDate)}`;
 }
 
+function fmtPayday(dateStr, today) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+  const isPast = dateStr < today;
+  return isPast ? `Paid ${label}` : `Payday ${label}`;
+}
+
 // ============================================================
 // Store — lightweight shared data cache
 // Keys: user, periods, expenses, cards, banks, goals, purchases, scenarios, scenario

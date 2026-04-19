@@ -482,4 +482,28 @@ router.delete('/:userId/:scenarioId', verifyOwner, async (req, res) => {
   }
 });
 
+// PATCH /api/scenarios/:userId/:scenarioId/email-prefs
+router.patch('/:userId/:scenarioId/email-prefs', verifyOwner, async (req, res) => {
+  try {
+    const { userId, scenarioId } = req.params;
+    const { paydaySummary, billReminders, goalMilestones, overBudget } = req.body;
+    const prefs = {};
+    if (typeof paydaySummary === 'boolean')  prefs.paydaySummary  = paydaySummary;
+    if (typeof billReminders === 'boolean')  prefs.billReminders  = billReminders;
+    if (typeof goalMilestones === 'boolean') prefs.goalMilestones = goalMilestones;
+    if (typeof overBudget === 'boolean')     prefs.overBudget     = overBudget;
+
+    await db.send(new UpdateCommand({
+      TableName: SCENARIOS_TABLE,
+      Key: { userId, scenarioId },
+      UpdateExpression: 'SET emailPrefs = :p, updatedAt = :u',
+      ExpressionAttributeValues: { ':p': prefs, ':u': new Date().toISOString() },
+    }));
+    res.json({ ok: true, emailPrefs: prefs });
+  } catch (err) {
+    console.error('PATCH email-prefs error:', err);
+    res.status(500).json({ error: 'Failed to update email preferences' });
+  }
+});
+
 module.exports = router;

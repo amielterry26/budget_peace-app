@@ -187,31 +187,40 @@ const Store = (() => {
   return { get, set, invalidate, invalidateAll };
 })();
 
-// Infer cadence from a period's date span.
+// Infer cadence from a period object.
+// Prefers the stored cadence field (set by generatePeriods); falls back to day-count heuristic.
 function inferCadence(period) {
+  if (period.cadence) return period.cadence;
   const days = Math.round(
     (new Date(period.endDate + 'T00:00:00Z') - new Date(period.startDate + 'T00:00:00Z')) / 86400000
   ) + 1;
-  return days <= 16 ? 'biweekly' : 'monthly';
+  if (days <= 8)  return 'weekly';
+  if (days <= 16) return 'biweekly';
+  return 'monthly';
 }
 
 // Stable integer multiplier for expense frequency within a period cadence.
 // Used for pay-period math only (not monthly totals).
+// weekly/semimonthly periods: treat the same as biweekly for expense math.
 function expMultiplier(expenseFreq, periodCadence) {
-  if (periodCadence === 'biweekly') {
+  if (periodCadence === 'weekly') {
+    return expenseFreq === 'weekly' ? 1 : 1; // biweekly/monthly appear at most once per week
+  }
+  if (periodCadence === 'biweekly' || periodCadence === 'semimonthly') {
     return expenseFreq === 'weekly' ? 2 : 1;
   }
-  if (expenseFreq === 'weekly') return 4;
-  if (expenseFreq === 'biweekly') return 2;
+  // monthly period
+  if (expenseFreq === 'weekly')    return 4;
+  if (expenseFreq === 'biweekly')  return 2;
   return 1;
 }
 
-// Canonical monthly normalization: weekly×4, biweekly×2, monthly×1.
+// Canonical monthly normalization: weekly×4, biweekly×2, semimonthly×2, monthly×1.
 // Single source of truth for all user-facing monthly totals
 // (Home, Scenarios, Compare, Financial Structure).
 function calcMonthlyAmt(expense) {
   const freq = expense.recurrenceFrequency || 'monthly';
-  const mult = freq === 'weekly' ? 4 : freq === 'biweekly' ? 2 : 1;
+  const mult = freq === 'weekly' ? 4 : (freq === 'biweekly' || freq === 'semimonthly') ? 2 : 1;
   return Math.round(expense.amount * mult * 100) / 100;
 }
 

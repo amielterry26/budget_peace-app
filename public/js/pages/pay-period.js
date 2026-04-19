@@ -92,7 +92,10 @@ function renderPeriod(idx) {
       <div class="period-nav">
         <button class="period-nav__arrow" id="prev-period"
           ${idx === 0 ? 'disabled' : ''}>&#8592;</button>
-        <span class="period-nav__label">${fmtRange(period)}</span>
+        <div class="period-nav__center">
+          <span class="period-nav__label">${fmtRange(period)}</span>
+          <span class="period-nav__payday">${fmtPayday(period.startDate, effectiveToday())}</span>
+        </div>
         <button class="period-nav__arrow" id="next-period"
           ${idx === periods.length - 1 ? 'disabled' : ''}>&#8594;</button>
       </div>
@@ -464,6 +467,13 @@ async function payPeriodRefresh() {
 
 // ---- Helpers -----------------------------------------------
 // localToday(), esc(), fmtRange(), dueDayInPeriod() provided by shared.js
+
+function fmtPayday(dateStr, today) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+  const isPast = dateStr < today;
+  return isPast ? `Paid ${label}` : `Payday ${label}`;
+}
 
 function pdMoney(n) {
   const str = '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

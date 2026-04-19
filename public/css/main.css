@@ -665,13 +665,25 @@ img  { display: block; max-width: 100%; }
   color:      var(--color-accent-dark);
 }
 .period-nav__arrow[disabled] { opacity: 0.25; cursor: default; }
-.period-nav__label {
+.period-nav__center {
   flex:           1;
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            2px;
+}
+.period-nav__label {
   text-align:     center;
   font-size:      var(--font-size-sm);
   font-weight:    var(--font-weight-semi);
   color:          var(--color-text-primary);
   letter-spacing: -0.01em;
+}
+.period-nav__payday {
+  font-size:   11px;
+  font-weight: 500;
+  color:       var(--color-text-tertiary);
+  letter-spacing: 0.01em;
 }
 
 /* --- Divider ----------------------------------------------- */

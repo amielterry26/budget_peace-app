@@ -1,5 +1,6 @@
 // ============================================================
 // Email Service — powered by Resend
+// All layouts use table-based HTML for Gmail compatibility
 // ============================================================
 'use strict';
 
@@ -13,16 +14,15 @@ function getResend() {
 
 const FROM = process.env.EMAIL_FROM || 'Budget Peace <notifications@budgetpeace.app>';
 
-// ---- Money formatter ----------------------------------------
+// ---- Helpers ------------------------------------------------
+
 function money(n) {
   return '$' + Number(n || 0).toLocaleString('en-US', {
-    minimumFractionDigits: 2, maximumFractionDigits: 2
+    minimumFractionDigits: 2, maximumFractionDigits: 2,
   });
 }
 
-// ---- Date helpers -------------------------------------------
 function fmtDate(dateStr) {
-  // "2026-04-20" → "April 20"
   const [y, m, d] = dateStr.split('-').map(Number);
   const months = ['January','February','March','April','May','June',
                   'July','August','September','October','November','December'];
@@ -33,7 +33,14 @@ function fmtRange(start, end) {
   return `${fmtDate(start)} – ${fmtDate(end)}`;
 }
 
+function esc(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 // ---- Base layout -------------------------------------------
+
 function layout(title, body) {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -41,102 +48,132 @@ function layout(title, body) {
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>${title}</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #F0F2F5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1A202C; }
-  .wrap { max-width: 560px; margin: 32px auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 16px rgba(0,0,0,0.08); }
-  .header { background: #1A202C; padding: 28px 32px; }
-  .header-logo { font-size: 18px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
-  .header-logo span { color: #63E2A3; }
-  .body { padding: 28px 32px; }
-  .title { font-size: 22px; font-weight: 700; color: #1A202C; margin-bottom: 4px; }
-  .subtitle { font-size: 14px; color: #6B7280; margin-bottom: 24px; }
-  .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: #9CA3AF; margin-bottom: 8px; }
-  .stat-row { display: flex; gap: 12px; margin-bottom: 20px; }
-  .stat-box { flex: 1; background: #F8FAFC; border-radius: 10px; padding: 14px 16px; }
-  .stat-box__label { font-size: 11px; color: #9CA3AF; font-weight: 500; margin-bottom: 2px; }
-  .stat-box__value { font-size: 20px; font-weight: 700; color: #1A202C; }
-  .stat-box__value--green { color: #059669; }
-  .stat-box__value--red { color: #DC2626; }
-  .bill-list { border: 1px solid #E5E7EB; border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
-  .bill-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; border-bottom: 1px solid #F3F4F6; }
-  .bill-row:last-child { border-bottom: none; }
-  .bill-row__name { font-size: 14px; font-weight: 500; color: #1A202C; }
-  .bill-row__meta { font-size: 12px; color: #9CA3AF; margin-top: 1px; }
-  .bill-row__amount { font-size: 14px; font-weight: 600; color: #1A202C; }
-  .divider { border: none; border-top: 1px solid #F3F4F6; margin: 20px 0; }
-  .btn { display: inline-block; background: #1A202C; color: #fff !important; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; margin-top: 4px; }
-  .footer { padding: 20px 32px; text-align: center; border-top: 1px solid #F3F4F6; }
-  .footer p { font-size: 12px; color: #9CA3AF; line-height: 1.6; }
-  .footer a { color: #6B7280; text-decoration: underline; }
-</style>
 </head>
-<body>
-<div class="wrap">
-  <div class="header">
-    <div class="header-logo">Budget<span>Peace</span></div>
-  </div>
-  <div class="body">${body}</div>
-  <div class="footer">
-    <p>You received this because you have Budget Peace email notifications on.<br/>
-    <a href="https://budgetpeace.app">Manage notification preferences</a></p>
-  </div>
-</div>
+<body style="margin:0;padding:0;background-color:#EEF2F7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#EEF2F7;padding:32px 16px;">
+  <tr>
+    <td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,0.08);">
+
+        <!-- Header -->
+        <tr>
+          <td style="background-color:#0F172A;padding:24px 32px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td>
+                  <span style="font-size:20px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">Budget<span style="color:#63E2A3;">Peace</span></span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:28px 32px 8px;">
+            ${body}
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding:20px 32px 28px;border-top:1px solid #F1F5F9;">
+            <p style="margin:0;font-size:12px;color:#94A3B8;text-align:center;line-height:1.6;">
+              You received this because you have Budget Peace email notifications on.<br/>
+              <a href="https://budgetpeace.app/#settings" style="color:#64748B;text-decoration:underline;">Manage notification preferences</a>
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
 </body>
 </html>`;
+}
+
+// ---- Stat box row (3 columns) --------------------------------
+
+function statBoxRow(boxes) {
+  // boxes: [{label, value, valueColor}]
+  const cols = boxes.map((b, i) => `
+    <td width="${Math.floor(100 / boxes.length)}%" style="background:#F8FAFC;border-radius:10px;padding:14px 16px;${i < boxes.length - 1 ? 'border-right:6px solid transparent;' : ''}">
+      <div style="font-size:11px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">${b.label}</div>
+      <div style="font-size:20px;font-weight:700;color:${b.valueColor || '#0F172A'};">${b.value}</div>
+    </td>`).join('');
+  return `
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:8px 0;margin-bottom:24px;">
+      <tr>${cols}</tr>
+    </table>`;
+}
+
+// ---- Bill list table ----------------------------------------
+
+function billListTable(rows) {
+  if (!rows.length) return `<p style="font-size:14px;color:#64748B;margin:0 0 24px;">No bills assigned to this period.</p>`;
+  const rowsHtml = rows.map((r, i) => `
+    <tr>
+      <td style="padding:12px 16px;${i < rows.length - 1 ? 'border-bottom:1px solid #F1F5F9;' : ''}">
+        <div style="font-size:14px;font-weight:500;color:#0F172A;">${esc(r.name)}</div>
+        ${r.meta ? `<div style="font-size:12px;color:#94A3B8;margin-top:2px;">${esc(r.meta)}</div>` : ''}
+      </td>
+      <td align="right" style="padding:12px 16px;white-space:nowrap;font-size:14px;font-weight:600;color:#0F172A;${i < rows.length - 1 ? 'border-bottom:1px solid #F1F5F9;' : ''}">
+        ${money(r.amount)}
+      </td>
+    </tr>`).join('');
+  return `
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E2E8F0;border-radius:10px;border-collapse:collapse;margin-bottom:24px;overflow:hidden;">
+      ${rowsHtml}
+    </table>`;
+}
+
+// ---- CTA button ---------------------------------------------
+
+function ctaBtn(label, href) {
+  return `
+    <table cellpadding="0" cellspacing="0" style="margin-bottom:4px;">
+      <tr>
+        <td style="background-color:#166534;border-radius:8px;padding:12px 24px;">
+          <a href="${href}" style="font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">${label}</a>
+        </td>
+      </tr>
+    </table>`;
 }
 
 // ============================================================
 // Template: Payday Summary
 // ============================================================
-// data: { period, expenses, cards, banks, totalBills, remaining }
+
 function paydaySummaryHtml(data) {
   const { period, expenses, cards, banks, totalBills, remaining } = data;
 
   const cardMap = Object.fromEntries((cards || []).map(c => [c.cardId, c]));
   const bankMap = Object.fromEntries((banks || []).map(b => [b.bankId, b]));
 
-  const billRows = expenses.map(e => {
+  const rows = expenses.map(e => {
     const card = cardMap[e.cardId];
     const bank = card ? bankMap[card.bankId] : null;
     const meta = [card ? card.name : '', bank ? bank.name : ''].filter(Boolean).join(' · ');
-    return `
-    <div class="bill-row">
-      <div>
-        <div class="bill-row__name">${esc(e.name)}</div>
-        ${meta ? `<div class="bill-row__meta">${esc(meta)}</div>` : ''}
-      </div>
-      <div class="bill-row__amount">${money(e.amount)}</div>
-    </div>`;
-  }).join('');
+    return { name: e.name, amount: e.amount, meta };
+  });
 
-  const remainClass = remaining >= 0 ? 'stat-box__value--green' : 'stat-box__value--red';
+  const remColor = remaining >= 0 ? '#059669' : '#DC2626';
 
   const body = `
-    <div class="title">Payday is tomorrow!</div>
-    <div class="subtitle">${fmtRange(period.startDate, period.endDate)}</div>
+    <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;color:#0F172A;letter-spacing:-0.3px;">Payday is tomorrow!</h2>
+    <p style="margin:0 0 24px;font-size:14px;color:#64748B;">${fmtRange(period.startDate, period.endDate)}</p>
 
-    <div class="stat-row">
-      <div class="stat-box">
-        <div class="stat-box__label">Take-home</div>
-        <div class="stat-box__value">${money(period.income)}</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-box__label">Bills due</div>
-        <div class="stat-box__value">${money(totalBills)}</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-box__label">Remaining</div>
-        <div class="stat-box__value ${remainClass}">${money(remaining)}</div>
-      </div>
-    </div>
+    ${statBoxRow([
+      { label: 'Take-home',  value: money(period.income)  },
+      { label: 'Bills due',  value: money(totalBills)     },
+      { label: 'Remaining',  value: money(remaining), valueColor: remColor },
+    ])}
 
-    ${expenses.length > 0 ? `
-    <div class="section-label">Bills this period</div>
-    <div class="bill-list">${billRows}</div>` : `
-    <p style="font-size:14px;color:#6B7280;margin-bottom:20px;">No recurring bills assigned to this period.</p>`}
+    <div style="font-size:11px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">Bills this period</div>
+    ${billListTable(rows)}
 
-    <a class="btn" href="https://budgetpeace.app">Open Budget Peace</a>
+    ${ctaBtn('Open Budget Peace', 'https://budgetpeace.app')}
   `;
 
   return layout('Payday Tomorrow — Budget Peace', body);
@@ -149,10 +186,10 @@ function paydaySummaryText(data) {
     '',
     `Take-home: ${money(period.income)}`,
     `Bills due:  ${money(totalBills)}`,
-    `Remaining: ${money(remaining)}`,
+    `Remaining:  ${money(remaining)}`,
     '',
   ];
-  if (expenses.length > 0) {
+  if (expenses.length) {
     lines.push('Bills this period:');
     for (const e of expenses) lines.push(`  • ${e.name}: ${money(e.amount)}`);
   }
@@ -163,25 +200,23 @@ function paydaySummaryText(data) {
 // ============================================================
 // Template: Bill Due Reminder
 // ============================================================
-// data: { expenses (due in N days), period, daysAway }
+
 function billDueHtml(data) {
   const { expenses, period, daysAway } = data;
   const dayLabel = daysAway === 1 ? 'tomorrow' : `in ${daysAway} days`;
-
-  const billRows = expenses.map(e => `
-    <div class="bill-row">
-      <div class="bill-row__name">${esc(e.name)}</div>
-      <div class="bill-row__amount">${money(e.amount)}</div>
-    </div>`).join('');
+  const titleLabel = daysAway === 1 ? 'tomorrow' : `in ${daysAway} days`;
+  const rows = expenses.map(e => ({ name: e.name, amount: e.amount }));
 
   const body = `
-    <div class="title">Bills due ${dayLabel}</div>
-    <div class="subtitle">Period: ${fmtRange(period.startDate, period.endDate)}</div>
+    <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;color:#0F172A;letter-spacing:-0.3px;">
+      ${expenses.length} bill${expenses.length !== 1 ? 's' : ''} due ${titleLabel}
+    </h2>
+    <p style="margin:0 0 24px;font-size:14px;color:#64748B;">Period: ${fmtRange(period.startDate, period.endDate)}</p>
 
-    <div class="section-label">${expenses.length} bill${expenses.length !== 1 ? 's' : ''} coming up</div>
-    <div class="bill-list">${billRows}</div>
+    <div style="font-size:11px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">Coming up</div>
+    ${billListTable(rows)}
 
-    <a class="btn" href="https://budgetpeace.app">Open Budget Peace</a>
+    ${ctaBtn('Open Budget Peace', 'https://budgetpeace.app')}
   `;
 
   return layout(`Bills Due ${dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1)} — Budget Peace`, body);
@@ -190,10 +225,7 @@ function billDueHtml(data) {
 function billDueText(data) {
   const { expenses, period, daysAway } = data;
   const dayLabel = daysAway === 1 ? 'tomorrow' : `in ${daysAway} days`;
-  const lines = [
-    `Bills due ${dayLabel} (${fmtRange(period.startDate, period.endDate)})`,
-    '',
-  ];
+  const lines = [`Bills due ${dayLabel} (${fmtRange(period.startDate, period.endDate)})`, ''];
   for (const e of expenses) lines.push(`  • ${e.name}: ${money(e.amount)}`);
   lines.push('', 'Open Budget Peace: https://budgetpeace.app');
   return lines.join('\n');
@@ -202,36 +234,29 @@ function billDueText(data) {
 // ============================================================
 // Template: Goal Milestone
 // ============================================================
-// data: { goal, milestonePercent }
+
 function goalMilestoneHtml(data) {
-  const { goal, milestonePercent } = data;
-  const pct = Math.round((goal.currentAmount / goal.targetAmount) * 100);
+  const { goal } = data;
+  const pct  = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100));
+  const left = goal.targetAmount - goal.currentAmount;
 
   const body = `
-    <div class="title">Goal milestone reached!</div>
-    <div class="subtitle">${esc(goal.name)}</div>
+    <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;color:#0F172A;letter-spacing:-0.3px;">Goal milestone reached!</h2>
+    <p style="margin:0 0 24px;font-size:14px;color:#64748B;">${esc(goal.name)}</p>
 
-    <div class="stat-row">
-      <div class="stat-box">
-        <div class="stat-box__label">Progress</div>
-        <div class="stat-box__value stat-box__value--green">${pct}%</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-box__label">Saved</div>
-        <div class="stat-box__value">${money(goal.currentAmount)}</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-box__label">Target</div>
-        <div class="stat-box__value">${money(goal.targetAmount)}</div>
-      </div>
-    </div>
+    ${statBoxRow([
+      { label: 'Progress', value: `${pct}%`,                    valueColor: '#059669' },
+      { label: 'Saved',    value: money(goal.currentAmount)     },
+      { label: 'Target',   value: money(goal.targetAmount)      },
+    ])}
 
-    <p style="font-size:14px;color:#6B7280;margin-bottom:20px;">
-      You've saved ${money(goal.currentAmount)} of your ${money(goal.targetAmount)} goal.
-      ${goal.targetAmount - goal.currentAmount > 0 ? `Just ${money(goal.targetAmount - goal.currentAmount)} to go!` : 'Goal complete — amazing work!'}
+    <p style="margin:0 0 24px;font-size:14px;color:#64748B;">
+      ${left > 0
+        ? `Just ${money(left)} to go — you're almost there!`
+        : `You've hit your goal of ${money(goal.targetAmount)}. Incredible work!`}
     </p>
 
-    <a class="btn" href="https://budgetpeace.app">Open Budget Peace</a>
+    ${ctaBtn('Open Budget Peace', 'https://budgetpeace.app')}
   `;
 
   return layout('Goal Milestone — Budget Peace', body);
@@ -239,9 +264,9 @@ function goalMilestoneHtml(data) {
 
 function goalMilestoneText(data) {
   const { goal } = data;
-  const pct = Math.round((goal.currentAmount / goal.targetAmount) * 100);
+  const pct = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100));
   return [
-    `Goal milestone: ${goal.name} is at ${pct}%!`,
+    `${goal.name} is at ${pct}%!`,
     `Saved: ${money(goal.currentAmount)} of ${money(goal.targetAmount)}`,
     '',
     'Open Budget Peace: https://budgetpeace.app',
@@ -251,35 +276,25 @@ function goalMilestoneText(data) {
 // ============================================================
 // Template: Over-Budget Alert
 // ============================================================
-// data: { period, totalBills, income, overage }
+
 function overBudgetHtml(data) {
   const { period, totalBills, income, overage } = data;
 
   const body = `
-    <div class="title">Heads up — you're over budget</div>
-    <div class="subtitle">Period: ${fmtRange(period.startDate, period.endDate)}</div>
+    <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;color:#0F172A;letter-spacing:-0.3px;">Heads up — you're over budget</h2>
+    <p style="margin:0 0 24px;font-size:14px;color:#64748B;">Period: ${fmtRange(period.startDate, period.endDate)}</p>
 
-    <div class="stat-row">
-      <div class="stat-box">
-        <div class="stat-box__label">Take-home</div>
-        <div class="stat-box__value">${money(income)}</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-box__label">Bills total</div>
-        <div class="stat-box__value">${money(totalBills)}</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-box__label">Over by</div>
-        <div class="stat-box__value stat-box__value--red">${money(overage)}</div>
-      </div>
-    </div>
+    ${statBoxRow([
+      { label: 'Take-home', value: money(income)     },
+      { label: 'Bills',     value: money(totalBills) },
+      { label: 'Over by',   value: money(overage), valueColor: '#DC2626' },
+    ])}
 
-    <p style="font-size:14px;color:#6B7280;margin-bottom:20px;">
-      Your bills for this period exceed your take-home by ${money(overage)}.
-      Review your expenses to bring things back on track.
+    <p style="margin:0 0 24px;font-size:14px;color:#64748B;">
+      Your bills for this period exceed your take-home by ${money(overage)}. Review your expenses to bring things back on track.
     </p>
 
-    <a class="btn" href="https://budgetpeace.app">Review Budget</a>
+    ${ctaBtn('Review Budget', 'https://budgetpeace.app')}
   `;
 
   return layout('Over Budget Alert — Budget Peace', body);
@@ -295,58 +310,41 @@ function overBudgetText(data) {
   ].join('\n');
 }
 
-// ---- HTML escape -----------------------------------------------
-function esc(str) {
-  return String(str || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
 // ============================================================
 // Send helpers
 // ============================================================
 
 async function sendPaydaySummary(toEmail, data) {
   return getResend().emails.send({
-    from:    FROM,
-    to:      toEmail,
+    from: FROM, to: toEmail,
     subject: `Payday tomorrow — ${money(data.period.income)} incoming`,
-    html:    paydaySummaryHtml(data),
-    text:    paydaySummaryText(data),
+    html: paydaySummaryHtml(data), text: paydaySummaryText(data),
   });
 }
 
 async function sendBillDueReminder(toEmail, data) {
   const dayLabel = data.daysAway === 1 ? 'tomorrow' : `in ${data.daysAway} days`;
   return getResend().emails.send({
-    from:    FROM,
-    to:      toEmail,
+    from: FROM, to: toEmail,
     subject: `${data.expenses.length} bill${data.expenses.length !== 1 ? 's' : ''} due ${dayLabel}`,
-    html:    billDueHtml(data),
-    text:    billDueText(data),
+    html: billDueHtml(data), text: billDueText(data),
   });
 }
 
 async function sendGoalMilestone(toEmail, data) {
-  const pct = Math.round((data.goal.currentAmount / data.goal.targetAmount) * 100);
+  const pct = Math.min(100, Math.round((data.goal.currentAmount / data.goal.targetAmount) * 100));
   return getResend().emails.send({
-    from:    FROM,
-    to:      toEmail,
-    subject: `${data.goal.name} is at ${pct}%! 🎯`,
-    html:    goalMilestoneHtml(data),
-    text:    goalMilestoneText(data),
+    from: FROM, to: toEmail,
+    subject: `${data.goal.name} is at ${pct}%`,
+    html: goalMilestoneHtml(data), text: goalMilestoneText(data),
   });
 }
 
 async function sendOverBudget(toEmail, data) {
   return getResend().emails.send({
-    from:    FROM,
-    to:      toEmail,
+    from: FROM, to: toEmail,
     subject: `You're over budget by ${money(data.overage)} this period`,
-    html:    overBudgetHtml(data),
-    text:    overBudgetText(data),
+    html: overBudgetHtml(data), text: overBudgetText(data),
   });
 }
 

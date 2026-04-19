@@ -84,9 +84,17 @@ function renderSettings(scenario, user) {
           <div class="form-group" style="margin-bottom:var(--space-3);">
             <label class="form-label">How often do you get paid?</label>
             <div class="option-grid option-grid--2">
+              <div class="option-card settings-cadence ${cadence === 'weekly' ? 'is-selected' : ''}" data-value="weekly">
+                <div class="option-card__title">Every week</div>
+                <div class="option-card__sub">52 paychecks / year</div>
+              </div>
               <div class="option-card settings-cadence ${cadence === 'biweekly' ? 'is-selected' : ''}" data-value="biweekly">
                 <div class="option-card__title">Every 2 weeks</div>
                 <div class="option-card__sub">26 paychecks / year</div>
+              </div>
+              <div class="option-card settings-cadence ${cadence === 'semimonthly' ? 'is-selected' : ''}" data-value="semimonthly">
+                <div class="option-card__title">Twice a month</div>
+                <div class="option-card__sub">1st &amp; 15th · 24/year</div>
               </div>
               <div class="option-card settings-cadence ${cadence === 'monthly' ? 'is-selected' : ''}" data-value="monthly">
                 <div class="option-card__title">Monthly</div>
@@ -113,8 +121,9 @@ function renderSettings(scenario, user) {
           </div>
 
           <div class="form-group" style="margin-bottom:var(--space-3);">
-            <label class="form-label" for="settings-date">Pay start date</label>
+            <label class="form-label" for="settings-date">First pay date</label>
             <input class="form-input" type="date" id="settings-date" value="${payDate}" />
+            <p class="text-muted text-sm" id="settings-date-hint" style="margin-top:4px;"></p>
           </div>
 
           <div class="form-group" style="margin-bottom:var(--space-3);">
@@ -128,7 +137,7 @@ function renderSettings(scenario, user) {
           <div class="settings-save-area">
             <button class="btn btn--primary btn--full" id="settings-save">Save Changes</button>
             <p class="text-muted text-sm text-center settings-save-area__hint">
-              Changing your income updates all calculations instantly. Changing pay frequency, start date, or horizon will regenerate your pay periods.
+              Income changes update instantly. Changing frequency, first pay date, or horizon regenerates all pay periods.
             </p>
           </div>
 
@@ -150,11 +159,25 @@ function renderSettings(scenario, user) {
   let selectedCadence  = cadence;
   let selectedDuration = duration;
 
+  function updateDateHint(c) {
+    const el = document.getElementById('settings-date-hint');
+    if (!el) return;
+    const hints = {
+      weekly:       'Your first payday — periods repeat every 7 days from here.',
+      biweekly:     'Your first payday — periods repeat every 2 weeks from here.',
+      semimonthly:  'Must be the 1st or 15th — periods always split each month on those two dates.',
+      monthly:      'Your first payday — periods repeat on the same day each month.',
+    };
+    el.textContent = hints[c] || '';
+  }
+  updateDateHint(selectedCadence);
+
   document.querySelectorAll('.settings-cadence').forEach(card => {
     card.addEventListener('click', () => {
       document.querySelectorAll('.settings-cadence').forEach(c => c.classList.remove('is-selected'));
       card.classList.add('is-selected');
       selectedCadence = card.dataset.value;
+      updateDateHint(selectedCadence);
     });
   });
 

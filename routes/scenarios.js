@@ -15,7 +15,7 @@ const EXPENSES_TABLE  = 'bp_expenses';
 const USERS_TABLE     = 'bp_users';
 const CHUNK = 25;
 
-const VALID_CADENCES = ['biweekly', 'monthly'];
+const { VALID_CADENCES } = require('../lib/generatePeriods');
 
 // ---- Helpers ------------------------------------------------
 
@@ -30,6 +30,10 @@ function validateSetup(body) {
   if (!Number.isFinite(dur) || dur <= 0) return 'durationMonths must be a positive number';
   if (!Number.isFinite(inc) || inc <= 0) return 'income must be a positive number';
   if (!/^\d{4}-\d{2}-\d{2}$/.test(firstPayDate) || isNaN(Date.parse(firstPayDate))) return 'firstPayDate must be YYYY-MM-DD';
+  if (cadence === 'semimonthly') {
+    const day = Number(firstPayDate.split('-')[2]);
+    if (day !== 1 && day !== 15) return 'For twice-a-month pay, first pay date must be the 1st or 15th of a month';
+  }
   return null;
 }
 

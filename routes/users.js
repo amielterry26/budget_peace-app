@@ -13,7 +13,7 @@ const AVATAR_BUCKET = process.env.S3_AVATAR_BUCKET || '';
 const USERS_TABLE   = 'bp_users';
 const PERIODS_TABLE = 'bp_budget_periods';
 
-const VALID_CADENCES = ['biweekly', 'monthly'];
+const { VALID_CADENCES } = require('../lib/generatePeriods');
 const CHUNK = 25;
 
 // Helper: delete all periods for a user, then write new ones

@@ -3,8 +3,9 @@ const { QueryCommand, PutCommand, GetCommand, UpdateCommand, DeleteCommand } = r
 const router  = express.Router();
 const db      = require('../config/dynamo');
 const { verifyOwner } = require('../middleware/auth');
-const emailSvc = require('../services/email');
-const cron     = require('../services/cron');
+const emailSvc        = require('../services/email');
+const cron            = require('../services/cron');
+const generatePeriods = require('../lib/generatePeriods');
 
 // All 7 DynamoDB tables partitioned by userId
 const TABLES = [
@@ -180,28 +181,40 @@ router.post('/test-email', async (req, res) => {
     if (!toEmail) return res.status(400).json({ error: 'User has no email' });
 
     // Load supporting data
-    const [periodsRes, expensesRes, cardsRes, banksRes, goalsRes] = await Promise.all([
-      db.send(new QueryCommand({ TableName: 'bp_budget_periods', KeyConditionExpression: 'userId = :uid', ExpressionAttributeValues: { ':uid': uid } })),
-      db.send(new QueryCommand({ TableName: 'bp_expenses',       KeyConditionExpression: 'userId = :uid', ExpressionAttributeValues: { ':uid': uid } })),
-      db.send(new QueryCommand({ TableName: 'bp_cards',          KeyConditionExpression: 'userId = :uid', ExpressionAttributeValues: { ':uid': uid } })),
-      db.send(new QueryCommand({ TableName: 'bp_banks',          KeyConditionExpression: 'userId = :uid', ExpressionAttributeValues: { ':uid': uid } })),
-      db.send(new QueryCommand({ TableName: 'bp_goals',          KeyConditionExpression: 'userId = :uid', ExpressionAttributeValues: { ':uid': uid } })),
+    const scenarioId = user.activeScenarioId || 'main';
+    const [scenarioRes, expensesRes, cardsRes, banksRes, goalsRes] = await Promise.all([
+      db.send(new GetCommand({ TableName: 'bp_scenarios', Key: { userId: uid, scenarioId } })),
+      db.send(new QueryCommand({ TableName: 'bp_expenses', KeyConditionExpression: 'userId = :uid', ExpressionAttributeValues: { ':uid': uid } })),
+      db.send(new QueryCommand({ TableName: 'bp_cards',    KeyConditionExpression: 'userId = :uid', ExpressionAttributeValues: { ':uid': uid } })),
+      db.send(new QueryCommand({ TableName: 'bp_banks',    KeyConditionExpression: 'userId = :uid', ExpressionAttributeValues: { ':uid': uid } })),
+      db.send(new QueryCommand({ TableName: 'bp_goals',    KeyConditionExpression: 'userId = :uid', ExpressionAttributeValues: { ':uid': uid } })),
     ]);
 
-    const periods  = periodsRes.Items  || [];
+    const activeScenario = scenarioRes.Item;
     const expenses = expensesRes.Items || [];
     const cards    = cardsRes.Items    || [];
     const banks    = banksRes.Items    || [];
     const goals    = goalsRes.Items    || [];
 
-    // Use next upcoming period, or first period if none upcoming
+    // Compute periods from the active scenario so they're always in sync
     const today = new Date().toISOString().split('T')[0];
-    const period = periods.find(p => p.startDate >= today) || periods[0];
+    let period;
+    if (activeScenario && activeScenario.firstPayDate) {
+      const generatedPeriods = generatePeriods(
+        uid,
+        activeScenario.cadence,
+        activeScenario.firstPayDate,
+        activeScenario.durationMonths,
+        activeScenario.income
+      );
+      // Find next upcoming period, fall back to last generated
+      period = generatedPeriods.find(p => p.startDate >= today) || generatedPeriods[generatedPeriods.length - 1];
+    }
     if (!period && type !== 'goalMilestone') {
-      return res.status(400).json({ error: 'No budget period found for this user' });
+      return res.status(400).json({ error: 'No budget period found — check that the active scenario has a firstPayDate set' });
     }
 
-    const scenario = user.activeScenarioId || 'main';
+    const scenario = scenarioId;
     const recurringExp = expenses.filter(e =>
       e.recurrence === 'recurring' &&
       (!e.scenarioId || e.scenarioId === scenario)

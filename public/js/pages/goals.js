@@ -59,7 +59,7 @@ function renderGoals() {
   content.innerHTML = `
     <div class="page goals-page">
       ${limitBadge}
-      <div class="stack--3">${sorted.map(buildGoalCard).join('')}</div>
+      <div class="stack stack--3">${sorted.map(buildGoalCard).join('')}</div>
     </div>`;
 
   sorted.forEach(g => {

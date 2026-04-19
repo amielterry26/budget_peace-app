@@ -3239,6 +3239,7 @@ img  { display: block; max-width: 100%; }
 /* Remove old hard padding from setup card since header now handles top padding */
 .settings-setup-card {
   padding: 0 !important;
+  margin-bottom: var(--space-4);
 }
 .settings-setup-card .settings-section__body {
   padding-bottom: var(--space-1);

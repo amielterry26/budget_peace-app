@@ -81,6 +81,12 @@ const Profile = (() => {
     const goals  = profile?.personalGoals || '';
     const photo  = profile?.photoUrl      || '';
 
+    const statPill = (val, label) => `
+      <div class="profile-stat">
+        <span class="profile-stat__val">${val}</span>
+        <span class="profile-stat__label">${label}</span>
+      </div>`;
+
     return `
       <div id="profile-panel-overlay" class="profile-overlay"></div>
       <div id="profile-panel" class="profile-panel">
@@ -96,18 +102,30 @@ const Profile = (() => {
             </button>
           </div>
 
-          <!-- Avatar -->
-          <div class="profile-avatar-section">
-            <div id="profile-avatar-lg" class="profile-avatar-lg">
-              ${photo
-                ? `<img src="${photo}?t=${Date.now()}" alt="Avatar" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">`
-                : `<span class="profile-avatar-lg__initials">${getInitials(profile)}</span>`}
+          <!-- Identity card: photo left, info right -->
+          <div class="profile-identity">
+            <div class="profile-identity__avatar-wrap">
+              <div id="profile-avatar-lg" class="profile-avatar-lg">
+                ${photo
+                  ? `<img src="${photo}?t=${Date.now()}" alt="Avatar" style="width:64px;height:64px;border-radius:50%;object-fit:cover;">`
+                  : `<span class="profile-avatar-lg__initials">${getInitials(profile)}</span>`}
+              </div>
+              <label class="profile-avatar-upload-btn" for="profile-photo-input">
+                Change
+                <input type="file" id="profile-photo-input" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none;">
+              </label>
+              <div id="profile-photo-status" class="profile-photo-status"></div>
             </div>
-            <label class="profile-avatar-upload-btn" for="profile-photo-input">
-              Change photo
-              <input type="file" id="profile-photo-input" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none;">
-            </label>
-            <div id="profile-photo-status" class="profile-photo-status"></div>
+            <div class="profile-identity__info">
+              <div class="profile-identity__name">${name || 'Your name'}</div>
+              <div class="profile-identity__meta">${planLabel(profile)} · ${formatMemberSince(profile?.createdAt)}</div>
+              <div class="profile-stat-row">
+                ${statPill(summary.expenses,  'Expenses')}
+                ${statPill(summary.banks,     'Banks')}
+                ${statPill(summary.goals,     'Goals')}
+                ${statPill(summary.scenarios, 'Scenarios')}
+              </div>
+            </div>
           </div>
 
           <!-- Editable fields -->
@@ -128,51 +146,17 @@ const Profile = (() => {
               <label class="profile-field__label" for="pf-goals">Your goals / hopes</label>
               <textarea id="pf-goals" class="profile-field__input profile-field__textarea" placeholder="What are you working toward?" maxlength="300" rows="3">${goals}</textarea>
             </div>
-
-            <button id="profile-save-btn" class="btn btn--primary btn--full" style="margin-top:var(--space-3);">
-              Save profile
-            </button>
-            <div id="profile-save-status" class="profile-save-status"></div>
           </div>
 
-          <!-- Quick links -->
-          <div class="profile-quick-links">
-            <button class="profile-quick-link" id="profile-goto-settings">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M12.95 3.05l-1.06 1.06M4.11 11.89l-1.06 1.06"/></svg>
+          <!-- Actions: save + settings in one row -->
+          <div class="profile-actions">
+            <button id="profile-save-btn" class="btn btn--primary" style="flex:1;">Save profile</button>
+            <button class="btn btn--ghost profile-quick-link" id="profile-goto-settings">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M12.95 3.05l-1.06 1.06M4.11 11.89l-1.06 1.06"/></svg>
               Settings
             </button>
           </div>
-
-          <!-- Account summary -->
-          <div class="profile-summary">
-            <div class="profile-summary__title">Account</div>
-            <div class="profile-summary__grid">
-              <div class="profile-summary__item">
-                <span class="profile-summary__label">Plan</span>
-                <span class="profile-summary__val">${planLabel(profile)}</span>
-              </div>
-              <div class="profile-summary__item">
-                <span class="profile-summary__label">Member since</span>
-                <span class="profile-summary__val">${formatMemberSince(profile?.createdAt)}</span>
-              </div>
-              <div class="profile-summary__item">
-                <span class="profile-summary__label">Expenses</span>
-                <span class="profile-summary__val">${summary.expenses}</span>
-              </div>
-              <div class="profile-summary__item">
-                <span class="profile-summary__label">Banks</span>
-                <span class="profile-summary__val">${summary.banks}</span>
-              </div>
-              <div class="profile-summary__item">
-                <span class="profile-summary__label">Goals</span>
-                <span class="profile-summary__val">${summary.goals}</span>
-              </div>
-              <div class="profile-summary__item">
-                <span class="profile-summary__label">Scenarios</span>
-                <span class="profile-summary__val">${summary.scenarios}</span>
-              </div>
-            </div>
-          </div>
+          <div id="profile-save-status" class="profile-save-status"></div>
 
         </div>
       </div>
@@ -271,7 +255,7 @@ const Profile = (() => {
       // 4. Update UI
       status.textContent = 'Photo updated!';
       const lg = document.getElementById('profile-avatar-lg');
-      if (lg) lg.innerHTML = `<img src="${photoUrl}?t=${Date.now()}" alt="Avatar" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">`;
+      if (lg) lg.innerHTML = `<img src="${photoUrl}?t=${Date.now()}" alt="Avatar" style="width:64px;height:64px;border-radius:50%;object-fit:cover;">`;
 
       // Refresh cached profile and top bar avatar
       await Auth.refreshProfile();

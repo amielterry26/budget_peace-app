@@ -154,7 +154,8 @@ function paydaySummaryHtml(data) {
   const rows = expenses.map(e => {
     const card = cardMap[e.cardId];
     const bank = card ? bankMap[card.bankId] : null;
-    const meta = [card ? card.name : '', bank ? bank.name : ''].filter(Boolean).join(' · ');
+    const due  = e.dueDate ? `Due ${Number(String(e.dueDate).split('-')[2])}` : null;
+    const meta = [due, bank ? bank.name : '', card ? `${card.name} ···· ${card.lastFour || ''}` : ''].filter(Boolean).join(' · ');
     return { name: e.name, amount: e.amount, meta };
   });
 
@@ -205,7 +206,11 @@ function billDueHtml(data) {
   const { expenses, period, daysAway } = data;
   const dayLabel = daysAway === 1 ? 'tomorrow' : `in ${daysAway} days`;
   const titleLabel = daysAway === 1 ? 'tomorrow' : `in ${daysAway} days`;
-  const rows = expenses.map(e => ({ name: e.name, amount: e.amount }));
+  const rows = expenses.map(e => ({
+    name: e.name,
+    amount: e.amount,
+    meta: e.dueDate ? `Due ${Number(String(e.dueDate).split('-')[2])}` : null,
+  }));
 
   const body = `
     <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;color:#0F172A;letter-spacing:-0.3px;">

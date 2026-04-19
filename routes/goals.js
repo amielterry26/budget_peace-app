@@ -3,12 +3,44 @@ const {
   QueryCommand, PutCommand, DeleteCommand, GetCommand,
 } = require('@aws-sdk/lib-dynamodb');
 const { randomUUID } = require('crypto');
-const router = express.Router();
-const db     = require('../config/dynamo');
+const router   = express.Router();
+const db       = require('../config/dynamo');
 const { verifyOwner } = require('../middleware/auth');
 const { canAddGoal }  = require('../lib/planLimits');
+const emailSvc = require('../services/email');
 
 const TABLE = 'bp_goals';
+const GOAL_MILESTONES = [25, 50, 75, 100];
+
+// Fire a milestone email if currentSaved just crossed 25/50/75/100%.
+// Runs fire-and-forget (never rejects — email failure doesn't break the API response).
+async function maybeSendMilestone(goal, newSaved) {
+  try {
+    const target = Number(goal.targetAmount) || 0;
+    if (target <= 0) return;
+    const newPct      = Math.min(100, Math.round((newSaved / target) * 100));
+    const lastMilestone = goal.lastMilestone || 0;
+    const crossed = GOAL_MILESTONES.filter(m => m > lastMilestone && m <= newPct);
+    if (!crossed.length) return;
+
+    const userId = goal.userId;
+    const [userRes, scenarioRes] = await Promise.all([
+      db.send(new GetCommand({ TableName: 'bp_users', Key: { userId } })),
+      db.send(new GetCommand({ TableName: 'bp_scenarios', Key: { userId, scenarioId: goal.scenarioId || 'main' } })),
+    ]);
+    const user     = userRes.Item;
+    const scenario = scenarioRes.Item;
+    if (!user?.email) return;
+
+    const prefs = scenario?.emailPrefs || user?.emailPrefs || {};
+    if (!prefs.goalMilestones) return;
+
+    await emailSvc.sendGoalMilestone(user.email, { goal: { ...goal, currentSaved: newSaved } });
+    console.log(`[goals] milestone email sent to ${user.email} for "${goal.name}" at ${newPct}%`);
+  } catch (err) {
+    console.error('[goals] milestone email error:', err.message);
+  }
+}
 
 // GET /api/goals/:userId?scenario=main
 router.get('/:userId', verifyOwner, async (req, res) => {
@@ -127,6 +159,13 @@ router.put('/:userId/:goalId', verifyOwner, async (req, res) => {
       }
     }
 
+    // Compute updated lastMilestone if currentSaved changed upward
+    const newSaved = parsedSaved !== undefined ? parsedSaved : (g.currentSaved || 0);
+    const target   = parsedAmount;
+    const newPct   = target > 0 ? Math.min(100, Math.round((newSaved / target) * 100)) : 0;
+    const oldMilestone = g.lastMilestone || 0;
+    const newMilestone = GOAL_MILESTONES.filter(m => m <= newPct).pop() || oldMilestone;
+
     const item = {
       ...g,
       name,
@@ -134,11 +173,17 @@ router.put('/:userId/:goalId', verifyOwner, async (req, res) => {
       targetDate,
       updatedAt:     new Date().toISOString(),
       contributionEntries,
+      lastMilestone: Math.max(oldMilestone, newMilestone),
       ...(parsedSaved !== undefined && { currentSaved: parsedSaved }),
       plannedContribution: plannedContribution ? Number(plannedContribution) : undefined,
     };
     await db.send(new PutCommand({ TableName: TABLE, Item: item }));
     res.json(item);
+
+    // Fire milestone email asynchronously (doesn't affect response)
+    if (parsedSaved !== undefined && parsedSaved > (g.currentSaved || 0)) {
+      maybeSendMilestone(g, parsedSaved);
+    }
   } catch (err) {
     console.error('PUT /api/goals error:', err);
     res.status(500).json({ error: 'Failed to update goal' });
@@ -176,6 +221,9 @@ router.post('/:userId/:goalId/contribute', verifyOwner, async (req, res) => {
     const item = { ...g, contributionEntries, currentSaved, updatedAt: new Date().toISOString() };
     await db.send(new PutCommand({ TableName: TABLE, Item: item }));
     res.json(item);
+
+    // Fire milestone email asynchronously
+    maybeSendMilestone(g, currentSaved);
   } catch (err) {
     console.error('POST /api/goals/contribute error:', err);
     res.status(500).json({ error: 'Failed to log contribution' });

@@ -6,6 +6,7 @@ const { verifyOwner } = require('../middleware/auth');
 const emailSvc        = require('../services/email');
 const cron            = require('../services/cron');
 const generatePeriods = require('../lib/generatePeriods');
+const { calcPeriodExpenses } = require('../lib/periodUtils');
 
 // All 7 DynamoDB tables partitioned by userId
 const TABLES = [
@@ -214,24 +215,28 @@ router.post('/test-email', async (req, res) => {
       return res.status(400).json({ error: 'No budget period found — check that the active scenario has a firstPayDate set' });
     }
 
-    const scenario = scenarioId;
+    const scenarioFilter = scenarioId;
     const recurringExp = expenses.filter(e =>
       e.recurrence === 'recurring' &&
-      (!e.scenarioId || e.scenarioId === scenario)
+      (!e.scenarioId || e.scenarioId === scenarioFilter)
     );
-    const totalBills = recurringExp.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+
+    // Apply period-aware expense math (same logic as pay-period page)
+    const { items: periodExp, total: totalBills } = period
+      ? calcPeriodExpenses(recurringExp, period)
+      : { items: recurringExp, total: recurringExp.reduce((s, e) => s + (Number(e.amount) || 0), 0) };
 
     let result;
     switch (type) {
       case 'paydaySummary': {
         const remaining = (Number(period.income) || 0) - totalBills;
         result = await emailSvc.sendPaydaySummary(toEmail, {
-          period, expenses: recurringExp, cards, banks, totalBills, remaining,
+          period, expenses: periodExp, cards, banks, totalBills, remaining,
         });
         break;
       }
       case 'billDue': {
-        const due = recurringExp.slice(0, 3); // preview first 3 for testing
+        const due = periodExp.slice(0, 3); // preview first 3 for testing
         result = await emailSvc.sendBillDueReminder(toEmail, { expenses: due, period, daysAway: 3 });
         break;
       }
@@ -242,7 +247,7 @@ router.post('/test-email', async (req, res) => {
         break;
       }
       case 'goalMilestone': {
-        const goal = goals.find(g => g.currentAmount > 0 && g.targetAmount > 0) || goals[0];
+        const goal = goals.find(g => (g.currentSaved || 0) > 0 && g.targetAmount > 0) || goals[0];
         if (!goal) return res.status(400).json({ error: 'No goals found for this user' });
         result = await emailSvc.sendGoalMilestone(toEmail, { goal });
         break;

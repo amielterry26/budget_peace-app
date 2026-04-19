@@ -242,7 +242,7 @@ function billDueText(data) {
 
 function goalMilestoneHtml(data) {
   const { goal } = data;
-  const saved  = Number(goal.currentAmount) || 0;
+  const saved  = Number(goal.currentSaved) || 0;
   const target = Number(goal.targetAmount)  || 0;
   const pct    = target > 0 ? Math.min(100, Math.round((saved / target) * 100)) : 100;
   const left   = Math.max(0, target - saved);
@@ -271,10 +271,10 @@ function goalMilestoneHtml(data) {
 
 function goalMilestoneText(data) {
   const { goal } = data;
-  const pct = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100));
+  const pct = Math.min(100, Math.round((goal.currentSaved / goal.targetAmount) * 100));
   return [
     `${goal.name} is at ${pct}%!`,
-    `Saved: ${money(goal.currentAmount)} of ${money(goal.targetAmount)}`,
+    `Saved: ${money(goal.currentSaved)} of ${money(goal.targetAmount)}`,
     '',
     'Open Budget Peace: https://budgetpeace.app',
   ].join('\n');
@@ -339,7 +339,9 @@ async function sendBillDueReminder(toEmail, data) {
 }
 
 async function sendGoalMilestone(toEmail, data) {
-  const pct = Math.min(100, Math.round((data.goal.currentAmount / data.goal.targetAmount) * 100));
+  const saved  = Number(data.goal.currentSaved) || 0;
+  const target = Number(data.goal.targetAmount)  || 1;
+  const pct    = Math.min(100, Math.round((saved / target) * 100));
   return getResend().emails.send({
     from: FROM, to: toEmail,
     subject: `${data.goal.name} is at ${pct}%`,

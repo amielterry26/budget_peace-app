@@ -7,6 +7,7 @@
 const { ScanCommand, QueryCommand, GetCommand } = require('@aws-sdk/lib-dynamodb');
 const db = require('../config/dynamo');
 const email = require('./email');
+const { calcPeriodExpenses } = require('../lib/periodUtils');
 
 const USERS_TABLE     = 'bp_users';
 const SCENARIOS_TABLE = 'bp_scenarios';
@@ -121,13 +122,14 @@ async function runPaydaySummary(users, today) {
 
       // Only recurring expenses scoped to this scenario (or no scenarioId = main)
       const scenario = user.activeScenarioId || 'main';
-      const periodExp = expenses.filter(e =>
+      const scenarioExp = expenses.filter(e =>
         e.recurrence === 'recurring' &&
         (!e.scenarioId || e.scenarioId === scenario)
       );
 
-      const totalBills = periodExp.reduce((s, e) => s + (Number(e.amount) || 0), 0);
-      const remaining  = (Number(period.income) || 0) - totalBills;
+      // Apply period-aware expense math (allocation, dueDay, multiplier)
+      const { items: periodExp, total: totalBills } = calcPeriodExpenses(scenarioExp, period);
+      const remaining = (Number(period.income) || 0) - totalBills;
 
       await email.sendPaydaySummary(toEmail, { period, expenses: periodExp, cards, banks, totalBills, remaining });
       console.log(`[cron] paydaySummary sent to ${toEmail} for period ${tomorrow}`);
@@ -182,13 +184,13 @@ async function runOverBudgetAlerts(users, today) {
 
       const expenses = await getExpensesForUser(user.userId);
       const scenario = user.activeScenarioId || 'main';
-      const periodExp = expenses.filter(e =>
+      const scenarioExp = expenses.filter(e =>
         e.recurrence === 'recurring' &&
         (!e.scenarioId || e.scenarioId === scenario)
       );
 
       const income     = Number(period.income) || 0;
-      const totalBills = periodExp.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      const { total: totalBills } = calcPeriodExpenses(scenarioExp, period);
       const overage    = totalBills - income;
       if (overage <= 0) continue;
 

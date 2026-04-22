@@ -1,5 +1,5 @@
 # AGENT HANDOFF — Budget Peace
-**Last updated: 2026-04-12**
+**Last updated: 2026-04-22**
 **Purpose:** Complete context document for any agent (or resumed session) working on this codebase. Read this before writing a single line of code.
 
 ---
@@ -27,6 +27,8 @@
 **Live URL:** https://budgetpeace.app
 **Stack:** Node.js/Express backend · Vanilla JS SPA frontend · AWS DynamoDB · AWS Elastic Beanstalk (us-west-2) · Supabase Auth
 
+**The mood of the app:** Calm, premium, dark-first. Warm and grounded — not corporate, not playful. The core green is deep forest `#1B5E3B`. The feeling is stillness, control, breathing room — like you've got your finances handled and you're not stressed about them.
+
 ---
 
 ## 2. Repository Structure
@@ -40,8 +42,8 @@ budget-peace/
 │   ├── cards.js                # Wallet cards + bulk reorder
 │   ├── banks.js                # Bank groupings + cascade delete
 │   ├── budgets.js              # Period listing (read-only by users)
-│   ├── goals.js                # Savings goals + contribution history
-│   ├── scenarios.js            # Scenario CRUD, notes, expense cloning
+│   ├── goals.js                # Savings goals + contribution history + milestone emails
+│   ├── scenarios.js            # Scenario CRUD, notes, expense cloning, email-prefs
 │   ├── purchases.js            # One-time purchases (soft archive)
 │   └── stripe.js               # Checkout sessions, webhooks, plan entitlements
 ├── middleware/
@@ -50,7 +52,11 @@ budget-peace/
 │   └── dynamo.js               # AWS DynamoDB DocumentClient setup
 ├── lib/
 │   ├── generatePeriods.js      # Period generation logic
-│   └── planLimits.js           # Server-side plan enforcement
+│   ├── planLimits.js           # Server-side plan enforcement
+│   └── periodUtils.js          # Backend port of all period expense math (NEW)
+├── services/
+│   ├── email.js                # Resend-based email templates + send functions
+│   └── cron.js                 # Daily email notification scheduler
 ├── scripts/
 │   └── setup-dynamo.js         # DynamoDB table definitions (run once)
 ├── public/
@@ -68,6 +74,7 @@ budget-peace/
 │       ├── shared.js           # Store cache, math helpers, esc(), authFetch()
 │       ├── router.js           # Hash router
 │       ├── app.js              # Nav bindings, scenario selector, time-travel UI
+│       ├── profile.js          # Slide-out profile panel
 │       ├── demo.js             # Demo mode with localStorage mock data
 │       └── pages/
 │           ├── home.js         # Dashboard: health projection + current period
@@ -79,7 +86,7 @@ budget-peace/
 │           ├── notes.js        # Notes (Pro) + one-time purchases
 │           ├── scenarios.js    # Scenario management
 │           ├── compare.js      # Scenario comparison (Pro)
-│           └── settings.js     # User setup / onboarding
+│           └── settings.js     # User setup / onboarding + email prefs
 ├── AGENT_HANDOFF.md            # This file
 └── package.json
 ```
@@ -95,6 +102,7 @@ budget-peace/
 | Auth | Supabase | JWT verified server-side only; never trusted on frontend alone |
 | Hosting | AWS Elastic Beanstalk | Environment: `budget-peace-prod`, region: `us-west-2` |
 | Payments | Stripe | Monthly + lifetime plans; checkout-first flow supported |
+| Email | Resend | `RESEND_API_KEY` env var; used by `services/email.js` + `services/cron.js` |
 | Frontend | Vanilla JS | No framework. No React, Vue, Svelte, Angular. |
 | CSS | Custom design system | Single `main.css` with CSS custom properties |
 | Fonts | Plus Jakarta Sans | Via Google Fonts CDN |
@@ -120,7 +128,11 @@ eb deploy budget-peace-prod   # Deploy to Elastic Beanstalk (us-west-2)
 - `origin/main` is NOT kept in sync with every deploy; only merged when the engineer says so
 
 **EB environment:** `budget-peace-prod` (us-west-2), Health: Green
-**EB CLI alert:** Always warns about platform version update — this is safe to ignore for now.
+**EB CLI alert:** Always warns about platform version update — safe to ignore for now.
+
+**Current git state (2026-04-22):**
+- `dev` branch: `83a0fc4` (deployed to budgetpeace.app)
+- `origin/main`: behind dev
 
 ---
 
@@ -137,8 +149,8 @@ All tables use `PAY_PER_REQUEST` billing. All tables use `userId` as the partiti
 | `bp_banks` | `bankId` | Bank groupings for cards |
 | `bp_purchases` | `purchaseId` | One-time purchase wishlist/tracking |
 | `bp_goals` | `goalId` | Savings goals + contribution history |
-| `bp_scenarios` | `scenarioId` | Financial scenarios + notes |
-| `bp_pending_entitlements` | — | Checkout-first payment staging (partition key: `stripeSessionId`; email GSI) |
+| `bp_scenarios` | `scenarioId` | Financial scenarios + notes + emailPrefs |
+| `bp_pending_entitlements` | — | Checkout-first payment staging |
 
 ### Key Fields Per Table
 
@@ -149,6 +161,7 @@ accessLevel: 'none' | 'budget' | 'pro' | 'full' (legacy)
 cadence, firstPayDate, durationMonths, incomeAmount  ← user's pay setup (legacy; per-user)
 activeScenarioId                                      ← which scenario is active
 stripeCustomerId, stripeSubscriptionId, paidAt, entitlementStatus
+emailPrefs: { paydaySummary, billReminders, overBudget, goalMilestones }  ← user-level fallback
 createdAt, lastLoginAt, updatedAt
 ```
 
@@ -161,12 +174,14 @@ scenarioId                          ← defaults to 'main' for legacy rows
 cardId?                             ← links to bp_cards
 recurrenceFrequency: 'weekly' | 'biweekly' | 'monthly'
 recurrenceStartDate                 ← when recurring expense begins
-dueDay?                             ← day-of-month for monthly recurring
+dueDay?                             ← day-of-month for monthly recurring (INTEGER 1–31)
 allocationMethod?                   ← 'split' | 'first' | 'second' | 'due-date'
 splitBiweekly?: boolean             ← legacy field; prefer allocationMethod
-category?, notes?, tags?            ← optional metadata (added 2026-04-12)
+category?, notes?, tags?            ← optional metadata
 createdAt, updatedAt
 ```
+
+**IMPORTANT:** For recurring expenses, `dueDay` is an integer (e.g. `15`). One-time expenses use `dueDate` (full date string e.g. `"2026-05-15"`). Never confuse these two fields.
 
 **bp_cards:**
 ```
@@ -188,22 +203,14 @@ scenarioId                      ← defaults to 'main'
 createdAt, updatedAt
 ```
 
-**bp_purchases:**
-```
-userId, purchaseId
-name, price?, note?, link?, targetDate?
-scenarioId
-archivedAt?                     ← soft archive; filtered out in GET
-createdAt, updatedAt
-```
-
 **bp_goals:**
 ```
 userId, goalId
 name, targetAmount, targetDate
-currentSaved                    ← sum of all contributionEntries amounts
+currentSaved                    ← ⚠ CRITICAL: this is the field name, NOT currentAmount
 plannedContribution?
 contributionEntries: [{ id, amount, date, note? }]  ← full audit trail
+lastMilestone?                  ← last milestone % emailed (25/50/75/100); prevents duplicates
 scenarioId
 createdAt, updatedAt
 ```
@@ -214,6 +221,7 @@ userId, scenarioId
 name, income, cadence, firstPayDate, durationMonths
 isPrimary: boolean              ← exactly one per user should be true
 notes: [{ id, text, createdAt, pinned? }]
+emailPrefs?: { paydaySummary, billReminders, overBudget, goalMilestones }  ← per-scenario overrides
 deletedAt?                      ← soft delete marker
 createdAt, updatedAt
 ```
@@ -251,16 +259,6 @@ This means:
 6. `req.userId` and `req.userEmail` are set after verification
 7. `verifyOwner` checks `req.params.userId === req.userId` (403 if mismatch)
 
-**Profile Sync (on every login):**
-- POST `/api/auth/profile` → creates/updates bp_users row
-- Checks for pending entitlements (checkout-first flow)
-- Returns user profile with accessLevel + plan state
-
-**Checkout-First Flow:**
-- User can pay via Stripe before signing up
-- Pending entitlement staged in `bp_pending_entitlements` (by stripeSessionId + email GSI)
-- On next login, profile sync claims pending entitlement
-
 ---
 
 ## 8. Plan System
@@ -284,7 +282,7 @@ Two tiers enforced on BOTH frontend and backend:
 - `pro-monthly` → subscription → tier: pro
 - `pro-lifetime` → one-time payment → tier: pro
 
-**Server-side gating:** `lib/planLimits.js` — `canAddExpense()`, `canCreateScenario()`, `canUseProjectionMonths()`, `canUseNotes()`
+**Server-side gating:** `lib/planLimits.js`
 **Frontend gating:** `public/js/plans.js` — `Plans.canUse(feature)`, `Plans.getLimit(feature)`, `Plans.showUpgradeModal(context)`
 
 ---
@@ -304,7 +302,7 @@ Two tiers enforced on BOTH frontend and backend:
 |--------|------|---------|
 | GET | `/api/expenses/:userId?scenario=main` | List expenses for scenario |
 | POST | `/api/expenses` | Create expense |
-| PUT | `/api/expenses/:userId/:expenseId` | Update expense (includes category, notes, tags) |
+| PUT | `/api/expenses/:userId/:expenseId` | Update expense |
 | DELETE | `/api/expenses/:userId/:expenseId` | Delete expense |
 
 ### Cards (`routes/cards.js`)
@@ -336,9 +334,9 @@ Two tiers enforced on BOTH frontend and backend:
 | GET | `/api/goals/:userId?scenario=main` | List goals |
 | POST | `/api/goals` | Create goal |
 | PUT | `/api/goals/:userId/:goalId` | Update goal metadata |
-| POST | `/api/goals/:userId/:goalId/contribute` | Log contribution entry |
-| PUT | `/api/goals/:userId/:goalId/contributions/:entryId` | Edit contribution (delta applied to currentSaved) |
-| DELETE | `/api/goals/:userId/:goalId/contributions/:entryId` | Delete contribution (subtracted from currentSaved) |
+| POST | `/api/goals/:userId/:goalId/contribute` | Log contribution entry + fires milestone email |
+| PUT | `/api/goals/:userId/:goalId/contributions/:entryId` | Edit contribution |
+| DELETE | `/api/goals/:userId/:goalId/contributions/:entryId` | Delete contribution |
 | DELETE | `/api/goals/:userId/:goalId` | Delete goal |
 
 ### Scenarios (`routes/scenarios.js`)
@@ -348,11 +346,12 @@ Two tiers enforced on BOTH frontend and backend:
 | GET | `/api/scenarios/:userId/:scenarioId` | Fetch single scenario |
 | POST | `/api/scenarios` | Create scenario (optionally clone expenses) |
 | PUT | `/api/scenarios/:userId/:scenarioId` | Update scenario + regenerate periods |
-| PATCH | `/api/scenarios/:userId/:scenarioId/promote` | Make primary (demotes others) |
+| PATCH | `/api/scenarios/:userId/:scenarioId/promote` | Make primary |
+| PATCH | `/api/scenarios/:userId/:scenarioId/email-prefs` | Save per-scenario email preferences |
 | POST | `/api/scenarios/:userId/:scenarioId/notes` | Add note (Pro-only, max 10) |
-| PATCH | `/api/scenarios/:userId/:scenarioId/notes/:noteId` | Edit note text/pinned |
+| PATCH | `/api/scenarios/:userId/:scenarioId/notes/:noteId` | Edit note |
 | DELETE | `/api/scenarios/:userId/:scenarioId/notes/:noteId` | Delete note |
-| DELETE | `/api/scenarios/:userId/:scenarioId/expenses` | Clear all expenses in scenario |
+| DELETE | `/api/scenarios/:userId/:scenarioId/expenses` | Clear all expenses |
 | DELETE | `/api/scenarios/:userId/:scenarioId` | Soft-delete scenario |
 
 ### Purchases (`routes/purchases.js`)
@@ -360,7 +359,7 @@ Two tiers enforced on BOTH frontend and backend:
 |--------|------|---------|
 | GET | `/api/purchases/:userId?scenario=main` | List non-archived purchases |
 | POST | `/api/purchases` | Create purchase |
-| PUT | `/api/purchases/:userId/:purchaseId` | Update purchase or archive it (set archivedAt) |
+| PUT | `/api/purchases/:userId/:purchaseId` | Update or archive purchase |
 
 ---
 
@@ -402,14 +401,9 @@ scenarios  → GET /api/scenarios/:userId
 scenario   → GET /api/scenarios/:userId/:activeScenario
 ```
 
-**Usage pattern:**
-```javascript
-const expenses = await Store.get('expenses');  // fetch or return cached
-Store.invalidate('expenses');                  // clear cache after mutation
-Store.invalidateAll();                         // clear everything (on scenario change)
-```
+**CRITICAL:** Always `Store.invalidate(key)` after any POST/PUT/DELETE. No auto-invalidation. Cache has no TTL.
 
-**CRITICAL:** Always `Store.invalidate(key)` after any POST/PUT/DELETE — there is no automatic invalidation. The cache has no TTL; it persists until explicitly cleared.
+After bank delete: must invalidate BOTH `'banks'` AND `'cards'` (cascade strips bankId from cards).
 
 ### Key Global Functions (shared.js)
 
@@ -429,8 +423,17 @@ expMultiplier(expFreq, periodCadence)  // multiplier within a period
 dueDayInPeriod(dueDay, period)         // does dueDay fall in this period?
 getEffectiveAllocation(expense)        // resolve allocation method (handles legacy splitBiweekly)
 fmtRange(period)      // Format period as "Jan 1 – Jan 15, 2026"
-inferCadence(period)  // 'biweekly' or 'monthly' from period length
+fmtPayday(dateStr, today)  // "Payday Mon, Apr 28" or "Paid Fri, Apr 15" (used in period nav)
+inferCadence(period)  // 'weekly' | 'biweekly' | 'semimonthly' | 'monthly' from period.cadence field or day-count heuristic
 ```
+
+**`inferCadence` heuristic (when `period.cadence` is not stored):**
+```javascript
+if (days <= 8)  return 'weekly';
+if (days <= 17) return 'biweekly';  // ⚠ threshold is 17, not 16; semimonthly 15th–31st = 17 days
+return 'monthly';
+```
+The safe path is `period.cadence` (stored by `generatePeriods.js`). The heuristic only fires for pre-existing periods without the field.
 
 ### money() — Two Variants (Page-Local)
 
@@ -451,7 +454,7 @@ Do NOT move money() to shared.js. Keep it page-local.
 
 ### Script Loading Order (index.html)
 1. `theme.js` — dark mode (must be first; prevents flash)
-2. `sortablejs@1.15.3` CDN — drag-to-reorder library
+2. `sortablejs@1.15.3` CDN
 3. `@supabase/supabase-js@2` CDN
 4. `supabase-client.js`
 5. `auth.js`
@@ -467,188 +470,113 @@ Do NOT move money() to shared.js. Keep it page-local.
 
 ## 11. Design System
 
-### Colors (Light Mode)
+### Brand Colors (exact hex values for logo/design work)
+
+| Role | Hex | Notes |
+|------|-----|-------|
+| **Primary Green** | `#1B5E3B` | Deep forest green — main brand color, buttons, active states |
+| **Vivid Green** | `#2D9A64` | Progress bars, highlights |
+| **Light Green Tint** | `#E5F4EC` | Card backgrounds, subtle wash |
+| **Dark Green** | `#134530` | Hover states, darkest green |
+| **Dark Mode Green** | `#4E9E6A` | Muted forest green in dark mode — calm, not neon |
+| Light mode background | `#EFEEE8` | Warm linen |
+| Dark mode background | `#18181A` | Warm charcoal, zero blue cast |
+| Dark mode surface | `#222224` | |
+| Dark mode text | `#E8E6E1` | Warm off-white, not cold blue-white |
+
+### Light Mode Tokens
 ```css
 --color-bg:            #EFEEE8   /* warm linen */
 --color-surface:       #FFFFFF
 --color-surface-alt:   #F6F4EF   /* warm cream */
---color-border:        rgba(15,23,42,0.08)
---color-border-strong: rgba(15,23,42,0.14)
+--color-border:        rgba(15,23,42,0.13)
 --color-text-primary:   #111827
---color-text-secondary: #5C6B80
---color-text-tertiary:  #8B96A8
+--color-text-secondary: #4A5568
+--color-text-tertiary:  #6B7280
 --color-accent:         #1B5E3B  /* deep forest green */
---color-accent-vivid:   #2D9A64  /* bright green for progress bars */
+--color-accent-vivid:   #2D9A64
 --color-accent-light:   #E5F4EC
+--color-accent-dark:    #134530
 --color-warn:           #D97706
 --color-danger:         #DC2626
 ```
 
-**Dark mode:** Warm charcoal (`--color-bg: #18181A`, `--color-surface: #222224`, `--color-surface-alt: #2C2C2E`). Applied via `html[data-theme="dark"]`. No blue/cold tones in dark mode.
+**Dark mode:** `html[data-theme="dark"]` — warm charcoal, no blue/cold tones. Applied by `theme.js` which loads first.
 
 ### Typography
 - **Font:** Plus Jakarta Sans (400 · 500 · 600 · 700 · 800)
 - **Scale:** xs(12) · sm(14) · md(15) · lg(18) · xl(24) · 2xl(32) · 3xl(48)
 
 ### Spacing
-- `--space-1` = 4px, `--space-2` = 8px, `--space-3` = 12px, `--space-4` = 16px, `--space-5` = 20px, `--space-6` = 24px, `--space-8` = 32px, `--space-10` = 40px
+`--space-1` = 4px · `--space-2` = 8px · `--space-3` = 12px · `--space-4` = 16px · `--space-5` = 20px · `--space-6` = 24px · `--space-8` = 32px
 
 ### Radius
-- `--radius-sm` = 8px, `--radius-md` = 14px, `--radius-lg` = 20px, `--radius-xl` = 28px, `--radius-pill` = 999px
+`--radius-sm` = 8px · `--radius-md` = 14px · `--radius-lg` = 20px · `--radius-xl` = 28px · `--radius-pill` = 999px
 
-### Layout
-- `--top-bar-height` = 56px, `--bottom-nav-clearance` = 92px, `--max-content` = 760px, `--nav-width` = 260px
+### Stack Layout Utility
 
-### Card Palettes (CARD_PALETTES in cards.js — 8 gradients)
-```javascript
-[0] 'linear-gradient(135deg, #1C1C2E 0%, #2D3561 100%)'   // Dark navy
-[1] 'linear-gradient(135deg, #0F4C75 0%, #1B262C 100%)'   // Ocean
-[2] 'linear-gradient(135deg, #375C42 0%, #1E3A24 100%)'   // Forest green
-[3] 'linear-gradient(135deg, #6B3FA0 0%, #3D1B6E 100%)'   // Purple
-[4] 'linear-gradient(135deg, #B5451B 0%, #7A1A0E 100%)'   // Bronze/rust
-[5] 'linear-gradient(135deg, #1B4B82 0%, #0A2647 100%)'   // Blue
-[6] 'linear-gradient(135deg, #111111 0%, #2C2C2C 100%)'   // Black
-[7] 'linear-gradient(135deg, #C0C0C0 0%, #8A9BA8 100%)'   // Silver
+```css
+.stack { display: flex; flex-direction: column; }
+.stack--2 { gap: 8px; }
+.stack--3 { gap: 12px; }
+.stack--4 { gap: 16px; }
+.stack--6 { gap: 24px; }
 ```
 
-### Bank Colors (BANK_COLORS in cards.js — 6 presets)
-```javascript
-{ label: 'Blue',   value: '#3B82F6' }
-{ label: 'Green',  value: '#22C55E' }
-{ label: 'Purple', value: '#8B5CF6' }
-{ label: 'Orange', value: '#F97316' }
-{ label: 'Red',    value: '#EF4444' }
-{ label: 'Gray',   value: '#6B7280' }  ← BANK_COLOR_DEFAULT
-```
+**⚠ IMPORTANT:** Always use BOTH classes together: `class="stack stack--3"`. The `stack--N` classes only set `gap`; without `display:flex` from `.stack`, the gap has no effect. Using `stack--3` alone is a common bug.
 
 ---
 
-## 12. Feature Inventory
+## 12. Pay Cadence System — CRITICAL
 
-### Home Page
-- Financial health projection (horizon selector: 3/6/12 months; persisted to localStorage)
-- Current period card: income, expenses, remaining, progress bar, bills list (first 5 expandable)
-- `openBillDetailModal(expense, refreshFn)` — bottom sheet with full expense details
-- Notes widget (Pro-only) embedded in dashboard
-- Clicking a bill in the period card → `openBillDetailModal()`
+Three supported pay cadences. Semimonthly was added later and required a full logic audit.
 
-### Pay Period Page
-- Period selector dropdown
-- Per-period breakdown: income, all expenses in period, remaining
-- Progress bar for spending % of income
+| Cadence | Period length | Description |
+|---------|--------------|-------------|
+| `biweekly` | ~14 days | Every 2 weeks; period start varies |
+| `semimonthly` | ~15–17 days | Fixed: 1st–14th and 15th–end of month |
+| `monthly` | ~28–31 days | Once per month |
 
-### Budgets Page
-- List of all budget periods
-- Per-period summary (income, obligations, remaining)
+### The `isHalfMonth` Pattern
 
-### Expenses Page
-- Filter toggle: Current / Upcoming
-- Sort dropdown: Highest Amount · Lowest Amount · A–Z · Newest · Oldest (client-side; persists across toggle; resets on page reload)
-- Per-expense row: inline expand with bank color dot, card info, amount
-- Edit/delete inline
-- Plan limit badge (e.g., "5 of 8 expenses")
-- `openSheet(expense?, onSave)` — add/edit form
-- **Form fields as of 2026-04-12:**
-  - Name, Amount
-  - Recurrence: Once / Recurring
-  - If recurring: Start Date, Frequency (Weekly/Biweekly/Monthly)
-  - If monthly: Due Day (1–31), Allocation Method (when biweekly cadence: Paycheck 1/Paycheck 2/Split/Due Date)
-  - Card / Account selector
-  - **Category (optional text)**
-  - **Notes (optional textarea)**
-  - **Tags (optional comma-separated text)**
-- `openBillDetailModal()` shows category/notes/tags if set (hidden when empty)
+Both biweekly and semimonthly are "half-month" cadences. Any code that routes monthly expenses across periods must handle BOTH:
 
-### Wallet (Cards) Page — `cards.js`
-
-This is the most complex page. Read carefully.
-
-**Overview section (top):**
-- "All Banks" view: total cards+accounts count, # banks, total monthly spend on cards
-- Bank overview rows (clickable → filter to that bank): bank color dot, name, card/account count sub-line, monthly spend
-- Unassigned cards row (if any cards have no bankId)
-- Per-bank filtered view: 3 stats (total cards+accounts, card count, monthly spend)
-
-**Bank filter chips:**
-- Row of chips at top: "All Banks" + one per bank + "+ Add Bank" button
-- Click selected chip → opens edit sheet for that bank
-- Click "All Banks" when already selected → opens bank management
-- Click different chip → switches filter
-
-**Accounts section (Savings cards):**
-- Separate section labeled "Accounts (N)"
-- Savings pills: bank color dot · name · lastFour · bank name · monthly spend badge
-- Reorder button (shows when ≥2 savings accounts): SortableJS drag-drop, saves to DynamoDB via `PUT /api/cards/:userId/order`
-- Click savings pill → inline accordion expand (toggleItemExpand)
-
-**Cards section (Credit/Debit):**
-- Section header: label · chevron compact toggle · Reorder button
-- **Expanded mode (default):** 2-column grid of visual cards (`wallet-cards-grid`)
-  - ISO 7810 aspect ratio (1.586:1) via `aspect-ratio: 1.586 / 1`
-  - Card shows: type, bank name (float right), card number `••XXXX`, name
-  - Click card → bottom sheet detail view (`openCardDetailSheet()`)
-- **Compact mode (persisted to localStorage `bp_wallet_compact`):** Pill rows (`wallet-cards-list`)
-  - Color swatch · name · lastFour · type badge · monthly total in green
-  - Click compact row → inline accordion expand
-- **Reorder mode:** SortableJS drag-drop on `#wallet-cards-grid` OR `#wallet-cards-list` (whichever is active)
-  - "Done Reordering" → saves sortOrder to DynamoDB via `PUT /api/cards/:userId/order`
-  - sortOrder defaults to `Date.now()` on create; updated as `(i + 1) * 1000` on save
-
-**Inline accordion expand (`wallet-item-expand`):**
-- Injected with `insertAdjacentHTML('afterend', ...)` immediately after the triggering element
-- Shows: "Monthly total" header + amount, expense rows with borders between them, Edit + Delete buttons
-- Expense rows are clickable → `openBillDetailModal(expense, null)`
-- One expand open at a time (closes others before opening new)
-- Expense row delineation: `border-top: 1px solid var(--color-border)` via CSS `+` selector
-
-**Bottom sheet card detail (`openCardDetailSheet()`):**
-- Shows full card visual, card number `••XXXX`, type, bank
-- Stack of associated expenses (clickable → `openBillDetailModal`)
-- Edit + Delete buttons
-
-**State variables (module-level):**
 ```javascript
-let _cards         = [];        // all cards for current scenario
-let _cardExpenses  = [];        // all expenses for current scenario
-let _selectedCard  = null;
-let _banks         = [];        // all banks for current scenario
-let _selectedBank  = null;      // null = All Banks
-let _walletCompact = localStorage.getItem('bp_wallet_compact') === '1';
-let _walletReorder = false;     // cards reorder mode
-let _accountsReorder = false;   // savings accounts reorder mode
+const isHalfMonth = cadence === 'biweekly' || cadence === 'semimonthly';
 ```
 
-### Goals Page
-- Goal cards with progress bar (% toward target)
-- Log contribution: date, amount, optional note
-- Contribution history: full audit trail with edit/delete
-- Delete goal with confirmation
+This condition appears in: `home.js` → `calcPeriodExp` + `getPeriodItems`, `pay-period.js` → `calcPdExpenses`, `budgets.js` → `expenses.reduce`, `lib/periodUtils.js` → `calcPeriodExpenses`. **If you add new period math, always handle both.**
 
-### Notes & Purchases Page
-- **Notes (Pro-only):** Scenario notes; pinned first; max 10; max 500 chars each; add/edit/delete; plan-gated
-- **Purchases:** One-time purchase wishlist; expand for details (price, link, target date); soft archive; add/edit
+### Allocation Methods (for monthly expenses in half-month periods)
 
-### Scenarios Page
-- List all active scenarios with primary indicator
-- Expand scenario: financial snapshot (income, expenses, monthly obligations, remaining)
-- Create from scratch or clone from existing scenario (with/without copying expenses)
-- Edit scenario: name + financial setup (triggers period regeneration)
-- Promote to primary
-- Soft-delete (cannot delete primary or only remaining scenario)
-- Notes per scenario (Pro-only)
+| Value | Meaning | Routing |
+|-------|---------|---------|
+| `'due-date'` | Default | Expense appears in whichever period contains its `dueDay` |
+| `'split'` | Split evenly | Half the amount in each period |
+| `'first'` / `'paycheck1'` | Paycheck A | Routes to period containing day 1 (1st–14th) |
+| `'second'` / `'paycheck2'` | Paycheck B | Routes to period containing day 16 (15th–end) |
+| `splitBiweekly: true` | Legacy | Treated as `'split'`; normalize via `getEffectiveAllocation()` |
 
-### Compare Page (Pro-only)
-- Side-by-side scenario comparison
-- Gated behind Plans.canUse('scenarioComparison')
+**UI labels (expenses.js):**
+- Biweekly schedule: "Paycheck A" / "Paycheck B"
+- Semimonthly schedule: "Paycheck A (1st–14th)" / "Paycheck B (15th–end)"
+- Default for new expenses: `'due-date'` (safest; requires intentional override to split/paycheck)
 
-### Settings Page
-- Income amount, pay frequency (Biweekly/Monthly), first pay date, duration months
-- Structure change (cadence/firstPayDate/duration) → full period regeneration
-- Income-only change → update period incomes (no regeneration)
+**Monthly cadence:** Allocation dropdown is hidden entirely (`isHalfMonth = false`). All monthly expenses just show every period.
 
----
+### lib/periodUtils.js (backend)
 
-## 13. Expense Math — Canonical Rules
+Backend port of all frontend period math. Required because cron.js needs server-side period calculations without access to the browser environment.
+
+```javascript
+const { calcPeriodExpenses } = require('../lib/periodUtils');
+const { items, total } = calcPeriodExpenses(expenses, period);
+// Returns: items with displayAmount field, total
+```
+
+Used by: `services/cron.js`, `routes/migrate.js` (test emails)
+
+### Expense Math Rules
 
 ```javascript
 // Monthly normalization
@@ -659,129 +587,278 @@ calcMonthlyAmt(expense):
 
 // Period multiplier (how many times expense occurs in a period)
 expMultiplier(expenseFreq, periodCadence):
-  ('weekly',   'biweekly') = 2   // 2 weeks per biweekly period
-  ('weekly',   'monthly')  = 4   // ~4 weeks per month
-  ('biweekly', 'monthly')  = 2   // 2 biweekly cycles per month
-  (anything,   'monthly')  = 1   // monthly expense in monthly period
-  ('weekly',   'weekly')   = 1   // weekly expense in weekly period
-
-// Allocation methods for monthly expenses in biweekly periods
-'due-date'  → expense falls in whichever period contains its due day
-'first'     → (formerly 'paycheck1') always in first period of month
-'second'    → (formerly 'paycheck2') always in second period of month
-'split'     → half in each period
-splitBiweekly: true → legacy; treated as 'split'
-
-// getEffectiveAllocation(expense) resolves all variants to canonical names
+  ('weekly',   'weekly')    = 1
+  ('weekly',   'biweekly')  = 2
+  ('weekly',   'monthly')   = 4
+  ('biweekly', 'biweekly')  = 1
+  ('biweekly', 'monthly')   = 2
+  ('monthly',  anything)    = 1  // routing handled separately for half-month
 ```
 
 ---
 
-## 14. Time Travel
+## 13. Email Notification System
 
-Users can view their finances on any past or future date:
+### Services
+
+**`services/email.js`** — All email sending via Resend API
+- `sendPaydaySummary(toEmail, { period, expenses, cards, banks, totalBills, remaining })`
+- `sendBillDueReminder(toEmail, { expenses, period, daysAway })`
+- `sendOverBudget(toEmail, { period, totalBills, income, overage })`
+- `sendGoalMilestone(toEmail, { goal, milestonePercent })`
+
+Email templates use **table-based HTML** (Gmail strips CSS flexbox).
+Brand colors: bg `#F0FDF4`, accent `#16A34A`, header `#0F172A`, logo green `#63E2A3`.
+
+**`services/cron.js`** — Runs once per day (checks every hour, fires within 1-hour window)
+- `runPaydaySummary(users, today)` — sends night before payday (period.startDate === tomorrow)
+- `runBillDueReminders(users, today)` — 3 days before bill dueDay
+- `runOverBudgetAlerts(users, today)` — fires on payday if total bills > income
+
+**Critical cron bug history (both already fixed):**
+1. Bill reminders were checking `e.dueDate === targetDate` — wrong field. Recurring expenses use `e.dueDay` (integer), not `e.dueDate` (string, one-time only). Fixed to extract day-of-month from targetDate and compare `Number(e.dueDay) === targetDay`.
+2. Payday email was summing raw `e.amount` instead of using period-math amounts. Fixed to use `calcPeriodExpenses()`.
+
+### Email Preferences
+
+**Per-scenario email prefs** (checked first) stored in `bp_scenarios.emailPrefs`:
+```javascript
+{
+  paydaySummary: boolean,
+  billReminders: boolean,
+  overBudget:    boolean,
+  goalMilestones: boolean
+}
+```
+Falls back to `bp_users.emailPrefs` if no scenario-level prefs.
+
+UI in Settings page (`settings.js` → `renderEmailPrefsCard()`). Saves via:
+`PATCH /api/scenarios/:userId/:scenarioId/email-prefs`
+
+Weekly cadence email option is shown as `is-disabled` in the UI (disabled, not removed — "coming soon").
+
+### Goal Milestone Emails
+
+Fired from `routes/goals.js` (NOT from cron — fires immediately on contribution).
+
+Milestones: 25%, 50%, 75%, 100%
+
+`lastMilestone` field on goal record prevents duplicate emails. Logic:
+```javascript
+const GOAL_MILESTONES = [25, 50, 75, 100];
+// After save: check which milestone was crossed, compare against goal.lastMilestone
+// Fire email fire-and-forget (does not block API response)
+```
+
+⚠ **Use `goal.currentSaved` — NOT `goal.currentAmount`** (that field doesn't exist).
+
+---
+
+## 14. Feature Inventory
+
+### Home Page (`home.js`)
+- Financial health projection (horizon: 3/6/12 months; persisted to localStorage `bp_health_horizon`)
+- Period nav with prev/next arrows: shows current, next, period after next
+  - At offset ≥ 2 (3rd next press): navigates to pay-period page **passing `{ idx: _homeViewIdx }`** so it lands on the correct period (not the current one)
+  - Period nav shows date range + payday label (`fmtPayday()`)
+- Current period card: income, expenses, remaining, progress bar, expandable bills list
+- `openBillDetailModal(expense, refreshFn)` — bottom sheet with full expense details
+- Notes widget (Pro-only) embedded in dashboard
+
+### Pay Period Page (`pay-period.js`)
+- Period selector (accepts `?idx=N` param from home page nav)
+- Per-period breakdown: income, expenses, remaining
+- Period nav: period-nav__center div with label + payday sub-line
+- `calcPdExpenses()` — handles biweekly AND semimonthly routing
+
+### Budgets Page (`budgets.js`)
+- List of all budget periods; per-period summary (income, obligations, remaining)
+- Uses same `isHalfMonth` routing logic
+
+### Expenses Page (`expenses.js`)
+- Filter toggle: Current / Upcoming
+- Sort: Highest · Lowest · A–Z · Newest · Oldest (client-side; persists across toggle; resets on page reload)
+- Expense form sheet:
+  - Recurring: Start Date, Frequency, Due Day (monthly), Allocation (half-month + monthly only)
+  - Allocation options are shown/hidden via `isHalfMonth` (biweekly OR semimonthly)
+  - Monthly cadence: allocation dropdown hidden entirely
+  - Default allocation for new expenses: `'due-date'`
+  - Card/Account selector, Category, Notes, Tags
+- `openBillDetailModal()` shows category/notes/tags if set
+
+### Wallet (Cards) Page — `cards.js`
+
+This is the most complex page. Read carefully.
+
+**State variables:**
+```javascript
+let _cards         = [];
+let _cardExpenses  = [];
+let _selectedCard  = null;
+let _banks         = [];
+let _selectedBank  = null;      // null = All Banks
+let _walletCompact = localStorage.getItem('bp_wallet_compact') === '1';
+let _walletReorder = false;
+let _accountsReorder = false;
+```
+
+**Sections:**
+- Overview: "All Banks" stats or per-bank stats; bank filter chips (All Banks | bank1 | ... | + Add Bank)
+- Accounts (Savings cards): pill rows with reorder; click → inline accordion
+- Cards (Credit/Debit): 2-col grid (default) or compact pill list; drag-to-reorder via SortableJS
+- Inline accordion `wallet-item-expand`: injected with `insertAdjacentHTML('afterend', ...)`; one open at a time
+- Card detail sheet `openCardDetailSheet()`: full card visual + associated expenses
+
+### Goals Page (`goals.js`)
+- Goal cards with progress bar
+- `class="stack stack--3"` — both classes required for 12px gap to work
+- Log contribution: date, amount, optional note
+- Contribution history with edit/delete
+- Milestone emails fire on contribute
+
+### Profile Panel (`profile.js`)
+- Slide-out from right; opened via avatar button in top bar
+- Layout: identity card (64px avatar left + name/plan/member-since/stats right), editable fields below, action row (Save + Settings) at bottom
+- **Stat pills** (4 total): Expenses → navigates to `expenses`; Banks → navigates to `cards`; Goals → navigates to `goals`; Scenarios → navigates to `scenarios`
+  - Pills with a route get class `profile-stat--link` (green border + tint on hover)
+  - Click closes panel, then navigates
+
+### Settings Page (`settings.js`)
+- Collapsed accordion sections: Financial Setup, Email Notifications, Notes
+- `margin-bottom: var(--space-4)` on `.settings-setup-card` for proper spacing between sections
+- Email prefs save to scenario-level via `PATCH /api/scenarios/:userId/:scenarioId/email-prefs`
+- Cadence options: Weekly (disabled/coming soon), Biweekly, Semimonthly (Beta badge), Monthly (Beta badge)
+
+### Notes & Purchases Page
+- Notes (Pro-only): pinned first, max 10, max 500 chars
+- Purchases: wishlist, soft archive, add/edit
+
+### Scenarios Page
+- Create from scratch or clone with/without expenses
+- Edit triggers period regeneration
+- Notes per scenario (Pro-only)
+- Soft-delete (cannot delete primary or last remaining)
+
+### Compare Page (Pro-only)
+- Side-by-side scenario comparison
+
+---
+
+## 15. Semimonthly Cadence — History & Known Bug Fixes
+
+Semimonthly (paid on 1st and 15th) was added as a third cadence type. Several bugs were found and fixed during a full audit:
+
+**Bug 1 — inferCadence misclassified semimonthly:** Threshold was `<= 16` days, but the 15th–31st period is 17 days. Fixed to `<= 17`.
+
+**Bug 2 — Allocation dropdown hidden for semimonthly:** The dropdown was only shown when `isBiweekly`. Semimonthly users couldn't set allocation. Fixed to `isHalfMonth = biweekly || semimonthly`.
+
+**Bug 3 — All expenses showing every period for semimonthly:** Monthly expense routing only checked `cadence === 'biweekly'`. Semimonthly fell through to `expMultiplier('monthly', 'semimonthly') = 1` and showed every period. Fixed to `(cadence === 'biweekly' || cadence === 'semimonthly')` in all four locations.
+
+**Bug 4 — Bill reminders never firing:** `getExpensesDueOn()` in cron.js checked `e.dueDate === targetDate`. Recurring expenses have `dueDay` (integer), not `dueDate`. Fixed to compare day-of-month integers.
+
+---
+
+## 16. Time Travel
 
 - `effectiveToday()` returns `_viewDate` || `_serverToday` || `localToday()`
 - `_viewDate` persisted to localStorage as `'bp_viewDate'`
-- All page renders use `effectiveToday()` for period filtering, health projection, etc.
 - UI: inline button in top bar (desktop), FAB-like panel on mobile
-- Time-travel strip shows when active: "Viewing as: Jan 15, 2026" with [Change] and [Back to Today] buttons
-- `setViewDate(dateStr)` → updates `_viewDate`, re-renders current page
-- `clearViewDate()` → removes `_viewDate`, re-renders
+- `setViewDate(dateStr)` → updates, re-renders; `clearViewDate()` → returns to today
 
 ---
 
-## 15. Dark Mode
+## 17. Dark Mode
 
 - CSS tokens in `html[data-theme="dark"]` block in `main.css`
-- `theme.js` loads first (before any other script) to prevent flash
+- `theme.js` loads first to prevent flash
 - Persisted to localStorage as `'bp_theme'`
-- Falls back to system preference (`prefers-color-scheme`) on first visit
-- Toggle button in top bar (`.top-bar__theme-toggle`)
-- Flash prevention: inline `<script>` in `<head>` of landing.html and demo.html reads localStorage before paint
+- Falls back to system preference on first visit
+- No blue/cold tones in dark mode — warm charcoal aesthetic
 
 ---
 
-## 16. Demo Mode
+## 18. Demo Mode
 
-- Accessible via `/demo` → `demo.html`
-- No auth required
-- Mock Supabase session injected
-- All mutations (POST/PUT/DELETE) intercepted by `demo.js` and applied to localStorage
-- Data stored as JSON in localStorage keys prefixed with `bp_demo_`
-- Works with all pages transparently (no page-level code changes needed for demo)
+- `/demo` → `demo.html` — no auth required
+- All mutations intercepted by `demo.js`, applied to localStorage
+- Data in localStorage keys prefixed `bp_demo_`
+- No page-level code changes needed
 
 ---
 
-## 17. What Has Been Built (Completed Features)
+## 19. What Has Been Built (Complete Feature List)
 
-- [x] Pay period generation (biweekly + monthly cadences)
+- [x] Pay period generation (biweekly, semimonthly, monthly cadences)
 - [x] Recurring expenses with frequency, start date, due day, allocation method
 - [x] One-time expenses
 - [x] Expense metadata: category, notes, tags
 - [x] Expense sorting (5 modes, client-side)
-- [x] Wallet: credit/debit/savings cards with gradient backgrounds
-- [x] Wallet: ISO 7810 card aspect ratio
-- [x] Wallet: 2-column card grid
-- [x] Wallet: compact mode (pill rows, persistent)
-- [x] Wallet: drag-to-reorder cards + savings accounts (sortOrder → DynamoDB)
-- [x] Wallet: bank grouping + filter chips
-- [x] Wallet: bank color dots on expense rows
-- [x] Wallet: all-banks overview stats + per-bank stats
-- [x] Wallet: overview bank rows clickable → navigate to bank filter
-- [x] Wallet: inline accordion expand (savings pills + compact card rows)
-- [x] Wallet: expense rows in expand + bottom sheet → openBillDetailModal
-- [x] Wallet: monthly spend totals on compact card rows and savings pills
-- [x] Savings goals with contribution history + edit/delete entries
-- [x] Notes (Pro-only) embedded in dashboard + scenario detail
-- [x] One-time purchases (wishlist/tracking, soft archive)
+- [x] Expense allocation: Paycheck A/B labels (semimonthly gets date ranges), default due-date
+- [x] Wallet: credit/debit/savings cards with gradient backgrounds (ISO 7810 aspect ratio)
+- [x] Wallet: 2-column card grid + compact mode (persistent)
+- [x] Wallet: drag-to-reorder (SortableJS) for cards + savings accounts
+- [x] Wallet: bank grouping + filter chips + color dots
+- [x] Wallet: all-banks overview + per-bank stats
+- [x] Wallet: inline accordion expand + card detail sheet
+- [x] Wallet: monthly spend totals on compact rows and savings pills
+- [x] Savings goals with contribution history + edit/delete
+- [x] Goal milestone emails (25/50/75/100% triggers, dedup via lastMilestone)
+- [x] Notes (Pro-only) in dashboard + scenario detail
+- [x] One-time purchases (wishlist, soft archive)
 - [x] Scenarios: create, clone, edit, promote, soft-delete
-- [x] Scenario isolation: all data scoped to active scenario
+- [x] Scenario isolation (all data scoped to active scenario)
 - [x] Scenario comparison (Pro-only)
-- [x] Financial health projection (configurable horizon, localStorage-persisted)
+- [x] Financial health projection (configurable horizon)
 - [x] Time travel (view finances on any date)
 - [x] Dark mode (system preference + manual toggle, no flash)
-- [x] Dark mode on landing.html and demo.html
-- [x] Settings page (income, cadence, period generation)
+- [x] Settings page with cadence-aware period regeneration
 - [x] Pro plan with Stripe (monthly + lifetime, checkout-first flow)
 - [x] Demo mode
 - [x] Bill detail modal (amount, frequency, due, card, category, notes, tags)
+- [x] Email notifications: payday summary, bill reminders (3 days), over-budget alerts
+- [x] Per-scenario email preferences (overrides user-level)
+- [x] Profile panel: identity card layout, stat pills linked to pages, save + settings row
+- [x] Home page period nav passes correct period index to pay-period page
+- [x] lib/periodUtils.js — backend period math (used by cron + test route)
 
 ---
 
-## 18. What Is NOT Built Yet (Planned / Discussed)
+## 20. What Is NOT Built Yet (Planned / Discussed)
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Expense sort Stage 2 | Planned | `sortOrder` field on expenses, batch PUT `/api/expenses/:userId/order` |
+| Expense sort Stage 2 | Planned | `sortOrder` field, batch PUT `/api/expenses/:userId/order` |
 | Expense sort Stage 3 | Planned | SortableJS drag-drop on expenses page |
-| Goals V2 | Design exists | Auto-prompts when nearing/missing goals; design doc discussed |
-| Scenario Mode | Design exists | Deeper "what-if" tooling; full design doc discussed with engineer |
-| Bank-specific notes | Discussed | Multi-note system per bank (same UX as scenario notes); architecture not decided (array on bank item vs new table) |
-| Multi-select bank filter | Discussed | Toggle chips independently; "All Banks" resets; overview + card list scoped to selected banks |
+| Goals V2 | Design exists | Auto-prompts when nearing/missing goals |
+| Scenario Mode | Design exists | Deeper "what-if" tooling; design doc discussed |
+| Bank-specific notes | Discussed | Multi-note system per bank |
+| Multi-select bank filter | Discussed | Toggle chips independently |
 | AI-powered budget insights | Planned | Pro feature; not started |
 | Custom widgets | Planned | Pro feature; not started |
-| Advanced adjustments | Planned | Pro feature; not started |
+| Weekly email cadence | UI placeholder only | Shown as "coming soon" in email prefs |
 
 ---
 
-## 19. Critical Constraints — Read Before Changing Anything
+## 21. Critical Constraints — Read Before Changing Anything
 
-1. **No visual/CSS redesign** unless directly blocking a function. Do not touch layout, spacing, colors, or typography unless the feature requires it.
-2. **money() stays page-local.** Two variants exist (plain vs. cents-span). Do not consolidate into shared.js.
-3. **No over-engineering.** If you can solve it in 10 lines, do not write 50. No premature abstractions. No helper functions for one-off operations.
-4. **No backward-compat hacks.** If old code is unused, delete it. No `_oldName` variables, no re-exports, no `// removed` comments.
+1. **No visual/CSS redesign** unless directly blocking a function.
+2. **money() stays page-local.** Two variants exist. Do not consolidate into shared.js.
+3. **No over-engineering.** Simplest solution always. No premature abstractions.
+4. **No backward-compat hacks.** Delete unused code entirely.
 5. **Vanilla JS only.** No frameworks, no transpilation, no bundler.
-6. **Never trust userId from the request body** — always use `req.userId` (from verified JWT) for ownership checks.
-7. **DynamoDB FilterExpression for scenario isolation** — every query against scenario-scoped tables must include the scenarioId filter with legacy fallback.
-8. **PUT /api/cards/:userId/order must be registered BEFORE PUT /api/cards/:userId/:cardId** in routes/cards.js — Express route conflict prevention.
-9. **Store.invalidate() after every mutation.** No auto-invalidation. Cache is indefinite.
-10. **Stripe webhook uses raw body** — must be registered before `express.json()` middleware.
-11. **Deploy from `dev` branch.** Never deploy from `main` directly. `eb deploy budget-peace-prod` after push to origin/dev.
+6. **Never trust userId from request body** — always use `req.userId` (from verified JWT).
+7. **DynamoDB FilterExpression for scenario isolation** — every scenario-scoped query needs the scenarioId filter with legacy fallback.
+8. **PUT /api/cards/:userId/order must be registered BEFORE PUT /api/cards/:userId/:cardId** — Express route conflict.
+9. **Store.invalidate() after every mutation.** No auto-invalidation.
+10. **Stripe webhook uses raw body** — registered before `express.json()` middleware.
+11. **Deploy from `dev` branch.** `eb deploy budget-peace-prod` after `git push origin dev`.
+12. **`goal.currentSaved` — not `goal.currentAmount`.** The latter does not exist in DynamoDB.
+13. **`stack stack--3` — both classes required** for gap to work. `stack--N` alone has no display:flex.
+14. **`dueDay` vs `dueDate`** — recurring expenses use `dueDay` (integer 1–31); one-time expenses use `dueDate` (full date string). Never mix these up in cron or email logic.
 
 ---
 
-## 20. Deploy Checklist
+## 22. Deploy Checklist
 
 ```bash
 # 1. Commit to dev
@@ -806,9 +883,7 @@ git checkout dev
 
 ---
 
-## 21. Environment Variables
-
-The following environment variables are expected on the Elastic Beanstalk instance (set via EB console or `.env`):
+## 23. Environment Variables
 
 ```
 PORT                      (optional; defaults to 3000)
@@ -817,46 +892,33 @@ AWS_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY
 SUPABASE_URL
 SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY (for admin operations in server-side auth verification)
+SUPABASE_SERVICE_ROLE_KEY
 STRIPE_SECRET_KEY
 STRIPE_WEBHOOK_SECRET
+RESEND_API_KEY            (email notifications; cron disabled if not set)
 ```
 
 ---
 
-## 22. Common Patterns & Gotchas
+## 24. Common Patterns & Gotchas
 
 ### Adding a new optional field to an expense/card/goal
 1. Add to POST handler: `...(fieldValue && { fieldName: fieldValue })` in the item spread
-2. Add to PUT handler: include in destructuring + set `fieldName: value || undefined` in item spread
+2. Add to PUT handler: include in destructuring + set in item spread
 3. Add to frontend form: new `<input>` or `<textarea>` in the sheet
 4. Add to save payload: `...(value && { fieldName: value })`
 5. Add to detail modal: show if set, hide otherwise
-6. No migration needed (DynamoDB stores only what's provided; missing = undefined)
+6. No migration needed (DynamoDB stores only what's provided)
 
 ### Adding a new page
 1. Create `public/js/pages/newpage.js`
 2. Add `<script src="/js/pages/newpage.js"></script>` to index.html (before app.js)
-3. Add nav button(s) to index.html (side nav, bottom nav, top nav as appropriate)
+3. Add nav button(s) with `data-page="newpage"`
 4. Register route: `Router.register('newpage', async () => { ... })`
-5. Add `data-page="newpage"` to nav button(s)
-
-### Adding a new DynamoDB table
-1. Add table definition to `scripts/setup-dynamo.js`
-2. Run `node scripts/setup-dynamo.js` once against the real AWS account
-3. Add route file in `routes/`
-4. Register route in `server.js`
-5. Add Store key + endpoint in `shared.js`
 
 ### Inline accordion expand pattern (used in cards.js)
 ```javascript
-function buildItemExpand(cardId) {
-  return `<div class="wallet-item-expand" data-forcardid="${cardId}">...</div>`;
-}
-function wireItemExpand(cardId) {
-  // attach event listeners after DOM injection
-}
-function toggleItemExpand(el) {
+function toggleItemExpand(el, id) {
   const existing = el.nextElementSibling;
   if (existing?.classList.contains('wallet-item-expand')) {
     existing.remove(); el.classList.remove('is-expanded'); return;
@@ -864,31 +926,27 @@ function toggleItemExpand(el) {
   document.querySelectorAll('.wallet-item-expand').forEach(e => e.remove());
   document.querySelectorAll('.is-expanded').forEach(e => e.classList.remove('is-expanded'));
   el.classList.add('is-expanded');
-  el.insertAdjacentHTML('afterend', buildItemExpand(cardId));
-  wireItemExpand(cardId);
+  el.insertAdjacentHTML('afterend', buildItemExpand(id));
+  wireItemExpand(id);
 }
 ```
 
 ### SortableJS reorder + save pattern
 ```javascript
-// Enter reorder mode
-new Sortable(container, { animation: 150, ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen' });
-
-// On "Done" click — capture BEFORE re-render (container reference goes stale after renderPage())
+// Capture order BEFORE re-render (container reference goes stale)
 const items = Array.from(container.querySelectorAll('[data-id]')).map((el, i) => ({
   id: el.dataset.id, sortOrder: (i + 1) * 1000
 }));
 items.forEach(({ id, sortOrder }) => {
   const obj = _data.find(d => d.id === id);
-  if (obj) obj.sortOrder = sortOrder; // optimistic update in local array
+  if (obj) obj.sortOrder = sortOrder; // optimistic update
 });
-// Re-render, THEN save to backend
 renderPage();
 await authFetch(`/api/endpoint/${userId()}/order`, { method: 'PUT', body: JSON.stringify({ items }) });
 Store.invalidate('key');
-_data = await Store.get('key'); // sync with server after save
+_data = await Store.get('key');
 ```
 
 ---
 
-*Document generated: 2026-04-12. If this document feels stale, check git log for recent commits and update accordingly.*
+*Document last updated: 2026-04-22. Check `git log --oneline -10` for any commits since this date.*

@@ -11,7 +11,7 @@ const { calcPeriodExpenses } = require('../lib/periodUtils');
 
 const USERS_TABLE     = 'bp_users';
 const SCENARIOS_TABLE = 'bp_scenarios';
-const PERIODS_TABLE   = 'bp_budget_periods';
+const PERIODS_TABLE   = 'bp_budget_periods_v2';
 const EXPENSES_TABLE  = 'bp_expenses';
 const CARDS_TABLE     = 'bp_cards';
 const BANKS_TABLE     = 'bp_banks';
@@ -53,11 +53,13 @@ async function getEmailPrefs(user) {
   return scenario?.emailPrefs || user.emailPrefs || {};
 }
 
-async function getPeriodsForUser(userId) {
+async function getPeriodsForUser(userId, scenarioId) {
+  const sid = scenarioId || 'main';
   const result = await db.send(new QueryCommand({
-    TableName: PERIODS_TABLE,
-    KeyConditionExpression: 'userId = :uid',
-    ExpressionAttributeValues: { ':uid': userId },
+    TableName:                 PERIODS_TABLE,
+    KeyConditionExpression:    'userId = :uid',
+    FilterExpression:          'scenarioId = :sid OR (attribute_not_exists(scenarioId) AND :sid = :main)',
+    ExpressionAttributeValues: { ':uid': userId, ':sid': sid, ':main': 'main' },
   }));
   return result.Items || [];
 }
@@ -113,7 +115,8 @@ async function runPaydaySummary(users, today) {
     if (!toEmail) continue;
 
     try {
-      const periods  = await getPeriodsForUser(user.userId);
+      const scenario = user.activeScenarioId || 'main';
+      const periods  = await getPeriodsForUser(user.userId, scenario);
       const period   = periods.find(p => p.startDate === tomorrow);
       if (!period) continue;
 
@@ -121,8 +124,7 @@ async function runPaydaySummary(users, today) {
       const cards    = await getCardsForUser(user.userId);
       const banks    = await getBanksForUser(user.userId);
 
-      // Only recurring expenses scoped to this scenario (or no scenarioId = main)
-      const scenario = user.activeScenarioId || 'main';
+      // Only recurring expenses scoped to the active scenario
       const scenarioExp = expenses.filter(e =>
         e.recurrence === 'recurring' &&
         (!e.scenarioId || e.scenarioId === scenario)
@@ -152,12 +154,19 @@ async function runBillDueReminders(users, today) {
     if (!toEmail) continue;
 
     try {
+      const scenario = user.activeScenarioId || 'main';
       const expenses = await getExpensesForUser(user.userId);
-      const periods  = await getPeriodsForUser(user.userId);
-      const due      = getExpensesDueOn(expenses, targetDate);
+      const periods  = await getPeriodsForUser(user.userId, scenario);
+
+      // Only check expenses scoped to the active scenario
+      const scenarioExp = expenses.filter(e =>
+        e.recurrence === 'recurring' &&
+        (!e.scenarioId || e.scenarioId === scenario)
+      );
+      const due = getExpensesDueOn(scenarioExp, targetDate);
       if (due.length === 0) continue;
 
-      // Find the period that contains targetDate
+      // Find the active-scenario period that contains targetDate
       const period = periods.find(p => p.startDate <= targetDate && p.endDate >= targetDate);
       if (!period) continue;
 
@@ -179,12 +188,12 @@ async function runOverBudgetAlerts(users, today) {
     if (!toEmail) continue;
 
     try {
-      const periods  = await getPeriodsForUser(user.userId);
+      const scenario = user.activeScenarioId || 'main';
+      const periods  = await getPeriodsForUser(user.userId, scenario);
       const period   = periods.find(p => p.startDate === today);
       if (!period) continue;
 
       const expenses = await getExpensesForUser(user.userId);
-      const scenario = user.activeScenarioId || 'main';
       const scenarioExp = expenses.filter(e =>
         e.recurrence === 'recurring' &&
         (!e.scenarioId || e.scenarioId === scenario)

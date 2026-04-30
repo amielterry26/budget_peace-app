@@ -913,6 +913,199 @@
     @media (max-width: 480px) {
       .footer__inner { flex-direction: column; align-items: flex-start; gap: 12px; }
     }
+
+    /* ════════════════════════════════════════════════════════════
+       Interactive Phone Mockup
+       ════════════════════════════════════════════════════════════ */
+    .hero__phones { max-width: 360px; padding: 20px 0 0; }
+    .feat-panel { align-items: center; }
+    .mock-phone {
+      width: 296px;
+      background: #1C1C1E;
+      border-radius: 48px;
+      padding: 10px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.07), inset 0 0 0 1px rgba(0,0,0,.50), 0 40px 80px rgba(0,0,0,.38), 0 8px 20px rgba(0,0,0,.18);
+      margin: 0 auto;
+      position: relative;
+    }
+    .mock-phone::before {
+      content: '';
+      position: absolute;
+      right: -3px;
+      top: 96px;
+      width: 3px;
+      height: 48px;
+      background: #2C2C2E;
+      border-radius: 0 3px 3px 0;
+      box-shadow: 0 64px 0 #2C2C2E;
+    }
+    .mock-phone--feat { width: 262px; border-radius: 42px; padding: 9px; }
+    .mock-inner {
+      background: var(--color-bg);
+      border-radius: 40px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 588px;
+    }
+    .mock-phone--feat .mock-inner { border-radius: 34px; height: 528px; }
+    .mock-island {
+      width: 86px;
+      height: 25px;
+      background: #1C1C1E;
+      border-radius: 18px;
+      margin: 8px auto 3px;
+      flex-shrink: 0;
+    }
+    .mock-phone--feat .mock-island { width: 74px; height: 21px; margin: 6px auto 2px; }
+    .mock-statusbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 2px 18px 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      flex-shrink: 0;
+    }
+    .mock-phone--feat .mock-statusbar { padding: 2px 14px 3px; font-size: 10px; }
+    .mock-sb-icons { display: flex; align-items: center; gap: 4px; }
+    .mock-content { flex: 1; overflow: hidden; position: relative; }
+    .mock-s {
+      display: none;
+      height: 100%;
+      overflow-y: auto;
+      scrollbar-width: none;
+      padding: 0 10px 8px;
+    }
+    .mock-s::-webkit-scrollbar { display: none; }
+    .mock-s.is-active { display: block; }
+    .mock-bnav {
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-start;
+      padding: 8px 4px 12px;
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .mock-bnav-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 2px 4px;
+      font-family: var(--font-family);
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      letter-spacing: .01em;
+      transition: color .12s;
+      min-width: 40px;
+    }
+    .mock-bnav-btn.is-active { color: var(--color-accent); }
+    .mock-bnav-icon { font-size: 15px; line-height: 1; }
+    .mock-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 2px 5px;
+    }
+    .mock-topbar-title { font-size: 13.5px; font-weight: 700; letter-spacing: -.02em; color: var(--color-text-primary); }
+    .mock-phone--feat .mock-topbar-title { font-size: 12px; }
+    .mock-topbar-ico { font-size: 13px; color: var(--color-text-secondary); }
+    .mock-sw {
+      display: flex;
+      background: var(--color-surface-alt);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 2px;
+      margin: 3px 0 6px;
+      gap: 2px;
+    }
+    .mock-sw-btn {
+      flex: 1;
+      font-size: 9.5px;
+      font-weight: 600;
+      padding: 4px 3px;
+      border-radius: 7px;
+      text-align: center;
+      color: var(--color-text-secondary);
+      background: none;
+      border: none;
+      cursor: default;
+      font-family: var(--font-family);
+    }
+    .mock-sw-btn.on { background: var(--color-surface); color: var(--color-text-primary); box-shadow: 0 1px 3px rgba(0,0,0,.07); }
+    .mock-pnav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 7px 12px;
+      margin-bottom: 6px;
+    }
+    .mock-pnav-lbl { font-size: 11px; font-weight: 600; color: var(--color-text-primary); text-align: center; }
+    .mock-pnav-sub { font-size: 9px; color: var(--color-text-secondary); text-align: center; margin-top: 1px; }
+    .mock-pnav-arr { font-size: 12px; color: var(--color-text-secondary); }
+    .mock-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 14px; padding: 11px; margin-bottom: 6px; }
+    .mock-rem { background: var(--color-surface-alt); border: 1px solid var(--color-border); border-radius: 9px; padding: 10px; text-align: center; margin-bottom: 8px; }
+    .mock-rem-lbl { font-size: 8.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 3px; }
+    .mock-rem-amt { font-size: 26px; font-weight: 800; letter-spacing: -.04em; color: var(--color-text-primary); font-variant-numeric: tabular-nums; line-height: 1; }
+    .mock-rem-amt .cts { font-size: 13px; font-weight: 600; color: var(--color-text-secondary); }
+    .mock-hr { height: 1px; background: var(--color-border); margin: 8px 0; }
+    .mock-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: 500; color: var(--color-text-primary); padding: 2px 0; }
+    .mock-prog { height: 4px; background: var(--color-border); border-radius: 99px; overflow: hidden; margin: 5px 0 2px; }
+    .mock-prog-fill { height: 100%; background: var(--color-accent-vivid); border-radius: 99px; }
+    .mock-prog-lbl { font-size: 9px; color: var(--color-text-secondary); text-align: right; margin-bottom: 4px; }
+    .mock-toggle-btn { font-size: 9.5px; font-weight: 500; color: var(--color-text-secondary); background: none; border: none; padding: 3px 0 2px; display: block; width: 100%; text-align: center; font-family: var(--font-family); }
+    .mock-sec { font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--color-text-secondary); margin: 7px 0 4px; }
+    .mock-bill { display: flex; align-items: center; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; padding: 6px 8px; margin-bottom: 4px; font-size: 11px; font-weight: 500; color: var(--color-text-primary); gap: 6px; }
+    .mock-bill-name { flex: 1; }
+    .mock-bill-amt { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .mock-chk { width: 13px; height: 13px; border: 1.5px solid var(--color-border); border-radius: 3px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 8px; line-height: 1; }
+    .mock-chk.on { background: var(--color-accent); border-color: var(--color-accent); color: #fff; }
+    .mock-viewall { display: block; text-align: center; font-size: 10px; color: var(--color-accent); font-weight: 600; padding: 5px 0 2px; }
+    .mock-hrow { margin-bottom: 6px; }
+    .mock-hrow-hdr { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px; }
+    .mock-hrow-lbl { color: var(--color-text-secondary); }
+    .mock-hrow-pct { color: var(--color-text-secondary); font-weight: 600; }
+    .mock-hrow-pct.warn { color: #D97706; }
+    .mock-hrow-bg { height: 6px; background: var(--color-border); border-radius: 99px; overflow: hidden; }
+    .mock-hrow-fill { height: 100%; border-radius: 99px; background: var(--color-accent-vivid); }
+    .mock-hrow-fill.warn { background: #D97706; }
+    .mock-chips { display: flex; gap: 5px; margin: 4px 0 8px; flex-wrap: wrap; }
+    .mock-chip { font-size: 9.5px; font-weight: 600; padding: 4px 10px; border-radius: 99px; background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-secondary); }
+    .mock-chip.on { background: var(--color-accent); border-color: var(--color-accent); color: #fff; }
+    .mock-cc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 8px; }
+    .mock-cc { aspect-ratio: 85.6/53.98; border-radius: 9px; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; color: #fff; font-weight: 600; letter-spacing: .02em; }
+    .mock-cc-type { font-size: 7.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
+    .mock-cc-num { font-size: 8.5px; letter-spacing: .1em; opacity: .9; }
+    .mock-cc-name { font-size: 8.5px; font-weight: 700; }
+    .mock-comp-table { width: 100%; border-collapse: collapse; font-size: 9.5px; }
+    .mock-comp-table th { font-weight: 700; padding: 4px 6px; text-align: left; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border); font-size: 9px; letter-spacing: .03em; }
+    .mock-comp-table td { padding: 5px 6px; color: var(--color-text-primary); border-bottom: 1px solid var(--color-border); font-weight: 500; }
+    .mock-comp-table tr:last-child td { border-bottom: none; }
+    .mock-comp-lbl { color: var(--color-text-secondary) !important; font-size: 9px !important; }
+    .mock-comp-chip { display: inline-flex; font-size: 9px; font-weight: 700; padding: 3px 9px; border-radius: 99px; }
+    @keyframes mockFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    .mock-phone--hero { animation: mockFloat 4.5s ease-in-out infinite; }
+
+    /* ════════════════════════════════════════════════════════════
+       How it works
+       ════════════════════════════════════════════════════════════ */
+    .hiw { padding: 80px 0; background: var(--surface); }
+    .hiw-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; margin-top: 48px; }
+    @media (max-width: 680px) { .hiw-steps { grid-template-columns: 1fr; gap: 24px; } }
+    .hiw-step { text-align: center; }
+    .hiw-num { width: 52px; height: 52px; border-radius: 50%; background: var(--accent-lt); border: 1.5px solid var(--accent); color: var(--accent); font-size: 18px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+    .hiw-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 8px; letter-spacing: -.02em; }
+    .hiw-body { font-size: 13.5px; color: var(--text-2); line-height: 1.65; }
   </style>
 </head>
 <body>
@@ -961,17 +1154,154 @@
         <span class="hero__trust-item">Cancel anytime (monthly)</span>
       </div>
 
-      <!-- Phone mockups -->
+      <!-- Interactive phone mockup -->
       <div class="hero__phones">
-        <div class="phone-frame phone-frame--side">
-          <img src="/screenshots/IMG_7158.PNG" alt="Budget Peace Home view" />
-        </div>
-        <div class="phone-frame phone-frame--center">
-          <img src="/screenshots/IMG_7156.PNG" alt="Budget Peace Pay Period view" />
-        </div>
-        <div class="phone-frame phone-frame--side">
-          <img src="/screenshots/IMG_7160.PNG" alt="Budget Peace Compare view" />
-        </div>
+        <div class="mock-phone mock-phone--hero" id="hero-phone">
+          <div class="mock-inner">
+            <div class="mock-island"></div>
+            <div class="mock-statusbar">
+              <span>9:41</span>
+              <div class="mock-sb-icons">
+                <svg width="13" height="10" viewBox="0 0 13 10" fill="currentColor"><rect x="0" y="4" width="2.5" height="6" rx=".8" opacity=".5"/><rect x="3.5" y="2.5" width="2.5" height="7.5" rx=".8" opacity=".7"/><rect x="7" y="1" width="2.5" height="9" rx=".8"/><rect x="10.5" y="0" width="2.5" height="10" rx=".8"/></svg>
+                <svg width="13" height="10" viewBox="0 0 13 10" fill="currentColor"><path d="M6.5 7.5a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z"/><path d="M2.5 5.1C3.6 4 4.9 3.3 6.5 3.3s2.9.7 4 1.8l1.2-1.2C10.2 2.5 8.5 1.7 6.5 1.7S2.8 2.5 1.3 3.9z" opacity=".7"/><path d="M0 2.7C1.6 1.1 3.9 0 6.5 0s4.9 1.1 6.5 2.7L11.7 4C10.4 2.7 8.6 1.7 6.5 1.7S2.6 2.7 1.3 4z" opacity=".4"/></svg>
+                <div style="width:20px;height:9px;border-radius:2px;border:1.5px solid currentColor;padding:1.5px;display:flex;align-items:center;"><div style="height:4px;background:currentColor;border-radius:1px;width:78%"></div></div>
+              </div>
+            </div>
+            <div class="mock-content">
+
+              <!-- SCREEN: Pay Period (default) -->
+              <div class="mock-s is-active" id="hp-period">
+                <div class="mock-topbar">
+                  <span class="mock-topbar-ico">☰</span>
+                  <span class="mock-topbar-title">Pay Period</span>
+                  <span class="mock-topbar-ico">🗓</span>
+                </div>
+                <div class="mock-sw">
+                  <button class="mock-sw-btn">Financial Health</button>
+                  <button class="mock-sw-btn on">Current Pay Period</button>
+                </div>
+                <div class="mock-pnav">
+                  <span class="mock-pnav-arr">←</span>
+                  <div><div class="mock-pnav-lbl">May 1 – May 15, 2026</div><div class="mock-pnav-sub">Payday Thu, May 1</div></div>
+                  <span class="mock-pnav-arr">→</span>
+                </div>
+                <div class="mock-card">
+                  <div class="mock-rem">
+                    <div class="mock-rem-lbl">Left this period</div>
+                    <div class="mock-rem-amt">$1,050<span class="cts">.00</span></div>
+                  </div>
+                  <div class="mock-hr"></div>
+                  <div class="mock-row"><span>Income</span><span>$2,650</span></div>
+                  <div class="mock-row"><span>Expenses</span><span>$1,600</span></div>
+                  <div class="mock-prog"><div class="mock-prog-fill" style="width:60%"></div></div>
+                  <div class="mock-prog-lbl">60% of income committed</div>
+                  <button class="mock-toggle-btn">Hide breakdown ▲</button>
+                  <div class="mock-hr"></div>
+                  <div class="mock-sec">Recurring</div>
+                  <div class="mock-bill"><div class="mock-chk on">✓</div><span class="mock-bill-name">Rent</span><span class="mock-bill-amt">$1,250</span></div>
+                  <div class="mock-bill"><div class="mock-chk on">✓</div><span class="mock-bill-name">Car Payment</span><span class="mock-bill-amt">$250</span></div>
+                  <div class="mock-bill"><div class="mock-chk"></div><span class="mock-bill-name">Internet</span><span class="mock-bill-amt">$100</span></div>
+                  <div class="mock-bill"><div class="mock-chk"></div><span class="mock-bill-name">Phone</span><span class="mock-bill-amt">$75</span></div>
+                  <div class="mock-bill"><div class="mock-chk"></div><span class="mock-bill-name">Subscriptions</span><span class="mock-bill-amt">$25</span></div>
+                  <a class="mock-viewall">View all budgets →</a>
+                </div>
+              </div>
+
+              <!-- SCREEN: Home (Financial Health) -->
+              <div class="mock-s" id="hp-home">
+                <div class="mock-topbar">
+                  <span class="mock-topbar-ico">☰</span>
+                  <span class="mock-topbar-title">Home</span>
+                  <span class="mock-topbar-ico">🗓</span>
+                </div>
+                <div class="mock-sw">
+                  <button class="mock-sw-btn on">Financial Health</button>
+                  <button class="mock-sw-btn">Current Pay Period</button>
+                </div>
+                <div style="display:flex;gap:5px;margin:4px 0 6px;justify-content:center;">
+                  <div style="font-size:9px;padding:3px 12px;border-radius:99px;background:var(--color-accent);color:#fff;font-weight:700;">3 mo</div>
+                  <div style="font-size:9px;padding:3px 12px;border-radius:99px;border:1px solid var(--color-border);color:var(--color-text-secondary);font-weight:600;">6 mo</div>
+                  <div style="font-size:9px;padding:3px 12px;border-radius:99px;border:1px solid var(--color-border);color:var(--color-text-secondary);font-weight:600;">12 mo</div>
+                </div>
+                <div class="mock-card">
+                  <div style="font-size:11px;font-weight:700;color:var(--color-text-primary);margin-bottom:6px;">3-Month Outlook</div>
+                  <div class="mock-row"><span>Monthly income</span><span style="font-weight:700;">$5,300</span></div>
+                  <div class="mock-row"><span>Monthly obligations</span><span style="font-weight:700;color:var(--color-text-secondary);">$3,200</span></div>
+                  <div class="mock-hr"></div>
+                  <div class="mock-sec">Period-by-period</div>
+                  <div class="mock-hrow"><div class="mock-hrow-hdr"><span class="mock-hrow-lbl">May 1–14</span><span class="mock-hrow-pct">58%</span></div><div class="mock-hrow-bg"><div class="mock-hrow-fill" style="width:58%"></div></div></div>
+                  <div class="mock-hrow"><div class="mock-hrow-hdr"><span class="mock-hrow-lbl">May 15–31</span><span class="mock-hrow-pct">62%</span></div><div class="mock-hrow-bg"><div class="mock-hrow-fill" style="width:62%"></div></div></div>
+                  <div class="mock-hrow"><div class="mock-hrow-hdr"><span class="mock-hrow-lbl">Jun 1–14</span><span class="mock-hrow-pct">55%</span></div><div class="mock-hrow-bg"><div class="mock-hrow-fill" style="width:55%"></div></div></div>
+                  <div class="mock-hrow"><div class="mock-hrow-hdr"><span class="mock-hrow-lbl">Jun 15–30</span><span class="mock-hrow-pct warn">71%</span></div><div class="mock-hrow-bg"><div class="mock-hrow-fill warn" style="width:71%"></div></div></div>
+                  <div class="mock-hrow"><div class="mock-hrow-hdr"><span class="mock-hrow-lbl">Jul 1–14</span><span class="mock-hrow-pct">59%</span></div><div class="mock-hrow-bg"><div class="mock-hrow-fill" style="width:59%"></div></div></div>
+                  <div class="mock-hrow"><div class="mock-hrow-hdr"><span class="mock-hrow-lbl">Jul 15–31</span><span class="mock-hrow-pct">63%</span></div><div class="mock-hrow-bg"><div class="mock-hrow-fill" style="width:63%"></div></div></div>
+                </div>
+              </div>
+
+              <!-- SCREEN: Cards / Wallet -->
+              <div class="mock-s" id="hp-cards">
+                <div class="mock-topbar">
+                  <span class="mock-topbar-ico">☰</span>
+                  <span class="mock-topbar-title">Cards</span>
+                  <span class="mock-topbar-ico">🗓</span>
+                </div>
+                <div class="mock-chips">
+                  <div class="mock-chip on">All Banks</div>
+                  <div class="mock-chip">Chase</div>
+                  <div class="mock-chip">Wells Fargo</div>
+                  <div class="mock-chip" style="border-style:dashed;">+ Add</div>
+                </div>
+                <div class="mock-sec" style="margin-top:0;">Cards</div>
+                <div class="mock-cc-grid">
+                  <div class="mock-cc" style="background:linear-gradient(135deg,#1B5E3B,#2D9A64);">
+                    <div class="mock-cc-type">Debit</div>
+                    <div class="mock-cc-num">•••• 4321</div>
+                    <div class="mock-cc-name">Chase Check.</div>
+                  </div>
+                  <div class="mock-cc" style="background:linear-gradient(135deg,#1e3a5f,#2d6a9f);">
+                    <div class="mock-cc-type">Credit</div>
+                    <div class="mock-cc-num">•••• 8892</div>
+                    <div class="mock-cc-name">Sapphire</div>
+                  </div>
+                  <div class="mock-cc" style="background:linear-gradient(135deg,#3D2B1F,#8B4513);">
+                    <div class="mock-cc-type">Debit</div>
+                    <div class="mock-cc-num">•••• 5510</div>
+                    <div class="mock-cc-name">WF Check.</div>
+                  </div>
+                  <div class="mock-cc" style="background:linear-gradient(135deg,#1a1a2e,#16213e);">
+                    <div class="mock-cc-type">Credit</div>
+                    <div class="mock-cc-num">•••• 1203</div>
+                    <div class="mock-cc-name">Freedom</div>
+                  </div>
+                </div>
+                <div class="mock-sec">Accounts</div>
+                <div class="mock-bill"><span class="mock-bill-name">Emergency Fund</span><span class="mock-bill-amt" style="color:var(--color-accent)">$8,200</span></div>
+                <div class="mock-bill"><span class="mock-bill-name">Vacation Savings</span><span class="mock-bill-amt" style="color:var(--color-accent)">$1,450</span></div>
+              </div>
+
+            </div><!-- /mock-content -->
+
+            <!-- Clickable bottom nav -->
+            <div class="mock-bnav">
+              <button class="mock-bnav-btn" data-hp="hp-home">
+                <span class="mock-bnav-icon">⌂</span>Home
+              </button>
+              <button class="mock-bnav-btn is-active" data-hp="hp-period">
+                <span class="mock-bnav-icon">◎</span>Period
+              </button>
+              <button class="mock-bnav-btn" style="opacity:.35;pointer-events:none;">
+                <span class="mock-bnav-icon">📊</span>Budgets
+              </button>
+              <button class="mock-bnav-btn" style="opacity:.35;pointer-events:none;">
+                <span class="mock-bnav-icon">📋</span>Expenses
+              </button>
+              <button class="mock-bnav-btn" data-hp="hp-cards">
+                <span class="mock-bnav-icon">⊞</span>Cards
+              </button>
+            </div>
+
+          </div><!-- /mock-inner -->
+        </div><!-- /mock-phone -->
       </div>
     </div>
   </section>
@@ -999,6 +1329,34 @@
     </div>
   </div>
 
+  <!-- How it works -->
+  <section class="hiw" id="how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">How it works</div>
+        <h2 class="section-title">Up and running in 3 minutes.</h2>
+        <p class="section-sub">No importing transactions. No linking your bank. Just enter your setup once and start knowing.</p>
+      </div>
+      <div class="hiw-steps">
+        <div class="hiw-step">
+          <div class="hiw-num">1</div>
+          <div class="hiw-title">Enter your paycheck</div>
+          <div class="hiw-body">Tell Budget Peace your income, pay cadence (bi-weekly, semi-monthly, or monthly), and first pay date.</div>
+        </div>
+        <div class="hiw-step">
+          <div class="hiw-num">2</div>
+          <div class="hiw-title">Add your recurring bills</div>
+          <div class="hiw-body">Add rent, subscriptions, insurance, loans — anything that hits your account regularly. Set the due date and frequency.</div>
+        </div>
+        <div class="hiw-step">
+          <div class="hiw-num">3</div>
+          <div class="hiw-title">See exactly what's left</div>
+          <div class="hiw-body">Every pay period shows you income minus all obligations. The real number — not your bank balance, not an average.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Features -->
   <section class="features" id="features">
     <div class="container">
@@ -1016,10 +1374,175 @@
         <button class="feat-tab" data-tab="3" role="tab">Wallet</button>
       </div>
 
-      <!-- Tab panel: image left, text right -->
+      <!-- Tab panel: rendered phone left, text right -->
       <div class="feat-panel">
-        <div class="feat-panel__img">
-          <img id="feat-img" src="/screenshots/IMG_7156.PNG" alt="Pay Period view" />
+        <div class="feat-panel__img" style="max-width:280px;">
+          <div class="mock-phone mock-phone--feat" id="feat-phone">
+            <div class="mock-inner">
+              <div class="mock-island"></div>
+              <div class="mock-statusbar">
+                <span>9:41</span>
+                <div class="mock-sb-icons">
+                  <svg width="11" height="9" viewBox="0 0 13 10" fill="currentColor"><rect x="0" y="4" width="2.5" height="6" rx=".8" opacity=".5"/><rect x="3.5" y="2.5" width="2.5" height="7.5" rx=".8" opacity=".7"/><rect x="7" y="1" width="2.5" height="9" rx=".8"/><rect x="10.5" y="0" width="2.5" height="10" rx=".8"/></svg>
+                  <svg width="11" height="9" viewBox="0 0 13 10" fill="currentColor"><path d="M6.5 7.5a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z"/><path d="M2.5 5.1C3.6 4 4.9 3.3 6.5 3.3s2.9.7 4 1.8l1.2-1.2C10.2 2.5 8.5 1.7 6.5 1.7S2.8 2.5 1.3 3.9z" opacity=".7"/></svg>
+                  <div style="width:17px;height:8px;border-radius:2px;border:1.5px solid currentColor;padding:1.5px;display:flex;align-items:center;"><div style="height:3px;background:currentColor;border-radius:1px;width:78%"></div></div>
+                </div>
+              </div>
+              <div class="mock-content">
+
+                <!-- FEAT SCREEN 0: Pay Period -->
+                <div class="mock-s is-active" id="fp-period">
+                  <div class="mock-topbar">
+                    <span class="mock-topbar-ico">☰</span>
+                    <span class="mock-topbar-title">Pay Period</span>
+                    <span class="mock-topbar-ico">🗓</span>
+                  </div>
+                  <div class="mock-sw">
+                    <button class="mock-sw-btn">Financial Health</button>
+                    <button class="mock-sw-btn on">Current Pay Period</button>
+                  </div>
+                  <div class="mock-pnav">
+                    <span class="mock-pnav-arr">←</span>
+                    <div><div class="mock-pnav-lbl">May 1 – May 15, 2026</div><div class="mock-pnav-sub">Payday Thu, May 1</div></div>
+                    <span class="mock-pnav-arr">→</span>
+                  </div>
+                  <div class="mock-card">
+                    <div class="mock-rem">
+                      <div class="mock-rem-lbl">Left this period</div>
+                      <div class="mock-rem-amt">$1,050<span class="cts">.00</span></div>
+                    </div>
+                    <div class="mock-hr"></div>
+                    <div class="mock-row"><span>Income</span><span>$2,650</span></div>
+                    <div class="mock-row"><span>Expenses</span><span>$1,600</span></div>
+                    <div class="mock-prog"><div class="mock-prog-fill" style="width:60%"></div></div>
+                    <div class="mock-prog-lbl">60% of income committed</div>
+                    <button class="mock-toggle-btn">Hide breakdown ▲</button>
+                    <div class="mock-hr"></div>
+                    <div class="mock-sec">Recurring</div>
+                    <div class="mock-bill"><div class="mock-chk on">✓</div><span class="mock-bill-name">Rent</span><span class="mock-bill-amt">$1,250</span></div>
+                    <div class="mock-bill"><div class="mock-chk on">✓</div><span class="mock-bill-name">Car Payment</span><span class="mock-bill-amt">$250</span></div>
+                    <div class="mock-bill"><div class="mock-chk"></div><span class="mock-bill-name">Internet</span><span class="mock-bill-amt">$100</span></div>
+                    <div class="mock-bill"><div class="mock-chk"></div><span class="mock-bill-name">Phone</span><span class="mock-bill-amt">$75</span></div>
+                    <a class="mock-viewall">View all budgets →</a>
+                  </div>
+                </div>
+
+                <!-- FEAT SCREEN 1: Financial Health -->
+                <div class="mock-s" id="fp-health">
+                  <div class="mock-topbar">
+                    <span class="mock-topbar-ico">☰</span>
+                    <span class="mock-topbar-title">Home</span>
+                    <span class="mock-topbar-ico">🗓</span>
+                  </div>
+                  <div class="mock-sw">
+                    <button class="mock-sw-btn on">Financial Health</button>
+                    <button class="mock-sw-btn">Current Pay Period</button>
+                  </div>
+                  <div style="display:flex;gap:5px;margin:3px 0 6px;justify-content:center;">
+                    <div style="font-size:8.5px;padding:3px 10px;border-radius:99px;background:var(--color-accent);color:#fff;font-weight:700;">3 mo</div>
+                    <div style="font-size:8.5px;padding:3px 10px;border-radius:99px;border:1px solid var(--color-border);color:var(--color-text-secondary);font-weight:600;">6 mo</div>
+                    <div style="font-size:8.5px;padding:3px 10px;border-radius:99px;border:1px solid var(--color-border);color:var(--color-text-secondary);font-weight:600;">12 mo</div>
+                  </div>
+                  <div class="mock-card">
+                    <div style="font-size:10px;font-weight:700;color:var(--color-text-primary);margin-bottom:6px;">3-Month Outlook</div>
+                    <div class="mock-row"><span>Monthly income</span><span style="font-weight:700;">$5,300</span></div>
+                    <div class="mock-row"><span>Monthly obligations</span><span style="font-weight:700;color:var(--color-text-secondary);">$3,200</span></div>
+                    <div class="mock-hr"></div>
+                    <div class="mock-sec">Period-by-period</div>
+                    <div class="mock-hrow"><div class="mock-hrow-hdr"><span class="mock-hrow-lbl">May 1–14</span><span class="mock-hrow-pct">58%</span></div><div class="mock-hrow-bg"><div class="mock-hrow-fill" style="width:58%"></div></div></div>
+                    <div class="mock-hrow"><div class="mock-hrow-hdr"><span class="mock-hrow-lbl">May 15–31</span><span class="mock-hrow-pct">62%</span></div><div class="mock-hrow-bg"><div class="mock-hrow-fill" style="width:62%"></div></div></div>
+                    <div class="mock-hrow"><div class="mock-hrow-hdr"><span class="mock-hrow-lbl">Jun 1–14</span><span class="mock-hrow-pct">55%</span></div><div class="mock-hrow-bg"><div class="mock-hrow-fill" style="width:55%"></div></div></div>
+                    <div class="mock-hrow"><div class="mock-hrow-hdr"><span class="mock-hrow-lbl">Jun 15–30</span><span class="mock-hrow-pct warn">71%</span></div><div class="mock-hrow-bg"><div class="mock-hrow-fill warn" style="width:71%"></div></div></div>
+                    <div class="mock-hrow"><div class="mock-hrow-hdr"><span class="mock-hrow-lbl">Jul 1–14</span><span class="mock-hrow-pct">59%</span></div><div class="mock-hrow-bg"><div class="mock-hrow-fill" style="width:59%"></div></div></div>
+                    <div class="mock-hrow"><div class="mock-hrow-hdr"><span class="mock-hrow-lbl">Jul 15–31</span><span class="mock-hrow-pct">63%</span></div><div class="mock-hrow-bg"><div class="mock-hrow-fill" style="width:63%"></div></div></div>
+                  </div>
+                </div>
+
+                <!-- FEAT SCREEN 2: What-Ifs Comparison -->
+                <div class="mock-s" id="fp-whatif">
+                  <div class="mock-topbar">
+                    <span class="mock-topbar-ico">☰</span>
+                    <span class="mock-topbar-title">Compare</span>
+                    <span class="mock-topbar-ico">🗓</span>
+                  </div>
+                  <div class="mock-chips" style="margin-top:4px;">
+                    <div class="mock-comp-chip" style="background:var(--color-accent);color:#fff;">Mexico</div>
+                    <div class="mock-comp-chip" style="background:var(--color-surface-alt);border:1px solid var(--color-border);color:var(--color-text-primary);">Vegas</div>
+                    <div class="mock-comp-chip" style="background:var(--color-surface-alt);border:1px solid var(--color-border);color:var(--color-text-primary);">Seattle</div>
+                  </div>
+                  <div style="font-size:9px;color:var(--color-text-secondary);margin-bottom:6px;">Select 2–3 scenarios to compare</div>
+                  <div class="mock-card" style="padding:8px;">
+                    <table class="mock-comp-table">
+                      <thead>
+                        <tr>
+                          <th></th>
+                          <th>Mexico</th>
+                          <th>Vegas</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr><td class="mock-comp-lbl">Cadence</td><td>Bi-weekly</td><td>Bi-weekly</td></tr>
+                        <tr><td class="mock-comp-lbl">Income</td><td>$2,650</td><td>$3,050</td></tr>
+                        <tr><td class="mock-comp-lbl">Bills</td><td>$1,600</td><td>$2,100</td></tr>
+                        <tr><td class="mock-comp-lbl">Remaining</td><td style="color:var(--color-accent);font-weight:700;">$1,050</td><td style="color:var(--color-accent);font-weight:700;">$950</td></tr>
+                        <tr><td class="mock-comp-lbl">Expenses</td><td>8</td><td>11</td></tr>
+                        <tr><td class="mock-comp-lbl">Top bill</td><td>Rent $1,250</td><td>Rent $1,600</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- FEAT SCREEN 3: Wallet -->
+                <div class="mock-s" id="fp-wallet">
+                  <div class="mock-topbar">
+                    <span class="mock-topbar-ico">☰</span>
+                    <span class="mock-topbar-title">Cards</span>
+                    <span class="mock-topbar-ico">🗓</span>
+                  </div>
+                  <div class="mock-chips">
+                    <div class="mock-chip on">All Banks</div>
+                    <div class="mock-chip">Chase</div>
+                    <div class="mock-chip">Wells Fargo</div>
+                  </div>
+                  <div class="mock-sec" style="margin-top:0;">Cards</div>
+                  <div class="mock-cc-grid">
+                    <div class="mock-cc" style="background:linear-gradient(135deg,#1B5E3B,#2D9A64);">
+                      <div class="mock-cc-type">Debit</div>
+                      <div class="mock-cc-num">•••• 4321</div>
+                      <div class="mock-cc-name">Chase Check.</div>
+                    </div>
+                    <div class="mock-cc" style="background:linear-gradient(135deg,#1e3a5f,#2d6a9f);">
+                      <div class="mock-cc-type">Credit</div>
+                      <div class="mock-cc-num">•••• 8892</div>
+                      <div class="mock-cc-name">Sapphire</div>
+                    </div>
+                    <div class="mock-cc" style="background:linear-gradient(135deg,#3D2B1F,#8B4513);">
+                      <div class="mock-cc-type">Debit</div>
+                      <div class="mock-cc-num">•••• 5510</div>
+                      <div class="mock-cc-name">WF Check.</div>
+                    </div>
+                    <div class="mock-cc" style="background:linear-gradient(135deg,#1a1a2e,#16213e);">
+                      <div class="mock-cc-type">Credit</div>
+                      <div class="mock-cc-num">•••• 1203</div>
+                      <div class="mock-cc-name">Freedom</div>
+                    </div>
+                  </div>
+                  <div class="mock-sec">Accounts</div>
+                  <div class="mock-bill"><span class="mock-bill-name">Emergency Fund</span><span class="mock-bill-amt" style="color:var(--color-accent)">$8,200</span></div>
+                  <div class="mock-bill"><span class="mock-bill-name">Vacation Savings</span><span class="mock-bill-amt" style="color:var(--color-accent)">$1,450</span></div>
+                </div>
+
+              </div><!-- /mock-content -->
+
+              <div class="mock-bnav">
+                <button class="mock-bnav-btn is-active" style="opacity:.35;pointer-events:none;"><span class="mock-bnav-icon">⌂</span>Home</button>
+                <button class="mock-bnav-btn" style="opacity:.35;pointer-events:none;"><span class="mock-bnav-icon">◎</span>Period</button>
+                <button class="mock-bnav-btn" style="opacity:.35;pointer-events:none;"><span class="mock-bnav-icon">📊</span>Budgets</button>
+                <button class="mock-bnav-btn" style="opacity:.35;pointer-events:none;"><span class="mock-bnav-icon">📋</span>Expenses</button>
+                <button class="mock-bnav-btn" style="opacity:.35;pointer-events:none;"><span class="mock-bnav-icon">⊞</span>Cards</button>
+              </div>
+            </div><!-- /mock-inner -->
+          </div><!-- /mock-phone--feat -->
         </div>
         <div class="feat-panel__text">
           <span class="feature-label" id="feat-label">Pay Period</span>
@@ -1317,86 +1840,88 @@
       btn.addEventListener('click', () => applyBilling(btn.dataset.billing));
     });
 
-    // Feature tabs
+    // Hero phone — bottom nav switching
+    const heroScreens = { 'hp-home': null, 'hp-period': null, 'hp-cards': null };
+    document.querySelectorAll('[data-hp]').forEach(btn => {
+      heroScreens[btn.dataset.hp] = document.getElementById(btn.dataset.hp);
+      btn.addEventListener('click', () => {
+        const targetId = btn.dataset.hp;
+        // Switch screens
+        document.querySelectorAll('#hero-phone .mock-s').forEach(s => s.classList.remove('is-active'));
+        document.getElementById(targetId)?.classList.add('is-active');
+        // Update nav active state
+        document.querySelectorAll('[data-hp]').forEach(b => b.classList.toggle('is-active', b.dataset.hp === targetId));
+      });
+    });
+
+    // Feature tabs — swap rendered phone screen + update text
     const featData = [
       {
         label:  'Pay Period',
-        img:    '/screenshots/IMG_7156.PNG',
-        alt:    'Pay Period view',
+        screen: 'fp-period',
         title:  'What\'s actually left this paycheck.',
         body:   'Every pay period, see exactly what remains after your bills hit — not your bank balance, not an average. The real number, right now.',
         checks: [
           'Income minus all obligations, per period',
-          'Bi-weekly and monthly cadence',
+          'Bi-weekly, semi-monthly, and monthly cadences',
           'Progress bar shows how committed your income is',
-          'Tap any expense to see its due date',
+          'Check off bills as you pay them — synced across devices',
         ],
       },
       {
         label:  'Financial Health',
-        img:    '/screenshots/IMG_7158.PNG',
-        alt:    'Financial Health view',
+        screen: 'fp-health',
         title:  'See your next 12 months, today.',
         body:   'The Financial Health view projects your income and obligations forward — 3, 6, or 12 months. Spot a shortfall before it becomes an emergency.',
         checks: [
           'Monthly income vs obligations at a glance',
+          'Per-period bar chart shows committed percentage',
           'Spot underfunded periods before they hit',
           'Updates instantly as you add or change expenses',
         ],
       },
       {
         label:  'What-Ifs',
-        img:    '/screenshots/IMG_7160.PNG',
-        alt:    'Scenario comparison view',
+        screen: 'fp-whatif',
         title:  'Model life changes without the risk.',
         body:   'Create a separate scenario for any what-if — new job, new city, new baby — and compare it to your real budget side by side. Your actual numbers stay untouched.',
         checks: [
           'Unlimited scenarios (Pro)',
-          'Side-by-side comparison view',
+          'Side-by-side scenario comparison view',
           'Each scenario has its own income, expenses, and pay dates',
+          'Clone your current setup as a starting point',
         ],
       },
       {
         label:  'Wallet',
-        img:    '/screenshots/IMG_7154.PNG',
-        alt:    'Wallet and cards view',
+        screen: 'fp-wallet',
         title:  'Every card. Every bank. One place.',
         body:   'Add your cards, group them by bank, and see exactly which expenses hit each one. Filter your entire expense list by bank in one tap.',
         checks: [
           'Group cards by bank with color coding',
-          'See all expenses tied to each card',
-          'Filter the expense list by bank instantly',
+          'See every expense tied to each card',
+          'Filter bills by bank instantly',
+          'Track savings accounts alongside credit and debit',
         ],
       },
     ];
 
-    const featImg    = document.getElementById('feat-img');
     const featLabel  = document.getElementById('feat-label');
     const featTitle  = document.getElementById('feat-title');
     const featBody   = document.getElementById('feat-body');
     const featChecks = document.getElementById('feat-checks');
 
     function switchTab(idx) {
-      // Highlight active tab
-      document.querySelectorAll('.feat-tab').forEach((t, i) => {
-        t.classList.toggle('is-active', i === idx);
-      });
-
+      document.querySelectorAll('.feat-tab').forEach((t, i) => t.classList.toggle('is-active', i === idx));
       const d = featData[idx];
-
-      // Crossfade image
-      featImg.classList.add('is-switching');
-      setTimeout(() => {
-        featImg.src = d.img;
-        featImg.alt = d.alt;
-        featImg.classList.remove('is-switching');
-      }, 180);
-
-      // Swap text
-      featLabel.textContent  = d.label;
-      featTitle.textContent  = d.title;
-      featBody.textContent   = d.body;
-      featChecks.innerHTML   = d.checks.map(c => `<li>${c}</li>`).join('');
+      // Swap rendered phone screen
+      document.querySelectorAll('#feat-phone .mock-s').forEach(s => s.classList.remove('is-active'));
+      document.getElementById(d.screen)?.classList.add('is-active');
+      // Update text
+      featLabel.textContent = d.label;
+      featTitle.textContent = d.title;
+      featBody.textContent  = d.body;
+      featChecks.innerHTML  = d.checks.map(c => `<li>${c}</li>`).join('');
     }
 
     document.querySelectorAll('.feat-tab').forEach((btn, idx) => {

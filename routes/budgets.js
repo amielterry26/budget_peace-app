@@ -1,5 +1,5 @@
 const express       = require('express');
-const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
+const { QueryCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 const router        = express.Router();
 const db            = require('../config/dynamo');
 const { verifyOwner } = require('../middleware/auth');
@@ -26,6 +26,27 @@ router.get('/:userId', verifyOwner, async (req, res) => {
   } catch (err) {
     console.error('GET /api/budgets/:userId error:', err);
     res.status(500).json({ error: 'Failed to fetch budgets' });
+  }
+});
+
+// PATCH /api/budgets/:userId/:periodKey — persist paidExpenses array on a period
+router.patch('/:userId/:periodKey', verifyOwner, async (req, res) => {
+  try {
+    const { userId, periodKey } = req.params;
+    const { paidExpenses } = req.body;
+    if (!Array.isArray(paidExpenses)) {
+      return res.status(400).json({ error: 'paidExpenses must be an array' });
+    }
+    await db.send(new UpdateCommand({
+      TableName:                 PERIODS_TABLE,
+      Key:                       { userId, periodKey },
+      UpdateExpression:          'SET paidExpenses = :p',
+      ExpressionAttributeValues: { ':p': paidExpenses },
+    }));
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('PATCH /api/budgets/:userId/:periodKey error:', err);
+    res.status(500).json({ error: 'Failed to update period' });
   }
 });
 

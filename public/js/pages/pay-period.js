@@ -9,6 +9,33 @@ let _pdSearch        = '';
 let _pdReorder       = false;
 let _pdBreakdownOpen = true;
 
+// ---- Paid checklist (DynamoDB via period.paidExpenses) -----
+
+function pdTogglePaid(period, expenseId) {
+  const arr = period.paidExpenses || [];
+  const idx = arr.indexOf(expenseId);
+  if (idx === -1) arr.push(expenseId); else arr.splice(idx, 1);
+  period.paidExpenses = arr;
+  // fire-and-forget save; invalidate cache so next fresh load reflects the change
+  authFetch(`/api/budgets/${userId()}/${encodeURIComponent(period.periodKey)}`, {
+    method:  'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ paidExpenses: arr }),
+  }).then(() => Store.invalidate('periods'))
+    .catch(err => console.error('Failed to save paid state:', err));
+  return arr.includes(expenseId);
+}
+function pdUpdateProgress() {
+  const wrap = document.getElementById('pd-checklist-progress');
+  if (!wrap) return;
+  const inputs = document.querySelectorAll('.pd-check-input');
+  const total  = inputs.length;
+  const paid   = Array.from(inputs).filter(cb => cb.checked).length;
+  const pct    = total > 0 ? Math.round(paid / total * 100) : 0;
+  wrap.querySelector('.pd-checklist-progress__label').textContent = `${paid} of ${total} paid`;
+  wrap.querySelector('.pd-checklist-progress__fill').style.width  = pct + '%';
+}
+
 Router.register('pay-period', async (params) => {
   document.getElementById('page-title').textContent = 'Pay Period';
   setActivePage('pay-period');
@@ -124,7 +151,7 @@ function renderPeriod(idx) {
         </button>
         <div id="period-breakdown" class="period-breakdown">
           <div class="divider" style="margin-top:var(--space-3);"></div>
-          ${buildPdBreakdown(pd, cards, banks)}
+          ${buildPdBreakdown(pd, cards, banks, period)}
           <button class="btn btn--ghost btn--full"
             style="margin-top:var(--space-4);font-size:var(--font-size-sm);" id="view-all-btn">
             View all budgets →
@@ -233,6 +260,18 @@ function renderPeriod(idx) {
       if (_pdBreakdownItems[idx]) openBillDetailModal(_pdBreakdownItems[idx], payPeriodRefresh);
     });
   });
+
+  // Checklist handlers
+  document.querySelectorAll('.pd-check-input').forEach(cb => {
+    cb.addEventListener('click', ev => ev.stopPropagation());
+    cb.addEventListener('change', () => {
+      const expenseId = cb.dataset.checkId;
+      const currentPeriod = _pd.periods[_pdIdx];
+      const paid = pdTogglePaid(currentPeriod, expenseId);
+      cb.closest('.pd-bill-card').classList.toggle('is-paid', paid);
+      pdUpdateProgress();
+    });
+  });
 }
 
 // ---- Builders ----------------------------------------------
@@ -274,7 +313,7 @@ function applyPdSearch(items, q, cards, banks) {
   });
 }
 
-function buildPdBreakdown(pd, cards = [], banks = []) {
+function buildPdBreakdown(pd, cards = [], banks = [], period = null) {
   const q = _pdSearch.trim();
 
   const totalItems = pd.recurringItems.length + pd.onceItems.length;
@@ -325,31 +364,47 @@ function buildPdBreakdown(pd, cards = [], banks = []) {
     sortedOnce      = applyPdSearch(sortedOnce, q, cards, banks);
   }
 
-  if (sortedRecurring.length) {
-    html += `<div class="section-title" style="margin:var(--space-3) 0 var(--space-1);">Recurring</div>`;
-    html += sortedRecurring.map(e => {
-      const idx = _pdBreakdownItems.length;
-      _pdBreakdownItems.push(e);
-      return `
-      <div class="period-bill-card pd-bill-card" data-pd-bill-idx="${idx}" data-expense-id="${e.expenseId}">
-        <div>
+  const paidSet = !_pdReorder && period ? new Set(period.paidExpenses || []) : new Set();
+
+  function billCard(e, amount) {
+    const itemIdx  = _pdBreakdownItems.length;
+    _pdBreakdownItems.push(e);
+    const isPaid   = paidSet.has(e.expenseId);
+    const checkbox = !_pdReorder ? `
+      <label class="pd-bill-check" onclick="event.stopPropagation()">
+        <input type="checkbox" class="pd-check-input" data-check-id="${e.expenseId}" ${isPaid ? 'checked' : ''}>
+      </label>` : '';
+    return `
+      <div class="period-bill-card pd-bill-card${isPaid ? ' is-paid' : ''}" data-pd-bill-idx="${itemIdx}" data-expense-id="${e.expenseId}">
+        ${checkbox}
+        <div style="flex:1;min-width:0;">
           <span class="period-bill-card__name">${esc(e.name)}</span>
           ${e.note ? `<div class="period-bill-card__note">${esc(e.note)}</div>` : e.dueDay && (!e.allocationMethod || e.allocationMethod === 'due-date') ? `<div class="period-bill-card__note">Due ${e.dueDay}</div>` : ''}
           ${expMeta(e)}
         </div>
-        <span class="period-bill-card__amount">${pdMoney(e.displayAmount)}</span>
+        <span class="period-bill-card__amount">${pdMoney(amount)}</span>
       </div>`;
-    }).join('');
+  }
+
+  if (sortedRecurring.length) {
+    html += `<div class="section-title" style="margin:var(--space-3) 0 var(--space-1);">Recurring</div>`;
+    html += sortedRecurring.map(e => billCard(e, e.displayAmount)).join('');
   }
 
   if (sortedOnce.length) {
     html += `<div class="section-title" style="margin:var(--space-4) 0 var(--space-1);">One-time</div>`;
     html += sortedOnce.map(e => {
-      const idx = _pdBreakdownItems.length;
+      const itemIdx = _pdBreakdownItems.length;
       _pdBreakdownItems.push(e);
+      const isPaid   = paidSet.has(e.expenseId);
+      const checkbox = !_pdReorder ? `
+        <label class="pd-bill-check" onclick="event.stopPropagation()">
+          <input type="checkbox" class="pd-check-input" data-check-id="${e.expenseId}" ${isPaid ? 'checked' : ''}>
+        </label>` : '';
       return `
-      <div class="period-bill-card pd-bill-card" data-pd-bill-idx="${idx}" data-expense-id="${e.expenseId}">
-        <div>
+      <div class="period-bill-card pd-bill-card${isPaid ? ' is-paid' : ''}" data-pd-bill-idx="${itemIdx}" data-expense-id="${e.expenseId}">
+        ${checkbox}
+        <div style="flex:1;min-width:0;">
           <span class="period-bill-card__name">${esc(e.name)}</span>
           ${e.dueDate ? `<div class="period-bill-card__note">${e.dueDate}</div>` : ''}
           ${expMeta(e)}
@@ -364,8 +419,24 @@ function buildPdBreakdown(pd, cards = [], banks = []) {
     return `<p class="text-muted text-sm text-center" style="padding:var(--space-4) 0;">No expenses this period.</p>`;
   }
 
+  let progressHtml = '';
+  if (!_pdReorder && period) {
+    const visibleTotal = sortedRecurring.length + sortedOnce.length;
+    const paidCount  = [...paidSet].filter(id =>
+      sortedRecurring.concat(sortedOnce).some(e => e.expenseId === id)
+    ).length;
+    const pct = visibleTotal > 0 ? Math.round(paidCount / visibleTotal * 100) : 0;
+    progressHtml = `
+      <div class="pd-checklist-progress" id="pd-checklist-progress">
+        <div class="pd-checklist-progress__label">${paidCount} of ${visibleTotal} paid</div>
+        <div class="pd-checklist-progress__track">
+          <div class="pd-checklist-progress__fill" style="width:${pct}%"></div>
+        </div>
+      </div>`;
+  }
+
   const listHtml = _pdReorder ? `<div id="pd-reorder-list">${html}</div>` : html;
-  return sortBar + listHtml;
+  return sortBar + progressHtml + listHtml;
 }
 
 // ---- Math --------------------------------------------------

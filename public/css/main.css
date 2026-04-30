@@ -2150,6 +2150,46 @@ img  { display: block; max-width: 100%; }
   color: var(--color-text-secondary);
   margin-top: 1px;
 }
+.pd-bill-check {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding-right: var(--space-2);
+  cursor: pointer;
+}
+.pd-check-input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.period-bill-card.is-paid {
+  opacity: 0.45;
+}
+.period-bill-card.is-paid .period-bill-card__name {
+  text-decoration: line-through;
+}
+.pd-checklist-progress {
+  margin-bottom: var(--space-3);
+}
+.pd-checklist-progress__label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin-bottom: 5px;
+}
+.pd-checklist-progress__track {
+  height: 4px;
+  background: var(--color-border);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.pd-checklist-progress__fill {
+  height: 100%;
+  background: var(--color-accent-vivid);
+  border-radius: var(--radius-pill);
+  transition: width 0.2s ease;
+}
 
 /* --- Pay Period remaining tile ------------------------------ */
 .pd-remaining-tile {

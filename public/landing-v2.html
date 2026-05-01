@@ -923,21 +923,22 @@
       display:         flex;
       justify-content: center;
       align-items:     flex-start;
-      gap:             14px;
-      overflow:        hidden;
+      gap:             28px;
+      overflow:        visible;
       padding:         40px 0 0;
-      max-width:       880px;
+      max-width:       1040px;
       margin:          0 auto;
     }
     .mock-phone--ghost {
-      opacity:        0.38;
+      opacity:        1;
       pointer-events: none;
       flex-shrink:    0;
       animation:      mockFloat 5.8s ease-in-out 1.4s infinite;
     }
-    .mock-phone--ghost-l { transform: translateY(52px) scale(0.87); }
-    .mock-phone--ghost-r { transform: translateY(28px) scale(0.87); }
-    @media (max-width: 820px) { .mock-phone--ghost { display: none; } }
+    .mock-phone--ghost-l { transform: translateY(60px) scale(0.90); }
+    .mock-phone--ghost-r { transform: translateY(36px) scale(0.90); }
+    .mock-phone--hero { width: 368px; border-radius: 56px; }
+    @media (max-width: 900px) { .mock-phone--ghost { display: none; } }
     .feat-panel { align-items: center; }
     .mock-phone {
       width: 296px;
@@ -1168,7 +1169,7 @@
       background:    var(--color-bg);
       border-radius: 0 0 8px 8px;
       overflow:      hidden;
-      height:        520px;
+      height:        468px;
     }
     .mock-desk-sidebar {
       width:           196px;
@@ -1729,6 +1730,12 @@
                     <div class="mock-hrow"><div class="mock-hrow-hdr"><span class="mock-hrow-lbl">Jun 15–30</span><span class="mock-hrow-pct warn">71%</span></div><div class="mock-hrow-bg"><div class="mock-hrow-fill warn" style="width:71%"></div></div></div>
                     <div class="mock-hrow"><div class="mock-hrow-hdr"><span class="mock-hrow-lbl">Jul 1–14</span><span class="mock-hrow-pct">59%</span></div><div class="mock-hrow-bg"><div class="mock-hrow-fill" style="width:59%"></div></div></div>
                     <div class="mock-hrow"><div class="mock-hrow-hdr"><span class="mock-hrow-lbl">Jul 15–31</span><span class="mock-hrow-pct">63%</span></div><div class="mock-hrow-bg"><div class="mock-hrow-fill" style="width:63%"></div></div></div>
+                    <div class="mock-sec">Net Surplus</div>
+                    <div class="mock-card">
+                      <div class="mock-row"><span>Avg surplus / period</span><span style="color:var(--color-accent);font-weight:700;">+$1,050</span></div>
+                      <div class="mock-row"><span>Commitment range</span><span style="color:var(--color-text-secondary);">55% – 71%</span></div>
+                      <div class="mock-row"><span>High-pressure period</span><span style="color:#D97706;font-weight:600;">Jun 15–30 · 71%</span></div>
+                    </div>
                   </div>
                 </div>
 
@@ -1756,6 +1763,14 @@
                         </tbody>
                       </table>
                     </div>
+                    <div class="mock-sec">Impact Summary</div>
+                    <div class="mock-card">
+                      <div class="mock-row"><span>Best remaining</span><span style="color:var(--color-accent);font-weight:700;">$1,100 · Seattle</span></div>
+                      <div class="mock-row"><span>Fewest expenses</span><span style="color:var(--color-text-secondary);">Mexico · 8 bills</span></div>
+                      <div class="mock-row"><span>Highest income</span><span style="color:var(--color-text-secondary);">Vegas · $3,050</span></div>
+                    </div>
+                    <div class="mock-sec">Active scenario</div>
+                    <div class="mock-bill"><span class="mock-bill-name">Vegas – Car – May</span><span style="font-size:11px;color:var(--color-accent);font-weight:600;border:1px solid var(--color-accent);padding:2px 7px;border-radius:99px;">Active</span></div>
                   </div>
                 </div>
 

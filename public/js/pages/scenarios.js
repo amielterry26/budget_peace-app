@@ -427,6 +427,7 @@ async function openNewScenarioSheet() {
     `<option value="${esc(s.scenarioId)}" ${s.scenarioId === _activeScenario ? 'selected' : ''}>${esc(s.name)}</option>`
   ).join('');
   const options = `<option value="">Start from scratch (keep setup, no expenses)</option>${cloneOptions}`;
+  const walletOptions = `<option value="">Don't copy wallet</option>${cloneOptions}`;
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="sc-sheet-overlay" class="sheet-overlay"></div>
@@ -441,10 +442,18 @@ async function openNewScenarioSheet() {
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="sc-clone-from">Clone from</label>
+          <label class="form-label" for="sc-clone-from">Copy expenses from</label>
           <select class="form-input" id="sc-clone-from">${options}</select>
           <div class="text-muted text-sm" id="sc-clone-hint" style="margin-top:var(--space-1);">
             Copies financial setup only. No expenses.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="sc-wallet-from">Copy wallet from</label>
+          <select class="form-input" id="sc-wallet-from">${walletOptions}</select>
+          <div class="text-muted text-sm" id="sc-wallet-hint" style="margin-top:var(--space-1);">
+            Cards and banks will not be copied.
           </div>
         </div>
 
@@ -482,9 +491,18 @@ async function openNewScenarioSheet() {
       : 'Copies financial setup only. No expenses.';
   });
 
+  // Update hint text based on wallet-from selection
+  document.getElementById('sc-wallet-from').addEventListener('change', (e) => {
+    const hint = document.getElementById('sc-wallet-hint');
+    hint.textContent = e.target.value
+      ? 'Cards and banks will be copied from the selected scenario.'
+      : 'Cards and banks will not be copied.';
+  });
+
   document.getElementById('sc-create').addEventListener('click', async () => {
     const name = document.getElementById('sc-new-name').value.trim();
     const cloneFromVal = document.getElementById('sc-clone-from').value;
+    const cloneWalletFromVal = document.getElementById('sc-wallet-from').value;
     const skipExpenses = !cloneFromVal;
     const cloneFrom = cloneFromVal || _activeScenario;
 
@@ -498,7 +516,7 @@ async function openNewScenarioSheet() {
       const res = await authFetch('/api/scenarios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: userId(), name, cloneFrom, skipExpenses }),
+        body: JSON.stringify({ userId: userId(), name, cloneFrom, skipExpenses, cloneWalletFrom: cloneWalletFromVal || undefined }),
       });
       if (!res.ok) throw new Error('Create failed');
       const data = await res.json();

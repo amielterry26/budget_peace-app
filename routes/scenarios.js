@@ -12,6 +12,8 @@ const { canCreateScenario, canUseProjectionMonths, canUseNotes } = require('../l
 const SCENARIOS_TABLE = 'bp_scenarios';
 const PERIODS_TABLE   = 'bp_budget_periods_v2';
 const EXPENSES_TABLE  = 'bp_expenses';
+const CARDS_TABLE     = 'bp_cards';
+const BANKS_TABLE     = 'bp_banks';
 const USERS_TABLE     = 'bp_users';
 const CHUNK = 25;
 
@@ -234,6 +236,34 @@ router.post('/', async (req, res) => {
         });
         await batchWrite(EXPENSES_TABLE, expensePuts);
         expenseCount = toClone.length;
+      }
+    }
+
+    // Clone wallet (banks + cards) from cloneWalletFrom scenario
+    const cloneWalletFrom = req.body.cloneWalletFrom || null;
+    if (cloneWalletFrom) {
+      // Clone banks first, building old→new bankId map
+      const sourceBanks = await queryByScenario(BANKS_TABLE, userId, cloneWalletFrom);
+      const bankIdMap = {};
+      if (sourceBanks.length) {
+        const bankPuts = sourceBanks.map(b => {
+          const newBankId = randomUUID();
+          bankIdMap[b.bankId] = newBankId;
+          return { PutRequest: { Item: { ...b, bankId: newBankId, scenarioId, createdAt: now } } };
+        });
+        await batchWrite(BANKS_TABLE, bankPuts);
+      }
+
+      // Clone cards, remapping bankId via bankIdMap
+      const sourceCards = await queryByScenario(CARDS_TABLE, userId, cloneWalletFrom);
+      if (sourceCards.length) {
+        const cardPuts = sourceCards.map(c => {
+          const cloned = { ...c, cardId: randomUUID(), scenarioId, createdAt: now };
+          delete cloned.updatedAt;
+          if (cloned.bankId && bankIdMap[cloned.bankId]) cloned.bankId = bankIdMap[cloned.bankId];
+          return { PutRequest: { Item: cloned } };
+        });
+        await batchWrite(CARDS_TABLE, cardPuts);
       }
     }
 

@@ -816,13 +816,19 @@ async function openSheet(expense, onSave) {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        if (!res.ok) throw new Error('Save failed');
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Save failed');
+        }
       } else {
         const res = await authFetch('/api/expenses', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        if (!res.ok) throw new Error('Save failed');
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Save failed');
+        }
       }
       Store.invalidate('expenses');
       closeSheet();
@@ -831,6 +837,7 @@ async function openSheet(expense, onSave) {
       console.error(err);
       btn.textContent = 'Try Again';
       btn.disabled = false;
+      alert(err.message || 'Failed to save. Please try again.');
     }
   });
 }

@@ -204,6 +204,12 @@ function renderSettings(scenario, user) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(firstPayDate) || isNaN(Date.parse(firstPayDate))) {
       alert('Enter a valid date.'); return;
     }
+    if (selectedCadence === 'semimonthly') {
+      const day = Number(firstPayDate.split('-')[2]);
+      if (day !== 1 && day !== 15) {
+        alert('For twice-a-month pay, first pay date must be the 1st or 15th of a month.'); return;
+      }
+    }
     if (!incomeVal) { alert('Enter your paycheck amount.'); return; }
     const parsedIncome = Number(incomeVal);
     if (!Number.isFinite(parsedIncome) || parsedIncome <= 0) {
@@ -227,7 +233,10 @@ function renderSettings(scenario, user) {
         }),
       });
 
-      if (!res.ok) throw new Error('Save failed');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Save failed');
+      }
       const data = await res.json();
 
       Store.invalidate('scenario');
@@ -241,7 +250,7 @@ function renderSettings(scenario, user) {
       console.error(err);
       btn.textContent = 'Save Changes';
       btn.disabled = false;
-      alert('Failed to save. Please try again.');
+      alert(err.message || 'Failed to save. Please try again.');
     }
   });
 

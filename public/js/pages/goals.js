@@ -241,13 +241,19 @@ function openGoalSheet(goal) {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        if (!res.ok) throw new Error('Save failed');
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Save failed');
+        }
       } else {
         const res = await authFetch('/api/goals', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        if (!res.ok) throw new Error('Save failed');
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Save failed');
+        }
       }
       Store.invalidate('goals');
       _goals = await Store.get('goals');
@@ -257,6 +263,7 @@ function openGoalSheet(goal) {
       console.error(err);
       btn.textContent = 'Try Again';
       btn.disabled    = false;
+      alert(err.message || 'Failed to save. Please try again.');
     }
   });
 }
@@ -513,7 +520,10 @@ function _openInlineEntryEdit(goal, entry) {
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ amount: Number(amount), date, ...(note && { note }) }),
       });
-      if (!res.ok) throw new Error('Save failed');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Save failed');
+      }
       Store.invalidate('goals');
       _goals = await Store.get('goals');
       renderGoals();
@@ -522,6 +532,7 @@ function _openInlineEntryEdit(goal, entry) {
     } catch (err) {
       console.error(err);
       saveBtn.textContent = 'Try Again'; saveBtn.disabled = false;
+      alert(err.message || 'Failed to save. Please try again.');
     }
   });
 }

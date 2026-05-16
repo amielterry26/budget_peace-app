@@ -44,7 +44,10 @@ async function getActiveScenario(userId, activeScenarioId) {
     TableName: SCENARIOS_TABLE,
     Key: { userId, scenarioId: sid },
   }));
-  return result.Item || null;
+  const item = result.Item;
+  // Treat soft-deleted scenarios as missing — fall through to null
+  if (!item || item.deletedAt) return null;
+  return item;
 }
 
 // Returns the effective emailPrefs: scenario-level first, user-level fallback
@@ -95,10 +98,12 @@ async function getBanksForUser(userId) {
 // Returns recurring expenses whose dueDay matches the day-of-month of targetDate.
 // Recurring expenses store dueDay (integer 1–31), not a full dueDate string.
 
-function getExpensesDueOn(expenses, targetDate) {
+function getExpensesDueOn(expenses, targetDate, today) {
   const targetDay = Number(targetDate.split('-')[2]); // e.g. '2026-05-18' → 18
   return expenses.filter(e => {
     if (e.recurrence !== 'recurring') return false;
+    // Skip expenses that haven't started yet
+    if (e.recurrenceStartDate && e.recurrenceStartDate > today) return false;
     return Number(e.dueDay) === targetDay;
   });
 }
@@ -124,10 +129,11 @@ async function runPaydaySummary(users, today) {
       const cards    = await getCardsForUser(user.userId);
       const banks    = await getBanksForUser(user.userId);
 
-      // Only recurring expenses scoped to the active scenario
+      // Only recurring expenses scoped to the active scenario.
+      // Legacy expenses (no scenarioId) belong to 'main' only — not every scenario.
       const scenarioExp = expenses.filter(e =>
         e.recurrence === 'recurring' &&
-        (!e.scenarioId || e.scenarioId === scenario)
+        (e.scenarioId === scenario || (!e.scenarioId && scenario === 'main'))
       );
 
       // Apply period-aware expense math (allocation, dueDay, multiplier)
@@ -158,12 +164,13 @@ async function runBillDueReminders(users, today) {
       const expenses = await getExpensesForUser(user.userId);
       const periods  = await getPeriodsForUser(user.userId, scenario);
 
-      // Only check expenses scoped to the active scenario
+      // Only check expenses scoped to the active scenario.
+      // Legacy expenses (no scenarioId) belong to 'main' only — not every scenario.
       const scenarioExp = expenses.filter(e =>
         e.recurrence === 'recurring' &&
-        (!e.scenarioId || e.scenarioId === scenario)
+        (e.scenarioId === scenario || (!e.scenarioId && scenario === 'main'))
       );
-      const due = getExpensesDueOn(scenarioExp, targetDate);
+      const due = getExpensesDueOn(scenarioExp, targetDate, today);
       if (due.length === 0) continue;
 
       // Find the active-scenario period that contains targetDate
@@ -194,9 +201,10 @@ async function runOverBudgetAlerts(users, today) {
       if (!period) continue;
 
       const expenses = await getExpensesForUser(user.userId);
+      // Legacy expenses (no scenarioId) belong to 'main' only — not every scenario.
       const scenarioExp = expenses.filter(e =>
         e.recurrence === 'recurring' &&
-        (!e.scenarioId || e.scenarioId === scenario)
+        (e.scenarioId === scenario || (!e.scenarioId && scenario === 'main'))
       );
 
       const income     = Number(period.income) || 0;

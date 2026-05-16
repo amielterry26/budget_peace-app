@@ -1008,4 +1008,29 @@ authFetch(`/api/budgets/${userId()}/${period.periodKey}`, {
 
 ---
 
-*Document updated: 2026-04-30. Run `git log --oneline -10` for commits since this date.*
+### This session (2026-05-16):
+
+**Semimonthly Income Math Fix**
+- Bug: `monthlyIncome` in `home.js`, `scenarios.js`, and `compare.js` only multiplied by 2 for `biweekly` — `semimonthly` fell through and treated per-paycheck income as the full monthly amount (e.g., $2,600/check showed as $2,600/mo instead of $5,200/mo)
+- Fix: `const isHalfMonth = cadence === 'biweekly' || cadence === 'semimonthly'` pattern applied in all three files
+- Also fixed `settings.js` profile card label: was showing "monthly" for semimonthly users — now correctly shows "twice a month"
+
+**Settings Save Error Handling**
+- Bug: server returns descriptive 400 errors (e.g., "first pay date must be 1st or 15th") but frontend threw before reading the body, showing generic "Failed to save. Please try again."
+- Fix: parse error response body before throwing; `alert(err.message)` in catch
+- Also added client-side semimonthly date validation in `settings.js` — catches invalid dates before the API call
+- Same pattern applied to `expenses.js` and `goals.js` save handlers (were silently resetting button to "Try Again" with no user feedback)
+
+**Cron Email: Old/Wrong Scenario Notifications**
+- Bug 1 (root cause): Legacy expense filter `(!e.scenarioId || e.scenarioId === scenario)` always included main-scenario expenses regardless of active scenario. Expenses with no `scenarioId` belong to 'main' only — matched the API's DynamoDB FilterExpression but the cron's in-memory filter did not. Fixed to `(e.scenarioId === scenario || (!e.scenarioId && scenario === 'main'))` in all three runner functions.
+- Bug 2: `getActiveScenario` didn't check `deletedAt` — soft-deleted scenarios could still drive email preferences and bill notifications. Now returns `null` if `item.deletedAt` is set.
+- Bug 3: `getExpensesDueOn` didn't check `recurrenceStartDate` — future-dated expenses would still trigger bill due reminders. Now passes `today` and skips expenses where `recurrenceStartDate > today`.
+
+**Design Decision: Bi-weekly expense due dates**
+- Decided NOT to add due-date tracking for bi-weekly expenses
+- Reason: bi-weekly expense due dates drift (every 14 days → different calendar day each month), incompatible with the `dueDay` integer model the email system uses
+- Email notifications for bi-weekly bills not worth the system complexity; notes field is sufficient
+
+---
+
+*Document updated: 2026-05-16. Run `git log --oneline -10` for commits since this date.*

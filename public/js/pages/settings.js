@@ -39,7 +39,7 @@ function renderSettings(scenario, user) {
   const name      = scenario.name || 'Main';
   const isMain    = scenario.scenarioId === 'main';
 
-  const cadenceLabel = cadence === 'biweekly' ? 'bi-weekly' : 'monthly';
+  const cadenceLabel = cadence === 'biweekly' ? 'bi-weekly' : cadence === 'semimonthly' ? 'twice a month' : cadence === 'weekly' ? 'weekly' : 'monthly';
   const incomeFmt = '$' + Number(income).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const chevronSvg = `<svg class="settings-section__chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 6 8 10 12 6"/></svg>`;

@@ -158,7 +158,8 @@ async function fetchScenarioExpenses(scenarioId) {
 function computeMetrics(scenario, expenses) {
   const income = scenario.income || 0;
   const cadence = scenario.cadence || 'biweekly';
-  const monthlyIncome = cadence === 'biweekly' ? income * 2 : income;
+  const isHalfMonth = cadence === 'biweekly' || cadence === 'semimonthly';
+  const monthlyIncome = isHalfMonth ? income * 2 : income;
 
   // Monthly expenses: only recurring, normalized via shared canonical helper
   let monthlyExp = 0;

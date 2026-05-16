@@ -75,7 +75,8 @@ function renderHealth(months) {
   });
 
   // Monthly structure
-  const monthlyIncome = scenario.cadence === 'biweekly' ? scenario.income * 2 : scenario.income;
+  const isHalfMonth = scenario.cadence === 'biweekly' || scenario.cadence === 'semimonthly';
+  const monthlyIncome = isHalfMonth ? scenario.income * 2 : scenario.income;
   const monthlyBills  = calcMonthlyExp(liveExpenses, today);
   const monthlyLeft   = Math.round((monthlyIncome - monthlyBills) * 100) / 100;
   const monthlyLeftColor = monthlyLeft < 0 ? 'var(--color-danger)' : 'var(--color-accent)';

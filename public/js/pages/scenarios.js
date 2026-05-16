@@ -62,7 +62,8 @@ async function toggleScenarioExpand(scenario, scenarios) {
 
 function buildSnapshotHtml(scenario) {
   const exps = _scenarioExpCache[scenario.scenarioId] || [];
-  const monthlyIncome = scenario.cadence === 'biweekly' ? scenario.income * 2 : scenario.income;
+  const isHalfMonth = scenario.cadence === 'biweekly' || scenario.cadence === 'semimonthly';
+  const monthlyIncome = isHalfMonth ? scenario.income * 2 : scenario.income;
 
   // Compute monthly obligations using shared canonical helper (weekly×4, biweekly×2, monthly×1)
   let monthlyExp = 0;
